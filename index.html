@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Luana's Birthday Photo Booth</title>
     <style>
+        /* Add CSS styles here */
         body {
             margin: 0;
             display: flex;
@@ -75,39 +75,28 @@
             cursor: pointer;
         }
 
-        #printer-message {
-            display: none;
+        #message {
             position: absolute;
-            bottom: 50%;
+            top: 10%;
             width: 100%;
             text-align: center;
-            color: #ff69b4;
             font-size: 1.5rem;
-            background: rgba(0, 0, 0, 0.8);
-            padding: 10px;
-            border-radius: 5px;
-            box-shadow: 0 0 10px rgba(255, 105, 180, 0.5);
+            color: white;
         }
     </style>
 </head>
-
 <body>
     <div id="app">
-        <!-- Stream -->
         <img id="stream" src="http://192.168.1.103:8083/stream" alt="Stream" crossorigin="anonymous">
         <img id="snapshot" alt="Snapshot">
-        <!-- Countdown Overlay -->
-        <div class="overlay" id="countdown" style="display: none;"></div>
-        <!-- Border Frame -->
         <div id="border-frame"></div>
-        <!-- Controls -->
+        <div class="overlay" id="countdown" style="display: none;"></div>
         <div id="controls">
             <button id="take-photo">Take Photo</button>
             <button id="print" style="display: none;">Print</button>
             <button id="cancel" style="display: none;">Cancel</button>
         </div>
-        <!-- Printer Message -->
-        <div id="printer-message">Sending to printer...</div>
+        <div id="message" style="display: none;"></div>
     </div>
 
     <script>
@@ -117,13 +106,11 @@
         const takePhotoBtn = document.getElementById('take-photo');
         const printBtn = document.getElementById('print');
         const cancelBtn = document.getElementById('cancel');
-        const printerMessage = document.getElementById('printer-message');
-        const app = document.getElementById('app');
+        const messageDiv = document.getElementById('message');
 
-        let snapshot; // Stores the photo
+        let snapshot;
 
-        takePhotoBtn.addEventListener('click', (e) => {
-            e.stopPropagation(); // Prevent triggering fullscreen mode
+        takePhotoBtn.addEventListener('click', () => {
             let count = 3;
             countdown.innerText = count;
             countdown.style.display = 'flex';
@@ -134,14 +121,12 @@
                     countdown.innerText = count;
                 } else {
                     clearInterval(interval);
-                    // Simulate flash
                     countdown.innerText = '';
                     countdown.style.background = 'white';
                     setTimeout(() => {
                         countdown.style.background = '';
                         countdown.style.display = 'none';
 
-                        // Take a snapshot
                         const canvas = document.createElement('canvas');
                         const context = canvas.getContext('2d');
                         canvas.width = stream.clientWidth;
@@ -149,12 +134,10 @@
                         context.drawImage(stream, 0, 0, canvas.width, canvas.height);
                         snapshot = canvas.toDataURL('image/jpeg');
 
-                        // Display the snapshot
                         snapshotElement.src = snapshot;
                         snapshotElement.style.display = 'block';
                         stream.style.display = 'none';
 
-                        // Show buttons for Print/Cancel
                         takePhotoBtn.style.display = 'none';
                         printBtn.style.display = 'block';
                         cancelBtn.style.display = 'block';
@@ -163,22 +146,35 @@
             }, 1000);
         });
 
-        printBtn.addEventListener('click', (e) => {
-            e.stopPropagation(); // Prevent triggering fullscreen mode
-            // Show "Sending to printer..." message
-            printerMessage.style.display = 'block';
+        printBtn.addEventListener('click', async () => {
+            messageDiv.innerText = 'Sending photo to printer...';
+            messageDiv.style.display = 'block';
 
-            // Simulate sending to printer
+            try {
+                const response = await fetch('http://192.168.1.103:8083/print', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ snapshot }),
+                });
+                const result = await response.json();
+                if (result.success) {
+                    messageDiv.innerText = 'Photo sent to printer!';
+                } else {
+                    messageDiv.innerText = 'Failed to print the photo.';
+                }
+            } catch (error) {
+                messageDiv.innerText = 'Error sending photo to printer.';
+            }
+
             setTimeout(() => {
-                printerMessage.style.display = 'none';
                 resetUI();
-            }, 3000); // Simulate 3 seconds for the print process
+                messageDiv.style.display = 'none';
+            }, 3000);
         });
 
-        cancelBtn.addEventListener('click', (e) => {
-            e.stopPropagation(); // Prevent triggering fullscreen mode
-            resetUI();
-        });
+        cancelBtn.addEventListener('click', resetUI);
 
         function resetUI() {
             snapshot = null;
@@ -187,18 +183,7 @@
             takePhotoBtn.style.display = 'block';
             printBtn.style.display = 'none';
             cancelBtn.style.display = 'none';
-            printerMessage.style.display = 'none';
         }
-
-        // Handle fullscreen logic
-        document.body.addEventListener('click', () => {
-            if (!document.fullscreenElement) {
-                app.requestFullscreen().catch((err) => {
-                    console.warn(`Error attempting to enable fullscreen: ${err.message}`);
-                });
-            }
-        });
     </script>
 </body>
-
 </html>
