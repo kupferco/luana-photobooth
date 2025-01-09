@@ -26,7 +26,7 @@
             top: 0;
             left: 0;
             width: 100%;
-            height: calc(100% - 2px);
+            height: 100%;
             border: 9px solid #ff69b4;
             pointer-events: none;
             box-sizing: border-box;
@@ -74,24 +74,40 @@
             color: white;
             cursor: pointer;
         }
+
+        #printer-message {
+            display: none;
+            position: absolute;
+            bottom: 50%;
+            width: 100%;
+            text-align: center;
+            color: #ff69b4;
+            font-size: 1.5rem;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(255, 105, 180, 0.5);
+        }
     </style>
 </head>
 
 <body>
     <div id="app">
-        <!-- Border Frame -->
-        <div id="border-frame"></div>
         <!-- Stream -->
         <img id="stream" src="http://192.168.1.103:8083/stream" alt="Stream" crossorigin="anonymous">
         <img id="snapshot" alt="Snapshot">
         <!-- Countdown Overlay -->
         <div class="overlay" id="countdown" style="display: none;"></div>
+        <!-- Border Frame -->
+        <div id="border-frame"></div>
         <!-- Controls -->
         <div id="controls">
             <button id="take-photo">Take Photo</button>
             <button id="print" style="display: none;">Print</button>
             <button id="cancel" style="display: none;">Cancel</button>
         </div>
+        <!-- Printer Message -->
+        <div id="printer-message">Sending to printer...</div>
     </div>
 
     <script>
@@ -101,49 +117,13 @@
         const takePhotoBtn = document.getElementById('take-photo');
         const printBtn = document.getElementById('print');
         const cancelBtn = document.getElementById('cancel');
+        const printerMessage = document.getElementById('printer-message');
+        const app = document.getElementById('app');
 
         let snapshot; // Stores the photo
 
-        // Check if in fullscreen mode
-        function isFullScreen() {
-            return (
-                document.fullscreenElement ||
-                document.webkitFullscreenElement ||
-                document.mozFullScreenElement ||
-                document.msFullscreenElement
-            );
-        }
-
-        // Enter fullscreen mode
-        function enterFullScreen() {
-            const app = document.getElementById('app');
-            if (app.requestFullscreen) {
-                app.requestFullscreen();
-            } else if (app.webkitRequestFullscreen) {
-                app.webkitRequestFullscreen(); // For Safari
-            } else if (app.msRequestFullscreen) {
-                app.msRequestFullscreen(); // For IE/Edge
-            }
-        }
-
-        // Add listener to check for taps outside buttons
-        document.body.addEventListener('click', (event) => {
-            // Ignore clicks on buttons
-            if (
-                event.target === takePhotoBtn ||
-                event.target === printBtn ||
-                event.target === cancelBtn
-            ) {
-                return;
-            }
-
-            // If not in fullscreen, enter fullscreen
-            if (!isFullScreen()) {
-                enterFullScreen();
-            }
-        });
-
-        takePhotoBtn.addEventListener('click', () => {
+        takePhotoBtn.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent triggering fullscreen mode
             let count = 3;
             countdown.innerText = count;
             countdown.style.display = 'flex';
@@ -183,13 +163,20 @@
             }, 1000);
         });
 
-        printBtn.addEventListener('click', () => {
-            // Print logic here, send `snapshot` to your server or printer
-            alert('Sending photo to printer...');
-            resetUI();
+        printBtn.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent triggering fullscreen mode
+            // Show "Sending to printer..." message
+            printerMessage.style.display = 'block';
+
+            // Simulate sending to printer
+            setTimeout(() => {
+                printerMessage.style.display = 'none';
+                resetUI();
+            }, 3000); // Simulate 3 seconds for the print process
         });
 
-        cancelBtn.addEventListener('click', () => {
+        cancelBtn.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent triggering fullscreen mode
             resetUI();
         });
 
@@ -200,7 +187,17 @@
             takePhotoBtn.style.display = 'block';
             printBtn.style.display = 'none';
             cancelBtn.style.display = 'none';
+            printerMessage.style.display = 'none';
         }
+
+        // Handle fullscreen logic
+        document.body.addEventListener('click', () => {
+            if (!document.fullscreenElement) {
+                app.requestFullscreen().catch((err) => {
+                    console.warn(`Error attempting to enable fullscreen: ${err.message}`);
+                });
+            }
+        });
     </script>
 </body>
 
