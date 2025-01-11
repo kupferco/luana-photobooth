@@ -20,10 +20,24 @@ body {
 #stream, #snapshot {
     width: 100%;
     height: 100%;
+    object-fit: contain; /* Maintain aspect ratio and scale with black borders */
+    background: black; /* Black background for borders */
 }
 
 #snapshot {
     display: none;
+}
+
+#flash {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: white; /* Flash effect color */
+    opacity: 0; /* Initially hidden */
+    pointer-events: none; /* Prevent interaction */
+    transition: opacity 0.2s ease; /* Smooth fade-out */
 }
 
 /* Countdown overlay */
@@ -93,8 +107,8 @@ body {
 /* Print/Cancel buttons container */
 #print-controls {
     position: absolute;
-    bottom: 5%;
-    right: 9%; /* Align to the left */
+    top: 4%;
+    right: 3%; /* Align to the left */
     display: flex;
     flex-direction: column; /* Stack buttons vertically */
     gap: 10px; /* Add space between buttons */

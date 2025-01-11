@@ -17,25 +17,11 @@ document.addEventListener('DOMContentLoaded', () => {
     takePhotoBtn.style.display = 'block'; // Ensure the Start button is visible
 });
 
-
-window.addEventListener('resize', () => {
-    const snapshotElement = document.getElementById('snapshot');
-    if (snapshotElement.style.display === 'block') {
-        const aspectRatio = 16 / 9;
-        const width = snapshotElement.parentElement.offsetWidth;
-        const height = width / aspectRatio;
-
-        snapshotElement.style.width = `${width}px`;
-        snapshotElement.style.height = `${height}px`;
-    }
-});
-
-
 let snapshots = [];
 let captureIndex = 0;
 
-const countDownDelay = 500;
-const previewDelay = 1000;
+const countDownDelay = 1000;
+const previewDelay = 2000;
 
 // Handle the Start button click
 takePhotoBtn.addEventListener('click', () => {
@@ -113,11 +99,13 @@ function captureSnapshot() {
 
 
 function flashScreen() {
-    countdown.style.background = 'white';
+    const flash = document.getElementById('flash');
+    flash.style.opacity = '1'; // Make it visible
     setTimeout(() => {
-        countdown.style.background = '';
-    }, 100);
+        flash.style.opacity = '0'; // Fade out after a short delay
+    }, 100); // Duration of the flash
 }
+
 
 async function savePhotos(composedImage) {
     console.log("Saving photos and composed image...");
@@ -175,8 +163,8 @@ function composeFinalImage() {
             context.drawImage(background, 0, 0, canvasWidth, canvasHeight);
 
             // Dimensions for "Photo 4" (large top image)
-            const largePhotoWidth = canvasWidth * 0.7; // 70% of canvas width
-            const largePhotoHeight = largePhotoWidth * (2 / 3); // Maintain 3:2 aspect ratio
+            const largePhotoWidth = canvasWidth * 0.8; // 70% of canvas width
+            const largePhotoHeight = largePhotoWidth * (9 / 16); // Maintain 16:9 aspect ratio
             const largePhotoX = canvasWidth * 0.02;
             const largePhotoY = canvasHeight * 0.04;
 
@@ -188,8 +176,8 @@ function composeFinalImage() {
 
                 // Dimensions for smaller photos
                 const smallPhotoWidth = canvasWidth * 0.2; // 20% of canvas width
-                const smallPhotoHeight = smallPhotoWidth * (2 / 3); // Maintain 3:2 aspect ratio
-                const smallPhotoY = canvasHeight * 0.775;
+                const smallPhotoHeight = smallPhotoWidth * (9 / 16); // Maintain 16:9 aspect ratio
+                const smallPhotoY = canvasHeight * 0.775; // Align at the bottom
 
                 // Create promises for smaller photos
                 const smallPhotosPromises = snapshots.slice(0, 3).map((src, index) => {
@@ -239,22 +227,17 @@ function composeFinalImage() {
 }
 
 
-
-
 function displaySnapshotPreview(snapshot) {
-    const snapshotElement = document.getElementById('snapshot'); // Image preview element
-    snapshotElement.src = snapshot;
+    const snapshotElement = document.getElementById('snapshot'); // Select the snapshot element
+    snapshotElement.src = snapshot; // Set the source of the preview
 
-    // Resize to 16:9 for display purposes
-    const aspectRatio = 16 / 9;
-    const width = snapshotElement.parentElement.offsetWidth; // Use the parent container's width
-    const height = width / aspectRatio;
-
-    snapshotElement.style.width = `${width}px`;
-    snapshotElement.style.height = `${height}px`;
+    // Ensure it scales to fit its container using CSS
+    snapshotElement.style.width = ''; // Clear inline width
+    snapshotElement.style.height = ''; // Clear inline height
+    snapshotElement.style.objectFit = 'contain'; // Maintain aspect ratio
 
     snapshotElement.style.display = 'block'; // Show the preview
-    stream.style.display = 'none'; // Hide the stream
+    document.getElementById('stream').style.display = 'none'; // Hide the stream
 }
 
 
@@ -265,20 +248,14 @@ function displayComposedImage(composedImage) {
     const snapshotElement = document.getElementById('snapshot'); // Image preview element
     snapshotElement.src = composedImage;
 
-    // Resize to 16:9 for display purposes
-    const aspectRatio = 16 / 9;
-    const width = snapshotElement.parentElement.offsetWidth; // Use the parent container's width
-    const height = width / aspectRatio;
-
-    snapshotElement.style.width = `${width}px`;
-    snapshotElement.style.height = `${height}px`;
+    // Ensure it scales to fit its container using CSS
+    snapshotElement.style.width = ''; // Clear inline width
+    snapshotElement.style.height = ''; // Clear inline height
+    snapshotElement.style.objectFit = 'contain'; // Maintain aspect ratio
 
     snapshotElement.style.display = 'block'; // Show the composed image preview
     stream.style.display = 'none'; // Hide the stream
 }
-
-
-
 
 
 
@@ -301,6 +278,8 @@ function takeSnapshot() {
     // Draw the image onto the canvas
     const context = canvas.getContext('2d');
     context.drawImage(img, 0, 0, imgWidth, imgHeight);
+
+    flashScreen();
 
     // Get the snapshot as a base64-encoded image
     return canvas.toDataURL('image/jpeg');
@@ -369,3 +348,33 @@ function resetUI() {
     // Display the welcome message again
     showInstruction(welcomeMessage, 0); // Show indefinitely
 }
+
+
+const appElement = document.getElementById('app');
+
+// Enter fullscreen when tapping/clicking on the image
+function toggleFullscreen() {
+    if (!document.fullscreenElement) {
+        if (appElement.requestFullscreen) {
+            appElement.requestFullscreen();
+        } else if (appElement.webkitRequestFullscreen) { // Safari
+            appElement.webkitRequestFullscreen();
+        }
+    }
+}
+
+appElement.addEventListener('click', toggleFullscreen);
+
+
+
+window.addEventListener('resize', () => {
+    const snapshotElement = document.getElementById('snapshot');
+    if (snapshotElement.style.display === 'block') {
+        const aspectRatio = 16 / 9;
+        const width = snapshotElement.parentElement.offsetWidth;
+        const height = width / aspectRatio;
+
+        snapshotElement.style.width = `${width}px`;
+        snapshotElement.style.height = `${height}px`;
+    }
+});
