@@ -19,6 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 let snapshots = [];
+let composedImageBase64 = null; // Holds the composed image globally
 let captureIndex = 0;
 
 const countDownDelay = 1000;
@@ -211,7 +212,9 @@ function composeFinalImage() {
 
             // Wait for all images to load and draw before resolving the final image
             Promise.all(imagePromises).then(() => {
-                resolve(canvas.toDataURL('image/jpeg'));
+                const composedImage = canvas.toDataURL('image/jpeg');
+                composedImageBase64 = composedImage; // Save the composed image globally
+                resolve(composedImage);
             });
         };
 
@@ -310,27 +313,28 @@ function delay(ms) {
 printBtn.addEventListener('click', async () => {
     showInstruction('Sending photo to printer...', 0); // Keep the message visible until further updates
     try {
-        const response = await fetch('http://192.168.1.105:8083/prints', {
+        const response = await fetch('/print', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ snapshot: snapshots[snapshots.length - 1] }), // Send final image
+            body: JSON.stringify({ snapshot: composedImageBase64 }),
         });
         const result = await response.json();
         if (result.success) {
-            showInstruction('Photo sent to printer!');
+            showInstruction('Photo sent successfully!');
         } else {
-            showInstruction('Failed to print the photo.');
+            showInstruction(`Failed to print: ${result.error}`);
         }
     } catch (error) {
-        showInstruction('Error sending photo to printer.');
+        showInstruction('Error connecting to the printer.');
     }
 
     setTimeout(() => {
         resetUI();
     }, 3000); // Reset UI after 3 seconds
 });
+
 
 
 cancelBtn.addEventListener('click', resetUI);

@@ -7,11 +7,23 @@ import os
 import time
 import logging
 
+import argparse
+from print_photo import process_image, print_image
+
+# For sending in test-mode (without printing)
+# python3 server.py --test-mode
+
 # Configure logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 app = Flask(__name__)
 CORS(app)
+
+# Add argument to control real printing or test output
+parser = argparse.ArgumentParser(description="Photo Booth Server")
+parser.add_argument("--test-mode", action="store_true", help="Enable test mode (no actual printing).")
+args = parser.parse_args()
+test_mode = args.test_mode
 
 # Directory to store archived photos
 ARCHIVE_DIR = 'archive'
@@ -20,7 +32,7 @@ ARCHIVE_DIR = 'archive'
 if not os.path.exists(ARCHIVE_DIR):
     os.makedirs(ARCHIVE_DIR)
 
-cameraIndex = 1
+cameraIndex = 0
 # camera = cv2.VideoCapture(cameraIndex)
 global_camera = cv2.VideoCapture(cameraIndex)
 # global_camera.release()
@@ -73,22 +85,36 @@ def stream():
 @app.route('/print', methods=['POST'])
 def print_photo():
     data = request.get_json()
-    snapshot_data = data.get('snapshot', '')
+    snapshot_data = data.get('snapshot', '')  # Composed image sent as base64
     if not snapshot_data:
         logging.error("No snapshot data provided in /print")
         return jsonify({"success": False, "error": "No snapshot data provided"}), 400
 
     try:
+        # Decode and save the received snapshot
         header, encoded = snapshot_data.split(',', 1)
         image_data = base64.b64decode(encoded)
-        with open("captured_photo.jpg", "wb") as f:
+        input_file = "sent_to_print.jpg"  # Save the image locally
+        processed_file = "processed_image.jpg"
+
+        with open(input_file, "wb") as f:
             f.write(image_data)
 
-        logging.info("Photo saved as captured_photo.jpg")
+        logging.info("Composed image saved as sent_to_print.jpg")
+
+        # Process and print
+        process_image(input_file, processed_file, resize_factor=1.0, grayscale=False)  # Default processing
+        if test_mode:
+            logging.info("Test mode: Skipping actual printing. Processed file saved as 'processed_image.jpg'.")
+        else:
+            printer_name = "Canon_SELPHY_CP1500"
+            print_image(processed_file, printer_name)
+
         return jsonify({"success": True})
     except Exception as e:
         logging.error("Error processing /print: %s", e, exc_info=True)
         return jsonify({"success": False, "error": str(e)}), 500
+
 
 @app.route('/capture', methods=['GET'])
 def capture():
@@ -133,7 +159,13 @@ def save_photos():
             with open(composed_image_path, 'wb') as file:
                 file.write(base64.b64decode(composed_image_data))
 
+            # Also save a copy of the composed image as "last_composed_image.jpg" in the root folder
+            last_composed_image_path = os.path.join(os.getcwd(), 'last_composed_image.jpg')
+            with open(last_composed_image_path, 'wb') as file:
+                file.write(base64.b64decode(composed_image_data))
+
         logging.info("Photos saved successfully in folder %s", folder_path)
+        logging.info("Last composed image saved as last_composed_image.jpg")
         return jsonify({"success": True, "folder": folder_path}), 200
     except Exception as e:
         logging.error("Error in /save_photos: %s", e, exc_info=True)
