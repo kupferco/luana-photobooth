@@ -110,6 +110,15 @@
         const cancelBtn = document.getElementById('cancel');
         const messageDiv = document.getElementById('message');
 
+        // Define the initial welcome message
+        const welcomeMessage = "On start, 4 photos will be taken after a countdown from 3!! :-)";
+
+        // Display the welcome message on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            showInstruction(welcomeMessage, 0); // Show indefinitely
+            takePhotoBtn.style.display = 'block'; // Ensure the Start button is visible
+        });
+
         window.addEventListener('resize', () => {
             const snapshotElement = document.getElementById('snapshot');
             if (snapshotElement.style.display === 'block') {
@@ -129,13 +138,17 @@
         const countDownDelay = 250;
         const previewDelay = 250;
 
-        takePhotoBtn.addEventListener('click', startPhotoSequence);
+        // Handle the Start button click
+        takePhotoBtn.addEventListener('click', () => {
+            messageDiv.style.display = 'none'; // Hide the welcome message
+            startPhotoSequence(); // Start the photo sequence
+        });
+
 
         async function startPhotoSequence() {
             snapshots = [];
             captureIndex = 0;
             takePhotoBtn.style.display = 'none';
-            showInstruction("4 photos will be taken now – each after a countdown from 3!! Get ready!! :-)", 4000);
             capturePhotoSequence();
         }
 
@@ -231,9 +244,6 @@
             printBtn.style.display = 'block';
             cancelBtn.style.display = 'block';
         }
-
-
-
 
 
         function composeFinalImage() {
@@ -361,15 +371,14 @@
         }
 
 
-
-
         function showInstruction(message, duration = 3000) {
             messageDiv.innerText = message;
             messageDiv.style.display = 'block';
 
-            setTimeout(() => {
-                messageDiv.style.display = 'none';
-            }, duration);
+            if (duration)
+                setTimeout(() => {
+                    messageDiv.style.display = 'none';
+                }, duration);
         }
 
 
@@ -406,13 +415,17 @@
         cancelBtn.addEventListener('click', resetUI);
 
         function resetUI() {
-            snapshots = [];
-            snapshotElement.style.display = 'none';
-            stream.style.display = 'block'; // Show the stream again
-            takePhotoBtn.style.display = 'block';
-            printBtn.style.display = 'none';
-            cancelBtn.style.display = 'none';
-        }
+    snapshots = [];
+    snapshotElement.style.display = 'none';
+    stream.style.display = 'block'; // Show the stream again
+    takePhotoBtn.style.display = 'block'; // Show the Start button
+    printBtn.style.display = 'none';
+    cancelBtn.style.display = 'none';
+
+    // Display the welcome message again
+    showInstruction(welcomeMessage, 0); // Show indefinitely
+}
+
 
     </script>
 
