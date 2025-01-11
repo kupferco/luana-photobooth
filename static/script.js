@@ -6,8 +6,9 @@ const printBtn = document.getElementById('print-button');
 const cancelBtn = document.getElementById('cancel-button');
 const messageDiv = document.getElementById('message');
 
+const totalPhotos = 3;
 // Define the initial welcome message
-const welcomeMessage = "On start, 4 photos will be taken\nafter a countdown from 3!!";
+const welcomeMessage = `On start, ${totalPhotos} photos will be taken\nafter a countdown!!`;
 
 // Display the welcome message on page load
 document.addEventListener('DOMContentLoaded', () => {
@@ -20,8 +21,8 @@ document.addEventListener('DOMContentLoaded', () => {
 let snapshots = [];
 let captureIndex = 0;
 
-const countDownDelay = 1000;
-const previewDelay = 2000;
+const countDownDelay = 100;
+const previewDelay = 200;
 
 // Handle the Start button click
 takePhotoBtn.addEventListener('click', () => {
@@ -38,7 +39,7 @@ async function startPhotoSequence() {
 }
 
 function capturePhotoSequence() {
-    if (captureIndex < 4) {
+    if (captureIndex < totalPhotos) {
         startCountdown(3, async () => {
             const snapshot = takeSnapshot();
             if (snapshot) {
@@ -51,7 +52,7 @@ function capturePhotoSequence() {
                 console.error('Failed to capture snapshot.');
             }
 
-            if (++captureIndex < 4) {
+            if (++captureIndex < totalPhotos) {
                 capturePhotoSequence(); // Continue to the next photo
             } else {
                 showFinalImage(); // Show the final composed image
@@ -148,10 +149,21 @@ function composeFinalImage() {
     const context = canvas.getContext('2d');
 
     // Set final print resolution (1200 x 1800 for 4x6 at 300 dpi)
-    const canvasWidth = 1800; // Width of the final canvas
-    const canvasHeight = 1200; // Height of the final canvas
+    const canvasWidth = 1800;
+    const canvasHeight = 1200;
     canvas.width = canvasWidth;
     canvas.height = canvasHeight;
+
+    // Layout configuration
+    const imageSizes = {
+        resize: 0.47, // Scale images to 30% of canvas width
+        positions: {
+            x1: 0.02, // First column
+            x2: 0.515, // Second column
+            y1: 0.1, // Top row
+            y2: 0.55, // Bottom row
+        },
+    };
 
     // Load the background image
     const background = new Image();
@@ -162,61 +174,45 @@ function composeFinalImage() {
             // Draw the background
             context.drawImage(background, 0, 0, canvasWidth, canvasHeight);
 
-            // Dimensions for "Photo 4" (large top image)
-            const largePhotoWidth = canvasWidth * 0.8; // 70% of canvas width
-            const largePhotoHeight = largePhotoWidth * (9 / 16); // Maintain 16:9 aspect ratio
-            const largePhotoX = canvasWidth * 0.02;
-            const largePhotoY = canvasHeight * 0.04;
+            // Calculate image dimensions
+            const imageWidth = canvasWidth * imageSizes.resize;
+            const imageHeight = imageWidth * (9 / 16); // Maintain 16:9 aspect ratio
 
-            // Draw the large photo (Photo 4)
-            const photo4 = new Image();
-            photo4.src = snapshots[3]; // Last photo
-            photo4.onload = () => {
-                context.drawImage(photo4, largePhotoX, largePhotoY, largePhotoWidth, largePhotoHeight);
+            // Define image positions
+            const positions = [
+                { x: canvasWidth * imageSizes.positions.x1, y: canvasHeight * imageSizes.positions.y1 },
+                { x: canvasWidth * imageSizes.positions.x1, y: canvasHeight * imageSizes.positions.y2 },
+                { x: canvasWidth * imageSizes.positions.x2, y: canvasHeight * imageSizes.positions.y2 },
+            ];
 
-                // Dimensions for smaller photos
-                const smallPhotoWidth = canvasWidth * 0.2; // 20% of canvas width
-                const smallPhotoHeight = smallPhotoWidth * (9 / 16); // Maintain 16:9 aspect ratio
-                const smallPhotoY = canvasHeight * 0.775; // Align at the bottom
+            // Create promises to load and draw each image
+            const imagePromises = snapshots.slice(0, 3).map((src, index) => {
+                return new Promise((resolve) => {
+                    const img = new Image();
+                    img.src = src;
 
-                // Create promises for smaller photos
-                const smallPhotosPromises = snapshots.slice(0, 3).map((src, index) => {
-                    return new Promise((resolve) => {
-                        const img = new Image();
-                        img.src = src;
+                    img.onload = () => {
+                        context.drawImage(
+                            img,
+                            positions[index].x,
+                            positions[index].y,
+                            imageWidth,
+                            imageHeight
+                        );
+                        resolve(); // Resolve once the image is drawn
+                    };
 
-                        img.onload = () => {
-                            const smallPhotoX =
-                                canvasWidth * 0.02 + index * (smallPhotoWidth + canvasWidth * 0.05); // Spaced evenly
-
-                            context.drawImage(
-                                img,
-                                smallPhotoX,
-                                smallPhotoY,
-                                smallPhotoWidth,
-                                smallPhotoHeight
-                            );
-
-                            resolve(); // Resolve once the image is drawn
-                        };
-
-                        img.onerror = () => {
-                            console.error(`Failed to load image for photo ${index + 1}`);
-                            resolve(); // Resolve even if there's an error
-                        };
-                    });
+                    img.onerror = () => {
+                        console.error(`Failed to load image for photo ${index + 1}`);
+                        resolve(); // Resolve even if there's an error
+                    };
                 });
+            });
 
-                // Wait for all small photos to load and draw before resolving the final image
-                Promise.all(smallPhotosPromises).then(() => {
-                    resolve(canvas.toDataURL('image/jpeg'));
-                });
-            };
-
-            photo4.onerror = () => {
-                console.error('Failed to load the large photo.');
-                resolve(canvas.toDataURL('image/jpeg')); // Resolve even if the large photo fails
-            };
+            // Wait for all images to load and draw before resolving the final image
+            Promise.all(imagePromises).then(() => {
+                resolve(canvas.toDataURL('image/jpeg'));
+            });
         };
 
         background.onerror = () => {
@@ -225,6 +221,8 @@ function composeFinalImage() {
         };
     });
 }
+
+
 
 
 function displaySnapshotPreview(snapshot) {
@@ -364,8 +362,6 @@ function toggleFullscreen() {
 }
 
 appElement.addEventListener('click', toggleFullscreen);
-
-
 
 window.addEventListener('resize', () => {
     const snapshotElement = document.getElementById('snapshot');

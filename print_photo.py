@@ -17,7 +17,8 @@ def process_and_print_photo():
     cv2.imwrite("captured_photo_resized.jpg", grayscale_image)
 
     # Send the processed image to the printer
-    printer_name = "Xerox_R__C230_Color_Printer"
+    # printer_name = "Xerox_R__C230_Color_Printer"
+    printer_name = "Canon_SELPHY_CP1500"
     try:
         subprocess.run(["lp", "-d", printer_name, "captured_photo_resized.jpg"], check=True)
         print("Photo sent to printer successfully.")
