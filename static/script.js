@@ -7,7 +7,7 @@ const cancelBtn = document.getElementById('cancel-button');
 const messageDiv = document.getElementById('message');
 
 // Define the initial welcome message
-const welcomeMessage = "On start, 4 photos will be taken\nafter a countdown from 3!! :-)";
+const welcomeMessage = "On start, 4 photos will be taken\nafter a countdown from 3!!";
 
 // Display the welcome message on page load
 document.addEventListener('DOMContentLoaded', () => {

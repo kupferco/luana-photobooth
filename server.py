@@ -39,19 +39,26 @@ def list_available_cameras():
     return available_cameras
 
 def generate_frames():
-    while True:
-        success, frame = camera.read()
-        if not success:
-            logging.error("Failed to read frame from the camera")
-            time.sleep(0.1)  # Prevent a busy loop
-            continue
-        try:
+    local_camera = cv2.VideoCapture(1)
+    logging.info("Starting frame generation...")
+    try:
+        while True:
+            success, frame = local_camera.read()
+            if not success:
+                logging.warning("Failed to read frame from the camera")
+                time.sleep(0.1)
+                continue
+            # logging.debug("Frame captured successfully")
             _, buffer = cv2.imencode('.jpg', frame)
             frame = buffer.tobytes()
+            # logging.debug("Frame encoded successfully")
             yield (b'--frame\r\n'
                    b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
-        except Exception as e:
-            logging.error("Error during frame generation: %s", e, exc_info=True)
+    except Exception as e:
+        logging.error("Error during frame generation: %s", e, exc_info=True)
+    finally:
+        local_camera.release()
+        logging.info("Camera resource released after frame generation")
 
 
 @app.route('/stream')
