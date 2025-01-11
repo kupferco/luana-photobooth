@@ -127,7 +127,7 @@
         let captureIndex = 0;
 
         const countDownDelay = 250;
-        const previewDelay = 2000;
+        const previewDelay = 250;
 
         takePhotoBtn.addEventListener('click', startPhotoSequence);
 
@@ -241,8 +241,8 @@
             const context = canvas.getContext('2d');
 
             // Set final print resolution (1200 x 1800 for 4x6 at 300 dpi)
-            const canvasWidth = 1800;
-            const canvasHeight = 1200;
+            const canvasWidth = 1800; // Width of the final canvas
+            const canvasHeight = 1200; // Height of the final canvas
             canvas.width = canvasWidth;
             canvas.height = canvasHeight;
 
@@ -255,47 +255,34 @@
                     // Draw the background
                     context.drawImage(background, 0, 0, canvasWidth, canvasHeight);
 
-                    // Calculate cropping for 720p stream (1280x720 to 1080x720)
-                    const cropWidth = 1080;
-                    const cropHeight = 720;
-                    const cropX = (1280 - cropWidth) / 2; // Center horizontally
-                    const cropY = 0; // Full height
-
-                    // Resize and position photos
-                    const photoWidth = canvasWidth * 0.7; // 70% of canvas width
-                    const photoHeight = canvasHeight * 0.4; // 40% of canvas height
-                    const padding = 20;
+                    // Dimensions for "Photo 4" (large top image)
+                    const largePhotoWidth = canvasWidth * 0.7; // 70% of canvas width
+                    const largePhotoHeight = largePhotoWidth * (2 / 3); // Maintain 3:2 aspect ratio
+                    const largePhotoX = canvasWidth * 0.05;
+                    const largePhotoY = canvasHeight * 0.05;
 
                     // Draw the large photo (Photo 4)
                     const photo4 = new Image();
-                    photo4.src = snapshots[3];
+                    photo4.src = snapshots[3]; // Last photo
                     photo4.onload = () => {
-                        context.drawImage(
-                            photo4,
-                            cropX, cropY, cropWidth, cropHeight, // Crop the stream
-                            (canvasWidth - photoWidth) / 2, canvasHeight * 0.1, // Position
-                            photoWidth, photoHeight // Size
-                        );
+                        context.drawImage(photo4, largePhotoX, largePhotoY, largePhotoWidth, largePhotoHeight);
+
+                        // Dimensions for smaller photos
+                        const smallPhotoWidth = canvasWidth * 0.2; // 20% of canvas width
+                        const smallPhotoHeight = smallPhotoWidth * (2 / 3); // Maintain 3:2 aspect ratio
+                        const smallPhotoY = canvasHeight * 0.775;
 
                         // Draw smaller photos (Photos 1, 2, 3)
                         snapshots.slice(0, 3).forEach((src, index) => {
+                            const smallPhotoX = canvasWidth * 0.05 + index * (smallPhotoWidth + canvasWidth * 0.05); // Spaced evenly
+
                             const img = new Image();
                             img.src = src;
 
                             img.onload = () => {
-                                const smallPhotoWidth = canvasWidth * 0.2; // 20% width
-                                const smallPhotoHeight = canvasHeight * 0.15; // 15% height
-                                const smallPhotoX = (canvasWidth - (3 * smallPhotoWidth + 2 * padding)) / 2 + index * (smallPhotoWidth + padding);
-                                const smallPhotoY = canvasHeight * 0.55; // Below large photo
+                                context.drawImage(img, smallPhotoX, smallPhotoY, smallPhotoWidth, smallPhotoHeight);
 
-                                context.drawImage(
-                                    img,
-                                    cropX, cropY, cropWidth, cropHeight, // Crop the stream
-                                    smallPhotoX, smallPhotoY, // Position
-                                    smallPhotoWidth, smallPhotoHeight // Size
-                                );
-
-                                // Resolve the promise after all photos are loaded
+                                // Resolve the promise after the last photo is drawn
                                 if (index === 2) {
                                     resolve(canvas.toDataURL('image/jpeg'));
                                 }
@@ -305,6 +292,7 @@
                 };
             });
         }
+
 
 
         function displaySnapshotPreview(snapshot) {
