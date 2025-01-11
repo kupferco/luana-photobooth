@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -85,6 +86,7 @@
         }
     </style>
 </head>
+
 <body>
     <div id="app">
         <img id="stream" src="http://192.168.1.105:8083/stream" alt="Stream" crossorigin="anonymous">
@@ -92,7 +94,7 @@
         <!-- <div id="border-frame"></div> -->
         <div class="overlay" id="countdown" style="display: none;"></div>
         <div id="controls">
-            <button id="take-photo">Take Photo</button>
+            <button id="take-photo">Start</button>
             <button id="print" style="display: none;">Print</button>
             <button id="cancel" style="display: none;">Cancel</button>
         </div>
@@ -108,82 +110,324 @@
         const cancelBtn = document.getElementById('cancel');
         const messageDiv = document.getElementById('message');
 
-        let snapshot;
+        window.addEventListener('resize', () => {
+            const snapshotElement = document.getElementById('snapshot');
+            if (snapshotElement.style.display === 'block') {
+                const aspectRatio = 16 / 9;
+                const width = snapshotElement.parentElement.offsetWidth;
+                const height = width / aspectRatio;
 
-        takePhotoBtn.addEventListener('click', () => {
-            let count = 3;
-            countdown.innerText = count;
-            countdown.style.display = 'flex';
-
-            const interval = setInterval(() => {
-                count--;
-                if (count > 0) {
-                    countdown.innerText = count;
-                } else {
-                    clearInterval(interval);
-                    countdown.innerText = '';
-                    countdown.style.background = 'white';
-                    setTimeout(() => {
-                        countdown.style.background = '';
-                        countdown.style.display = 'none';
-
-                        const canvas = document.createElement('canvas');
-                        const context = canvas.getContext('2d');
-                        canvas.width = stream.clientWidth;
-                        canvas.height = stream.clientHeight;
-                        context.drawImage(stream, 0, 0, canvas.width, canvas.height);
-                        snapshot = canvas.toDataURL('image/jpeg');
-
-                        snapshotElement.src = snapshot;
-                        snapshotElement.style.display = 'block';
-                        stream.style.display = 'none';
-
-                        takePhotoBtn.style.display = 'none';
-                        printBtn.style.display = 'block';
-                        cancelBtn.style.display = 'block';
-                    }, 100);
-                }
-            }, 1000);
+                snapshotElement.style.width = `${width}px`;
+                snapshotElement.style.height = `${height}px`;
+            }
         });
 
-        printBtn.addEventListener('click', async () => {
-            messageDiv.innerText = 'Sending photo to printer...';
+
+        let snapshots = [];
+        let captureIndex = 0;
+
+        const countDownDelay = 250;
+        const previewDelay = 2000;
+
+        takePhotoBtn.addEventListener('click', startPhotoSequence);
+
+        async function startPhotoSequence() {
+            snapshots = [];
+            captureIndex = 0;
+            takePhotoBtn.style.display = 'none';
+            showInstruction("4 photos will be taken now – each after a countdown from 3!! Get ready!! :-)", 4000);
+            capturePhotoSequence();
+        }
+
+        function capturePhotoSequence() {
+            if (captureIndex < 4) {
+                startCountdown(3, async () => {
+                    const snapshot = takeSnapshot();
+                    if (snapshot) {
+                        snapshots.push(snapshot);
+                        displaySnapshotPreview(snapshot);
+                        await delay(previewDelay);
+                        snapshotElement.style.display = 'none';
+                        stream.style.display = 'block';
+                    } else {
+                        console.error('Failed to capture snapshot.');
+                    }
+
+                    if (++captureIndex < 4) {
+                        capturePhotoSequence(); // Continue to the next photo
+                    } else {
+                        showFinalImage(); // Show the final composed image
+                    }
+                });
+            }
+        }
+
+
+        function startCountdown(seconds, onComplete) {
+            countdown.style.display = 'flex';
+            let count = seconds;
+
+            const interval = setInterval(() => {
+                countdown.innerText = count;
+                count--;
+
+                if (count < 0) {
+                    clearInterval(interval);
+                    countdown.style.display = 'none';
+                    onComplete();
+                }
+            }, countDownDelay);
+        }
+
+        function captureSnapshot() {
+            const snapshot = takeSnapshot(); // High-quality snapshot
+            if (snapshot) {
+                snapshots.push(snapshot); // Save for composition
+                displaySnapshotPreview(snapshot); // Display resized preview
+            } else {
+                console.error('Failed to capture snapshot.');
+            }
+        }
+
+
+        function flashScreen() {
+            countdown.style.background = 'white';
+            setTimeout(() => {
+                countdown.style.background = '';
+            }, 100);
+        }
+
+        async function savePhotos(composedImage) {
+            console.log("Saving photos and composed image...");
+            // console.log("Snapshots:", snapshots);
+            // console.log("Composed Image:", composedImage);
+
+            const response = await fetch('http://192.168.1.105:8083/save_photos', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    photos: snapshots,
+                    composed_image: composedImage
+                }),
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                console.log(`Photos saved to folder: ${result.folder}`);
+            } else {
+                console.error(`Error saving photos: ${result.message}`);
+            }
+        }
+
+
+        async function showFinalImage() {
+            const composedImage = await composeFinalImage(); // Wait for the composed image
+            displayComposedImage(composedImage);
+
+            savePhotos(composedImage); // Save the composed image along with individual photos
+
+            printBtn.style.display = 'block';
+            cancelBtn.style.display = 'block';
+        }
+
+
+
+
+
+        function composeFinalImage() {
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+
+            // Set final print resolution (1200 x 1800 for 4x6 at 300 dpi)
+            const canvasWidth = 1800;
+            const canvasHeight = 1200;
+            canvas.width = canvasWidth;
+            canvas.height = canvasHeight;
+
+            // Load the background image
+            const background = new Image();
+            background.src = './static/background.jpg'; // Assumes background.jpg is in the static folder
+
+            return new Promise((resolve) => {
+                background.onload = () => {
+                    // Draw the background
+                    context.drawImage(background, 0, 0, canvasWidth, canvasHeight);
+
+                    // Calculate cropping for 720p stream (1280x720 to 1080x720)
+                    const cropWidth = 1080;
+                    const cropHeight = 720;
+                    const cropX = (1280 - cropWidth) / 2; // Center horizontally
+                    const cropY = 0; // Full height
+
+                    // Resize and position photos
+                    const photoWidth = canvasWidth * 0.7; // 70% of canvas width
+                    const photoHeight = canvasHeight * 0.4; // 40% of canvas height
+                    const padding = 20;
+
+                    // Draw the large photo (Photo 4)
+                    const photo4 = new Image();
+                    photo4.src = snapshots[3];
+                    photo4.onload = () => {
+                        context.drawImage(
+                            photo4,
+                            cropX, cropY, cropWidth, cropHeight, // Crop the stream
+                            (canvasWidth - photoWidth) / 2, canvasHeight * 0.1, // Position
+                            photoWidth, photoHeight // Size
+                        );
+
+                        // Draw smaller photos (Photos 1, 2, 3)
+                        snapshots.slice(0, 3).forEach((src, index) => {
+                            const img = new Image();
+                            img.src = src;
+
+                            img.onload = () => {
+                                const smallPhotoWidth = canvasWidth * 0.2; // 20% width
+                                const smallPhotoHeight = canvasHeight * 0.15; // 15% height
+                                const smallPhotoX = (canvasWidth - (3 * smallPhotoWidth + 2 * padding)) / 2 + index * (smallPhotoWidth + padding);
+                                const smallPhotoY = canvasHeight * 0.55; // Below large photo
+
+                                context.drawImage(
+                                    img,
+                                    cropX, cropY, cropWidth, cropHeight, // Crop the stream
+                                    smallPhotoX, smallPhotoY, // Position
+                                    smallPhotoWidth, smallPhotoHeight // Size
+                                );
+
+                                // Resolve the promise after all photos are loaded
+                                if (index === 2) {
+                                    resolve(canvas.toDataURL('image/jpeg'));
+                                }
+                            };
+                        });
+                    };
+                };
+            });
+        }
+
+
+        function displaySnapshotPreview(snapshot) {
+            const snapshotElement = document.getElementById('snapshot'); // Image preview element
+            snapshotElement.src = snapshot;
+
+            // Resize to 16:9 for display purposes
+            const aspectRatio = 16 / 9;
+            const width = snapshotElement.parentElement.offsetWidth; // Use the parent container's width
+            const height = width / aspectRatio;
+
+            snapshotElement.style.width = `${width}px`;
+            snapshotElement.style.height = `${height}px`;
+
+            snapshotElement.style.display = 'block'; // Show the preview
+            stream.style.display = 'none'; // Hide the stream
+        }
+
+
+
+
+        // Function to display the composed image over the stream
+        function displayComposedImage(composedImage) {
+            const snapshotElement = document.getElementById('snapshot'); // Image preview element
+            snapshotElement.src = composedImage;
+
+            // Resize to 16:9 for display purposes
+            const aspectRatio = 16 / 9;
+            const width = snapshotElement.parentElement.offsetWidth; // Use the parent container's width
+            const height = width / aspectRatio;
+
+            snapshotElement.style.width = `${width}px`;
+            snapshotElement.style.height = `${height}px`;
+
+            snapshotElement.style.display = 'block'; // Show the composed image preview
+            stream.style.display = 'none'; // Hide the stream
+        }
+
+
+
+
+
+
+        function takeSnapshot() {
+            const img = document.querySelector('#stream'); // Select the image element
+
+            if (!img.complete) {
+                console.error('Stream image is not fully loaded yet.');
+                return null; // Return null to avoid errors
+            }
+
+            // Create a canvas with the same resolution as the image
+            const imgWidth = img.naturalWidth;
+            const imgHeight = img.naturalHeight;
+
+            const canvas = document.createElement('canvas');
+            canvas.width = imgWidth;
+            canvas.height = imgHeight;
+
+            // Draw the image onto the canvas
+            const context = canvas.getContext('2d');
+            context.drawImage(img, 0, 0, imgWidth, imgHeight);
+
+            // Get the snapshot as a base64-encoded image
+            return canvas.toDataURL('image/jpeg');
+        }
+
+
+
+
+        function showInstruction(message, duration = 3000) {
+            messageDiv.innerText = message;
             messageDiv.style.display = 'block';
 
+            setTimeout(() => {
+                messageDiv.style.display = 'none';
+            }, duration);
+        }
+
+
+        function delay(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        printBtn.addEventListener('click', async () => {
+            showInstruction('Sending photo to printer...', 0); // Keep the message visible until further updates
             try {
-                const response = await fetch('http://192.168.1.103:8083/print', {
+                const response = await fetch('http://192.168.1.105:8083/prints', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ snapshot }),
+                    body: JSON.stringify({ snapshot: snapshots[snapshots.length - 1] }), // Send final image
                 });
                 const result = await response.json();
                 if (result.success) {
-                    messageDiv.innerText = 'Photo sent to printer!';
+                    showInstruction('Photo sent to printer!');
                 } else {
-                    messageDiv.innerText = 'Failed to print the photo.';
+                    showInstruction('Failed to print the photo.');
                 }
             } catch (error) {
-                messageDiv.innerText = 'Error sending photo to printer.';
+                showInstruction('Error sending photo to printer.');
             }
 
             setTimeout(() => {
                 resetUI();
-                messageDiv.style.display = 'none';
-            }, 3000);
+            }, 3000); // Reset UI after 3 seconds
         });
+
 
         cancelBtn.addEventListener('click', resetUI);
 
         function resetUI() {
-            snapshot = null;
+            snapshots = [];
             snapshotElement.style.display = 'none';
-            stream.style.display = 'block';
+            stream.style.display = 'block'; // Show the stream again
             takePhotoBtn.style.display = 'block';
             printBtn.style.display = 'none';
             cancelBtn.style.display = 'none';
         }
+
     </script>
+
 </body>
+
 </html>

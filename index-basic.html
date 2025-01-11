@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Luana's Birthday Photo Booth</title>
+    <style>
+        /* Add CSS styles here */
+        body {
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: #000;
+        }
+
+        #app {
+            position: relative;
+            width: 90vw;
+            height: auto;
+        }
+
+        #border-frame {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: 9px solid #ff69b4;
+            pointer-events: none;
+            box-sizing: border-box;
+        }
+
+        #stream,
+        #snapshot {
+            width: 100%;
+            height: 100%;
+        }
+
+        #snapshot {
+            display: none;
+        }
+
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 3rem;
+            text-align: center;
+        }
+
+        #controls {
+            position: absolute;
+            bottom: 10%;
+            width: 100%;
+            display: flex;
+            justify-content: space-evenly;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 1.5rem;
+            background: #ff69b4;
+            border: none;
+            border-radius: 5px;
+            color: white;
+            cursor: pointer;
+        }
+
+        #message {
+            position: absolute;
+            top: 10%;
+            width: 100%;
+            text-align: center;
+            font-size: 1.5rem;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <img id="stream" src="http://192.168.1.105:8083/stream" alt="Stream" crossorigin="anonymous">
+        <img id="snapshot" alt="Snapshot">
+        <!-- <div id="border-frame"></div> -->
+        <div class="overlay" id="countdown" style="display: none;"></div>
+        <div id="controls">
+            <button id="take-photo">Take Photo</button>
+            <button id="print" style="display: none;">Print</button>
+            <button id="cancel" style="display: none;">Cancel</button>
+        </div>
+        <div id="message" style="display: none;"></div>
+    </div>
+
+    <script>
+        const stream = document.getElementById('stream');
+        const snapshotElement = document.getElementById('snapshot');
+        const countdown = document.getElementById('countdown');
+        const takePhotoBtn = document.getElementById('take-photo');
+        const printBtn = document.getElementById('print');
+        const cancelBtn = document.getElementById('cancel');
+        const messageDiv = document.getElementById('message');
+
+        let snapshot;
+
+        takePhotoBtn.addEventListener('click', () => {
+            let count = 3;
+            countdown.innerText = count;
+            countdown.style.display = 'flex';
+
+            const interval = setInterval(() => {
+                count--;
+                if (count > 0) {
+                    countdown.innerText = count;
+                } else {
+                    clearInterval(interval);
+                    countdown.innerText = '';
+                    countdown.style.background = 'white';
+                    setTimeout(() => {
+                        countdown.style.background = '';
+                        countdown.style.display = 'none';
+
+                        const canvas = document.createElement('canvas');
+                        const context = canvas.getContext('2d');
+                        canvas.width = stream.clientWidth;
+                        canvas.height = stream.clientHeight;
+                        context.drawImage(stream, 0, 0, canvas.width, canvas.height);
+                        snapshot = canvas.toDataURL('image/jpeg');
+
+                        snapshotElement.src = snapshot;
+                        snapshotElement.style.display = 'block';
+                        stream.style.display = 'none';
+
+                        takePhotoBtn.style.display = 'none';
+                        printBtn.style.display = 'block';
+                        cancelBtn.style.display = 'block';
+                    }, 100);
+                }
+            }, 1000);
+        });
+
+        printBtn.addEventListener('click', async () => {
+            messageDiv.innerText = 'Sending photo to printer...';
+            messageDiv.style.display = 'block';
+
+            try {
+                const response = await fetch('http://192.168.1.103:8083/print', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ snapshot }),
+                });
+                const result = await response.json();
+                if (result.success) {
+                    messageDiv.innerText = 'Photo sent to printer!';
+                } else {
+                    messageDiv.innerText = 'Failed to print the photo.';
+                }
+            } catch (error) {
+                messageDiv.innerText = 'Error sending photo to printer.';
+            }
+
+            setTimeout(() => {
+                resetUI();
+                messageDiv.style.display = 'none';
+            }, 3000);
+        });
+
+        cancelBtn.addEventListener('click', resetUI);
+
+        function resetUI() {
+            snapshot = null;
+            snapshotElement.style.display = 'none';
+            stream.style.display = 'block';
+            takePhotoBtn.style.display = 'block';
+            printBtn.style.display = 'none';
+            cancelBtn.style.display = 'none';
+        }
+    </script>
+</body>
+</html>
