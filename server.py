@@ -20,7 +20,11 @@ ARCHIVE_DIR = 'archive'
 if not os.path.exists(ARCHIVE_DIR):
     os.makedirs(ARCHIVE_DIR)
 
-camera = cv2.VideoCapture(1)
+cameraIndex = 1
+# camera = cv2.VideoCapture(cameraIndex)
+global_camera = cv2.VideoCapture(cameraIndex)
+# global_camera.release()
+
 
 def list_available_cameras():
     """Print a list of available camera indices."""
@@ -39,7 +43,7 @@ def list_available_cameras():
     return available_cameras
 
 def generate_frames():
-    local_camera = cv2.VideoCapture(1)
+    local_camera = cv2.VideoCapture(cameraIndex)
     logging.info("Starting frame generation...")
     try:
         while True:
@@ -88,7 +92,8 @@ def print_photo():
 
 @app.route('/capture', methods=['GET'])
 def capture():
-    success, frame = camera.read()
+    local_camera = cv2.VideoCapture(cameraIndex)
+    success, frame = local_camera.read()
     if not success:
         logging.error("Failed to capture image in /capture")
         return jsonify({"error": "Failed to capture image"}), 500
@@ -96,6 +101,7 @@ def capture():
     file_path = os.path.join(os.getcwd(), 'captured_photo.jpg')
     cv2.imwrite(file_path, frame)
     logging.info("Image captured and saved at %s", file_path)
+    local_camera.release()
     return jsonify({"message": f"Image saved successfully at {file_path}"}), 200
 
 @app.route('/save_photos', methods=['POST'])
