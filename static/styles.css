@@ -1,0 +1,166 @@
+/* General body and font settings */
+body {
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background: #000;
+    font-family: 'Arial', sans-serif; /* Non-serif font */
+}
+
+/* App container */
+#app {
+    position: relative;
+    width: 90vw;
+    height: auto;
+}
+
+/* Stream and snapshot elements */
+#stream, #snapshot {
+    width: 100%;
+    height: 100%;
+}
+
+#snapshot {
+    display: none;
+}
+
+/* Countdown overlay */
+.overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    text-align: center;
+    font-size: 3rem;
+    opacity: 0;
+    transform: scale(1);
+    transition: all 0.3s ease; /* Default transition */
+}
+
+/* Countdown specific style */
+#countdown {
+    font-size: 10rem;
+    font-weight: bold;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8); /* Drop shadow for visibility */
+    animation: fade-grow 1s ease-out; /* Match timing with JavaScript interval */
+}
+
+/* Instructions/message style */
+#message {
+    position: absolute;
+    top: 10%;
+    width: 100%;
+    text-align: center;
+    font-size: 1.5rem;
+    color: white;
+    text-shadow: 2px 2px 6px rgba(0, 0, 0, 0.7); /* Drop shadow for readability */
+    opacity: 0; /* Initially hidden */
+    animation: fade-in-out 3s ease; /* Fade-in/out animation */
+}
+
+/* Start button container */
+#start {
+    position: absolute;
+    bottom: 10%;
+    left: 50%;
+    transform: translateX(-50%); /* Center horizontally */
+}
+
+#take-photo {
+    padding: 10px 20px;
+    font-size: 1.5rem;
+    background: #007BFF; /* Blue */
+    border: none;
+    border-radius: 5px;
+    color: white;
+    cursor: pointer;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2); /* Button shadow */
+    transition: transform 0.2s ease; /* Slight scale on hover */
+}
+
+#take-photo:hover {
+    transform: scale(1.05);
+}
+
+/* Print/Cancel buttons container */
+#print-controls {
+    position: absolute;
+    bottom: 5%;
+    right: 5%; /* Align to the left */
+    display: flex;
+    flex-direction: column; /* Stack buttons vertically */
+    gap: 10px; /* Add space between buttons */
+}
+
+#print-button, #cancel-button {
+    padding: 10px 20px;
+    font-size: 1.5rem;
+    border: none;
+    border-radius: 5px;
+    color: white;
+    cursor: pointer;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2); /* Button shadow */
+    transition: transform 0.2s ease; /* Slight scale on hover */
+}
+
+/* Style for the Print button */
+#print-button {
+    background: #4CAF50; /* Green */
+}
+
+#print-button:hover {
+    transform: scale(1.05);
+}
+
+/* Style for the Cancel button */
+#cancel-button {
+    background: #FF5252; /* Red */
+}
+
+#cancel-button:hover {
+    transform: scale(1.05);
+}
+
+/* Keyframe animations */
+
+/* Fade-in-out for instructions */
+@keyframes fade-in-out {
+    0% {
+        opacity: 0;
+    }
+    10%, 90% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+    }
+}
+
+/* Countdown animation: grow and shrink */
+@keyframes fade-grow {
+    0% {
+        opacity: 0;
+        transform: scale(0.5);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.5);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(1);
+    }
+}
+
+/* Apply animation only when the class is added */
+.animate {
+    animation: fade-grow 1s ease-out; /* Match timing with countDownDelay */
+}

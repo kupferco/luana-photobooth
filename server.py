@@ -5,6 +5,10 @@ import base64
 import subprocess
 import os
 import time
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 app = Flask(__name__)
 CORS(app)
@@ -17,8 +21,6 @@ if not os.path.exists(ARCHIVE_DIR):
     os.makedirs(ARCHIVE_DIR)
 
 camera = cv2.VideoCapture(1)
-
-import cv2
 
 def list_available_cameras():
     """Print a list of available camera indices."""
@@ -36,22 +38,25 @@ def list_available_cameras():
 
     return available_cameras
 
-
 def generate_frames():
-    # camera = cv2.VideoCapture(1)
     while True:
         success, frame = camera.read()
         if not success:
-            break
-        else:
-            # frame = cv2.flip(frame, 1)
+            logging.error("Failed to read frame from the camera")
+            time.sleep(0.1)  # Prevent a busy loop
+            continue
+        try:
             _, buffer = cv2.imencode('.jpg', frame)
             frame = buffer.tobytes()
             yield (b'--frame\r\n'
                    b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+        except Exception as e:
+            logging.error("Error during frame generation: %s", e, exc_info=True)
+
 
 @app.route('/stream')
 def stream():
+    logging.info("Stream endpoint hit")
     return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 @app.route('/print', methods=['POST'])
@@ -59,6 +64,7 @@ def print_photo():
     data = request.get_json()
     snapshot_data = data.get('snapshot', '')
     if not snapshot_data:
+        logging.error("No snapshot data provided in /print")
         return jsonify({"success": False, "error": "No snapshot data provided"}), 400
 
     try:
@@ -67,53 +73,46 @@ def print_photo():
         with open("captured_photo.jpg", "wb") as f:
             f.write(image_data)
 
-        # subprocess.run(["lp", "-d", "Xerox_R__C230_Color_Printer", "captured_photo.jpg"], check=True)
+        logging.info("Photo saved as captured_photo.jpg")
         return jsonify({"success": True})
     except Exception as e:
+        logging.error("Error processing /print: %s", e, exc_info=True)
         return jsonify({"success": False, "error": str(e)}), 500
 
-# Route to save the current frame as an image
 @app.route('/capture', methods=['GET'])
 def capture():
     success, frame = camera.read()
     if not success:
+        logging.error("Failed to capture image in /capture")
         return jsonify({"error": "Failed to capture image"}), 500
-    
-    # Flip the frame horizontally (mirror effect)
-    # frame = cv2.flip(frame, 1)
 
-    # Save the image to a file
     file_path = os.path.join(os.getcwd(), 'captured_photo.jpg')
     cv2.imwrite(file_path, frame)
+    logging.info("Image captured and saved at %s", file_path)
     return jsonify({"message": f"Image saved successfully at {file_path}"}), 200
-    
+
 @app.route('/save_photos', methods=['POST'])
 def save_photos():
     try:
         data = request.json
-        # print("Received data:", data)  # Debug: Log received payload
-
         photos = data.get('photos', [])
-        composed_image = data.get('composed_image')  # Debug: Log composed image
-        # print("Composed Image:", composed_image)
+        composed_image = data.get('composed_image')
 
         if not photos:
+            logging.warning("No photos provided in /save_photos")
             return jsonify({"success": False, "message": "No photos provided"}), 400
 
-        # Create a timestamped folder
         timestamp = time.strftime('%Y%m%d_%H%M%S')
         folder_path = os.path.join(ARCHIVE_DIR, timestamp)
         os.makedirs(folder_path, exist_ok=True)
 
-        # Save each individual photo
         for index, photo in enumerate(photos):
-            photo_data = photo.split(',')[1]  # Remove the data URL prefix
+            photo_data = photo.split(',')[1]
             file_path = os.path.join(folder_path, f'photo_{index + 1}.jpg')
 
             with open(file_path, 'wb') as file:
                 file.write(base64.b64decode(photo_data))
 
-        # Save the final composed image
         if composed_image:
             composed_image_data = composed_image.split(',')[1]
             composed_image_path = os.path.join(folder_path, 'composed_image.jpg')
@@ -121,21 +120,24 @@ def save_photos():
             with open(composed_image_path, 'wb') as file:
                 file.write(base64.b64decode(composed_image_data))
 
+        logging.info("Photos saved successfully in folder %s", folder_path)
         return jsonify({"success": True, "folder": folder_path}), 200
     except Exception as e:
-        print("Error:", str(e))  # Debug: Log errors
+        logging.error("Error in /save_photos: %s", e, exc_info=True)
         return jsonify({"success": False, "message": str(e)}), 500
-    
+
 @app.route('/')
 def serve_index():
+    logging.info("Serving index.html")
     return send_from_directory('.', 'index.html')
 
 if __name__ == "__main__":
-    print("Detecting available cameras...")
+    logging.info("Detecting available cameras...")
     cameras = list_available_cameras()
     if cameras:
-        print(f"Available cameras: {cameras}")
+        logging.info("Available cameras: %s", cameras)
     else:
-        print("No cameras found.")
+        logging.warning("No cameras found.")
 
+    logging.info("Starting Flask server on port 8083")
     app.run(host="0.0.0.0", port=8083)
