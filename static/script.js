@@ -21,8 +21,8 @@ document.addEventListener('DOMContentLoaded', () => {
 let snapshots = [];
 let captureIndex = 0;
 
-const countDownDelay = 100;
-const previewDelay = 200;
+const countDownDelay = 1000;
+const previewDelay = 2000;
 
 // Handle the Start button click
 takePhotoBtn.addEventListener('click', () => {
