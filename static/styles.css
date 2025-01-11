@@ -59,9 +59,9 @@ body {
     top: 10%;
     width: 100%;
     text-align: center;
-    font-size: 1.5rem;
+    font-size: 3rem;
     color: white;
-    text-shadow: 2px 2px 6px rgba(0, 0, 0, 0.7); /* Drop shadow for readability */
+    text-shadow: 0px 0px 15px rgba(0, 0, 0, 0.7); /* Drop shadow for readability */
     opacity: 0; /* Initially hidden */
     animation: fade-in-out 3s ease; /* Fade-in/out animation */
 }
@@ -94,7 +94,7 @@ body {
 #print-controls {
     position: absolute;
     bottom: 5%;
-    right: 5%; /* Align to the left */
+    right: 9%; /* Align to the left */
     display: flex;
     flex-direction: column; /* Stack buttons vertically */
     gap: 10px; /* Add space between buttons */
