@@ -40,14 +40,12 @@ def process_image(input_file, output_file, resize_factor=1.0, grayscale=False):
         raise
 
 
+
 def print_image(file_path, printer_name="Canon_SELPHY_CP1500"):
     """
     Sends the processed image to the printer.
-
-    Args:
-        file_path (str): Path to the image file to print.
-        printer_name (str): Name of the printer.
     """
+
     try:
         # Send to printer using lp command
         subprocess.run(["lp", "-d", printer_name, file_path], check=True)

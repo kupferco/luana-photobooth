@@ -186,6 +186,44 @@ printer_name = "Canon_SELPHY_CP1500"
 
 ---
 
+## Managing the Print Queue
+To monitor or manage the queue, you can use the following commands:
+
+### View Pending Jobs:
+```bash
+lpstat -o
+```
+**Example Output**:
+```
+SELPHY-1   username   1024   Thu 11 Jan 2025 14:25:33
+```
+
+### Cancel a Job
+Use the job ID from `lpstat -o` to cancel the job:
+```bash
+cancel <job-id>
+```
+
+### Clear the Queue
+To cancel all pending jobs for a specific printer:
+```bash
+cancel -a Canon_SELPHY_CP1500
+```
+
+### Disable Printing Temporarily
+If you want to prevent jobs from being sent to the printer when it becomes available:
+```bash
+cupsdisable Canon_SELPHY_CP1500
+```
+
+### Re-enable Printing
+Re-enable printing later with:
+```bash
+cupsenable Canon_SELPHY_CP1500
+```
+
+---
+
 ## Example Usage
 
 ### Process only (no printing):

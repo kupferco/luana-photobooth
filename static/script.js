@@ -322,12 +322,12 @@ printBtn.addEventListener('click', async () => {
         });
         const result = await response.json();
         if (result.success) {
-            showInstruction('Photo sent successfully!');
+            showInstruction('Photo sent successfully!', 2000);
         } else {
             showInstruction(`Failed to print: ${result.error}`);
         }
     } catch (error) {
-        showInstruction('Error connecting to the printer.');
+        showInstruction('Error connecting to the printer.', 2000);
     }
 
     setTimeout(() => {
@@ -356,7 +356,7 @@ const appElement = document.getElementById('app');
 
 // Enter fullscreen when tapping/clicking on the image
 function toggleFullscreen() {
-    if (!document.fullscreenElement) {
+    if (!document.fullscreenElement && false) {
         if (appElement.requestFullscreen) {
             appElement.requestFullscreen();
         } else if (appElement.webkitRequestFullscreen) { // Safari
