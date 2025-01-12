@@ -1,5 +1,6 @@
 archive
-__pycache__
-last_compose_image.jpg
+last_composed_image.jpg
 processed_image.jpg
 sent_to_print.jpg
+.DS_Store
+__pycache__
