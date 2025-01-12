@@ -363,7 +363,7 @@ const appElement = document.getElementById('app');
 
 // Enter fullscreen when tapping/clicking on the image
 function toggleFullscreen() {
-    if (!document.fullscreenElement && false) {
+    if (!document.fullscreenElement) {
         if (appElement.requestFullscreen) {
             appElement.requestFullscreen();
         } else if (appElement.webkitRequestFullscreen) { // Safari
