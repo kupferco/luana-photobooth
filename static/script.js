@@ -22,8 +22,8 @@ let snapshots = [];
 let composedImageBase64 = null; // Holds the composed image globally
 let captureIndex = 0;
 
-const countDownDelay = 1000;
-const previewDelay = 2000;
+const countDownDelay = 100;
+const previewDelay = 200;
 
 // Handle the Start button click
 takePhotoBtn.addEventListener('click', () => {
@@ -145,86 +145,93 @@ async function showFinalImage() {
 }
 
 
-function composeFinalImage() {
+async function composeFinalImage() {
     const canvas = document.createElement('canvas');
     const context = canvas.getContext('2d');
 
-    // Set final print resolution (1200 x 1800 for 4x6 at 300 dpi)
+    // Set final print resolution (1200 x 1800 for 4x6 at 300 DPI)
     const canvasWidth = 1800;
     const canvasHeight = 1200;
     canvas.width = canvasWidth;
     canvas.height = canvasHeight;
 
-    // Layout configuration
     const imageSizes = {
-        resize: 0.47, // Scale images to 30% of canvas width
+        width: 845,
+        height: 520,
         positions: {
-            x1: 0.02, // First column
-            x2: 0.515, // Second column
-            y1: 0.1, // Top row
-            y2: 0.55, // Bottom row
+            x1: 36,  // First column
+            x2: 919, // Second column
+            y1: 61,  // Top row
+            y2: 619, // Bottom row
         },
     };
 
-    // Load the background image
     const background = new Image();
-    background.src = './static/background.jpg'; // Assumes background.jpg is in the static folder
+    background.src = './static/background.jpg';
 
     return new Promise((resolve) => {
         background.onload = () => {
-            // Draw the background
+            // Draw the background image
             context.drawImage(background, 0, 0, canvasWidth, canvasHeight);
 
-            // Calculate image dimensions
-            const imageWidth = canvasWidth * imageSizes.resize;
-            const imageHeight = imageWidth * (9 / 16); // Maintain 16:9 aspect ratio
+            snapshots.slice(0, 3).forEach((src, index) => {
+                const img = new Image();
+                img.src = src;
 
-            // Define image positions
-            const positions = [
-                { x: canvasWidth * imageSizes.positions.x1, y: canvasHeight * imageSizes.positions.y1 },
-                { x: canvasWidth * imageSizes.positions.x1, y: canvasHeight * imageSizes.positions.y2 },
-                { x: canvasWidth * imageSizes.positions.x2, y: canvasHeight * imageSizes.positions.y2 },
-            ];
+                img.onload = () => {
+                    // Calculate cropping for target aspect ratio (845:520)
+                    const targetAspectRatio = imageSizes.width / imageSizes.height;
+                    let cropX = 0,
+                        cropY = 0,
+                        cropWidth = img.naturalWidth,
+                        cropHeight = img.naturalHeight;
 
-            // Create promises to load and draw each image
-            const imagePromises = snapshots.slice(0, 3).map((src, index) => {
-                return new Promise((resolve) => {
-                    const img = new Image();
-                    img.src = src;
+                    const imageAspectRatio = img.naturalWidth / img.naturalHeight;
 
-                    img.onload = () => {
-                        context.drawImage(
-                            img,
-                            positions[index].x,
-                            positions[index].y,
-                            imageWidth,
-                            imageHeight
-                        );
-                        resolve(); // Resolve once the image is drawn
-                    };
+                    if (imageAspectRatio > targetAspectRatio) {
+                        // Image is too wide, crop horizontally
+                        cropWidth = img.naturalHeight * targetAspectRatio;
+                        cropX = (img.naturalWidth - cropWidth) / 2;
+                    } else if (imageAspectRatio < targetAspectRatio) {
+                        // Image is too tall, crop vertically
+                        cropHeight = img.naturalWidth / targetAspectRatio;
+                        cropY = (img.naturalHeight - cropHeight) / 2;
+                    }
 
-                    img.onerror = () => {
-                        console.error(`Failed to load image for photo ${index + 1}`);
-                        resolve(); // Resolve even if there's an error
-                    };
-                });
-            });
+                    // Define position for each image
+                    const position = [
+                        { x: imageSizes.positions.x1, y: imageSizes.positions.y1 },
+                        { x: imageSizes.positions.x1, y: imageSizes.positions.y2 },
+                        { x: imageSizes.positions.x2, y: imageSizes.positions.y2 },
+                    ][index];
 
-            // Wait for all images to load and draw before resolving the final image
-            Promise.all(imagePromises).then(() => {
-                const composedImage = canvas.toDataURL('image/jpeg');
-                composedImageBase64 = composedImage; // Save the composed image globally
-                resolve(composedImage);
+                    // Draw cropped image onto the canvas
+                    context.drawImage(
+                        img,
+                        cropX,
+                        cropY,
+                        cropWidth,
+                        cropHeight, // Crop source dimensions
+                        position.x,
+                        position.y,
+                        imageSizes.width,
+                        imageSizes.height // Destination dimensions
+                    );
+
+                    // Resolve the promise once all images are drawn
+                    if (index === 2) resolve(canvas.toDataURL('image/jpeg'));
+                };
+
+                img.onerror = () => console.error(`Failed to load image for photo ${index + 1}`);
             });
         };
 
         background.onerror = () => {
-            console.error('Failed to load the background image.');
-            resolve(canvas.toDataURL('image/jpeg')); // Resolve even if the background fails
+            console.error('Failed to load background image');
+            resolve(canvas.toDataURL('image/jpeg'));
         };
     });
 }
-
 
 
 
