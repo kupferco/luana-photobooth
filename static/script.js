@@ -22,8 +22,8 @@ let snapshots = [];
 let composedImageBase64 = null; // Holds the composed image globally
 let captureIndex = 0;
 
-const countDownDelay = 100;
-const previewDelay = 200;
+const countDownDelay = 1000;
+const previewDelay = 2000;
 
 // Handle the Start button click
 takePhotoBtn.addEventListener('click', () => {
@@ -218,8 +218,12 @@ async function composeFinalImage() {
                         imageSizes.height // Destination dimensions
                     );
 
-                    // Resolve the promise once all images are drawn
-                    if (index === 2) resolve(canvas.toDataURL('image/jpeg'));
+                    // Save the composed image globally once all images are drawn
+                    if (index === 2) {
+                        const composedImage = canvas.toDataURL('image/jpeg');
+                        composedImageBase64 = composedImage; // Update global variable
+                        resolve(composedImage);
+                    }
                 };
 
                 img.onerror = () => console.error(`Failed to load image for photo ${index + 1}`);
@@ -303,9 +307,9 @@ function showInstruction(message, duration = 3000) {
     if (duration > 0) {
         setTimeout(() => {
             messageDiv.style.opacity = '0'; // Fade out
-            setTimeout(() => {
-                messageDiv.style.display = 'none';
-            }, 300); // Ensure fade-out completes
+            // setTimeout(() => {
+            //     messageDiv.style.display = 'none';
+            // }, 1500); // Ensure fade-out completes
         }, duration);
     }
 }
@@ -329,17 +333,19 @@ printBtn.addEventListener('click', async () => {
         });
         const result = await response.json();
         if (result.success) {
-            showInstruction('Photo sent successfully!', 2000);
+            showInstruction('Photo sent successfully!', 3000);
         } else {
-            showInstruction(`Failed to print: ${result.error}`);
+            showInstruction(`Failed to print: ${result.error}`, 3000);
         }
+        setTimeout(() => {
+            resetUI();
+        }, 3500); // Reset UI after 3 seconds
     } catch (error) {
-        showInstruction('Error connecting to the printer.', 2000);
+        showInstruction('Error connecting to the printer.', 3000);
+        setTimeout(() => {
+            resetUI();
+        }, 3500); // Reset UI after 3 seconds
     }
-
-    setTimeout(() => {
-        resetUI();
-    }, 3000); // Reset UI after 3 seconds
 });
 
 
