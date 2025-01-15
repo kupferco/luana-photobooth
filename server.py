@@ -107,7 +107,7 @@ def print_photo():
         if test_mode:
             logging.info("Test mode: Skipping actual printing. Processed file saved as 'processed_image.jpg'.")
         else:
-            printer_name = "Canon_SELPHY_CP1500"
+            printer_name = "Canon_SELPHY_CP1500_2"
             print_image(processed_file, printer_name)
 
         return jsonify({"success": True})

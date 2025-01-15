@@ -26,7 +26,12 @@ const countDownDelay = 1000;
 const previewDelay = 2000;
 
 // Handle the Start button click
+let takingPhoto = false;
 takePhotoBtn.addEventListener('click', () => {
+    if (takingPhoto)
+        return;
+
+    takingPhoto = true;
     messageDiv.style.display = 'none'; // Hide the welcome message
     startPhotoSequence(); // Start the photo sequence
 });
@@ -114,7 +119,7 @@ async function savePhotos(composedImage) {
     // console.log("Snapshots:", snapshots);
     // console.log("Composed Image:", composedImage);
 
-    const response = await fetch('http://192.168.1.105:8083/save_photos', {
+    const response = await fetch('/save_photos', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -321,7 +326,11 @@ function delay(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+let printing = false;
 printBtn.addEventListener('click', async () => {
+    if (printing)
+        return;
+    printing = true;
     showInstruction('Sending photo to printer...', 0); // Keep the message visible until further updates
     try {
         const response = await fetch('/print', {
@@ -353,6 +362,8 @@ printBtn.addEventListener('click', async () => {
 cancelBtn.addEventListener('click', resetUI);
 
 function resetUI() {
+    printing = false;
+    takingPhoto = false;
     snapshots = [];
     snapshotElement.style.display = 'none';
     stream.style.display = 'block'; // Show the stream again

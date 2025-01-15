@@ -41,7 +41,7 @@ def process_image(input_file, output_file, resize_factor=1.0, grayscale=False):
 
 
 
-def print_image(file_path, printer_name="Canon_SELPHY_CP1500"):
+def print_image(file_path, printer_name="Canon_SELPHY_CP1500_2"):
     """
     Sends the processed image to the printer.
     """
@@ -63,7 +63,7 @@ if __name__ == "__main__":
     parser.add_argument("--output", default="processed_image.jpg", help="Path to save the processed image file.")
     parser.add_argument("--resize", type=float, default=1.0, help="Resize factor (default: 1.0, no resizing).")
     parser.add_argument("--grayscale", action="store_true", help="Convert the image to grayscale.")
-    parser.add_argument("--printer", default="Canon_SELPHY_CP1500", help="Printer name.")
+    parser.add_argument("--printer", default="Canon_SELPHY_CP1500_2", help="Printer name.")
     parser.add_argument("--print", action="store_true", help="Send the processed image to the printer.")
 
     args = parser.parse_args()
