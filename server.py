@@ -1,3 +1,4 @@
+# server.py
 import cv2
 from flask import Flask, Response, send_from_directory, request, jsonify
 from flask_cors import CORS

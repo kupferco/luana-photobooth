@@ -1,3 +1,4 @@
+// static/script.js
 const stream = document.getElementById('stream');
 const snapshotElement = document.getElementById('snapshot');
 const countdown = document.getElementById('countdown');
@@ -36,7 +37,6 @@ takePhotoBtn.addEventListener('click', () => {
     startPhotoSequence(); // Start the photo sequence
 });
 
-
 async function startPhotoSequence() {
     snapshots = [];
     captureIndex = 0;
@@ -45,28 +45,36 @@ async function startPhotoSequence() {
 }
 
 function capturePhotoSequence() {
+    console.log(`Capturing photo ${captureIndex + 1} of ${totalPhotos}`);
+
     if (captureIndex < totalPhotos) {
         startCountdown(3, async () => {
             const snapshot = takeSnapshot();
             if (snapshot) {
                 snapshots.push(snapshot);
+                console.log(`Photo ${captureIndex + 1} captured successfully. Total snapshots: ${snapshots.length}`);
+
                 displaySnapshotPreview(snapshot);
                 await delay(previewDelay);
                 snapshotElement.style.display = 'none';
                 stream.style.display = 'block';
             } else {
-                console.error('Failed to capture snapshot.');
+                console.error(`Failed to capture snapshot ${captureIndex + 1}.`);
             }
 
-            if (++captureIndex < totalPhotos) {
+            captureIndex++;
+
+            if (captureIndex < totalPhotos) {
+                console.log(`Moving to next photo. Current index: ${captureIndex}`);
                 capturePhotoSequence(); // Continue to the next photo
             } else {
+                console.log(`All ${totalPhotos} photos captured. Creating final image...`);
+                console.log('Final snapshots array:', snapshots.map((s, i) => `Photo ${i + 1}: ${s.substring(0, 50)}...`));
                 showFinalImage(); // Show the final composed image
             }
         });
     }
 }
-
 
 function startCountdown(seconds, onComplete) {
     if (seconds <= 0) {
@@ -92,8 +100,6 @@ function startCountdown(seconds, onComplete) {
     }, countDownDelay); // Match the delay with animation timing
 }
 
-
-
 function captureSnapshot() {
     const snapshot = takeSnapshot(); // High-quality snapshot
     if (snapshot) {
@@ -104,7 +110,6 @@ function captureSnapshot() {
     }
 }
 
-
 function flashScreen() {
     const flash = document.getElementById('flash');
     flash.style.opacity = '1'; // Make it visible
@@ -112,7 +117,6 @@ function flashScreen() {
         flash.style.opacity = '0'; // Fade out after a short delay
     }, 100); // Duration of the flash
 }
-
 
 async function savePhotos(composedImage) {
     console.log("Saving photos and composed image...");
@@ -138,7 +142,6 @@ async function savePhotos(composedImage) {
     }
 }
 
-
 async function showFinalImage() {
     const composedImage = await composeFinalImage(); // Wait for the composed image
     displayComposedImage(composedImage);
@@ -148,7 +151,6 @@ async function showFinalImage() {
     printBtn.style.display = 'block';
     cancelBtn.style.display = 'block';
 }
-
 
 async function composeFinalImage() {
     const canvas = document.createElement('canvas');
@@ -174,75 +176,113 @@ async function composeFinalImage() {
     const background = new Image();
     background.src = './static/background.jpg';
 
-    return new Promise((resolve) => {
-        background.onload = () => {
-            // Draw the background image
-            context.drawImage(background, 0, 0, canvasWidth, canvasHeight);
+    return new Promise((resolve, reject) => {
+        background.onload = async () => {
+            try {
+                // Draw the background image
+                context.drawImage(background, 0, 0, canvasWidth, canvasHeight);
 
-            snapshots.slice(0, 3).forEach((src, index) => {
-                const img = new Image();
-                img.src = src;
+                // Load and draw all snapshots sequentially
+                for (let index = 0; index < Math.min(snapshots.length, 3); index++) {
+                    await drawImageAtPosition(context, snapshots[index], index, imageSizes);
+                }
 
-                img.onload = () => {
-                    // Calculate cropping for target aspect ratio (845:520)
-                    const targetAspectRatio = imageSizes.width / imageSizes.height;
-                    let cropX = 0,
-                        cropY = 0,
-                        cropWidth = img.naturalWidth,
-                        cropHeight = img.naturalHeight;
-
-                    const imageAspectRatio = img.naturalWidth / img.naturalHeight;
-
-                    if (imageAspectRatio > targetAspectRatio) {
-                        // Image is too wide, crop horizontally
-                        cropWidth = img.naturalHeight * targetAspectRatio;
-                        cropX = (img.naturalWidth - cropWidth) / 2;
-                    } else if (imageAspectRatio < targetAspectRatio) {
-                        // Image is too tall, crop vertically
-                        cropHeight = img.naturalWidth / targetAspectRatio;
-                        cropY = (img.naturalHeight - cropHeight) / 2;
-                    }
-
-                    // Define position for each image
-                    const position = [
-                        { x: imageSizes.positions.x1, y: imageSizes.positions.y1 },
-                        { x: imageSizes.positions.x1, y: imageSizes.positions.y2 },
-                        { x: imageSizes.positions.x2, y: imageSizes.positions.y2 },
-                    ][index];
-
-                    // Draw cropped image onto the canvas
-                    context.drawImage(
-                        img,
-                        cropX,
-                        cropY,
-                        cropWidth,
-                        cropHeight, // Crop source dimensions
-                        position.x,
-                        position.y,
-                        imageSizes.width,
-                        imageSizes.height // Destination dimensions
-                    );
-
-                    // Save the composed image globally once all images are drawn
-                    if (index === 2) {
-                        const composedImage = canvas.toDataURL('image/jpeg');
-                        composedImageBase64 = composedImage; // Update global variable
-                        resolve(composedImage);
-                    }
-                };
-
-                img.onerror = () => console.error(`Failed to load image for photo ${index + 1}`);
-            });
+                // Save the composed image globally
+                const composedImage = canvas.toDataURL('image/jpeg');
+                composedImageBase64 = composedImage;
+                resolve(composedImage);
+            } catch (error) {
+                console.error('Error composing final image:', error);
+                reject(error);
+            }
         };
 
         background.onerror = () => {
             console.error('Failed to load background image');
+            // Still resolve with a canvas containing just the photos
             resolve(canvas.toDataURL('image/jpeg'));
         };
     });
 }
 
+// Helper function to load and draw a single image
+function drawImageAtPosition(context, src, index, imageSizes) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
 
+        img.onload = () => {
+            try {
+                // Calculate cropping for target aspect ratio (845:520)
+                const targetAspectRatio = imageSizes.width / imageSizes.height;
+                let cropX = 0,
+                    cropY = 0,
+                    cropWidth = img.naturalWidth,
+                    cropHeight = img.naturalHeight;
+
+                const imageAspectRatio = img.naturalWidth / img.naturalHeight;
+
+                if (imageAspectRatio > targetAspectRatio) {
+                    // Image is too wide, crop horizontally
+                    cropWidth = img.naturalHeight * targetAspectRatio;
+                    cropX = (img.naturalWidth - cropWidth) / 2;
+                } else if (imageAspectRatio < targetAspectRatio) {
+                    // Image is too tall, crop vertically
+                    cropHeight = img.naturalWidth / targetAspectRatio;
+                    cropY = (img.naturalHeight - cropHeight) / 2;
+                }
+
+                // Define position for each image
+                const positions = [
+                    { x: imageSizes.positions.x1, y: imageSizes.positions.y1 },
+                    { x: imageSizes.positions.x1, y: imageSizes.positions.y2 },
+                    { x: imageSizes.positions.x2, y: imageSizes.positions.y2 },
+                ];
+
+                const position = positions[index];
+
+                // Clear the area first to avoid artifacts
+                context.clearRect(position.x, position.y, imageSizes.width, imageSizes.height);
+
+                // Round all values to avoid fractional pixel issues
+                const drawX = Math.round(position.x);
+                const drawY = Math.round(position.y);
+                const drawWidth = Math.round(imageSizes.width);
+                const drawHeight = Math.round(imageSizes.height);
+                const cropXRounded = Math.round(cropX);
+                const cropYRounded = Math.round(cropY);
+                const cropWidthRounded = Math.round(cropWidth);
+                const cropHeightRounded = Math.round(cropHeight);
+
+                // Draw cropped image onto the canvas
+                context.drawImage(
+                    img,
+                    cropXRounded,
+                    cropYRounded,
+                    cropWidthRounded,
+                    cropHeightRounded, // Crop source dimensions
+                    drawX,
+                    drawY,
+                    drawWidth,
+                    drawHeight // Destination dimensions
+                );
+
+                console.log(`Successfully drew image ${index + 1} at position`, { x: drawX, y: drawY, w: drawWidth, h: drawHeight });
+                resolve();
+            } catch (error) {
+                console.error(`Error drawing image ${index + 1}:`, error);
+                reject(error);
+            }
+        };
+
+        img.onerror = () => {
+            const error = `Failed to load image for photo ${index + 1}`;
+            console.error(error);
+            reject(new Error(error));
+        };
+
+        img.src = src;
+    });
+}
 
 function displaySnapshotPreview(snapshot) {
     const snapshotElement = document.getElementById('snapshot'); // Select the snapshot element
@@ -256,9 +296,6 @@ function displaySnapshotPreview(snapshot) {
     snapshotElement.style.display = 'block'; // Show the preview
     document.getElementById('stream').style.display = 'none'; // Hide the stream
 }
-
-
-
 
 // Function to display the composed image over the stream
 function displayComposedImage(composedImage) {
@@ -274,34 +311,48 @@ function displayComposedImage(composedImage) {
     stream.style.display = 'none'; // Hide the stream
 }
 
-
-
 function takeSnapshot() {
-    const img = document.querySelector('#stream'); // Select the image element
+    const img = document.querySelector('#stream');
+
+    if (!img) {
+        console.error('Stream image element not found.');
+        return null;
+    }
 
     if (!img.complete) {
         console.error('Stream image is not fully loaded yet.');
-        return null; // Return null to avoid errors
+        return null;
     }
 
-    // Create a canvas with the same resolution as the image
-    const imgWidth = img.naturalWidth;
-    const imgHeight = img.naturalHeight;
+    try {
+        // Create a canvas with the same resolution as the image
+        const imgWidth = img.naturalWidth || img.width;
+        const imgHeight = img.naturalHeight || img.height;
 
-    const canvas = document.createElement('canvas');
-    canvas.width = imgWidth;
-    canvas.height = imgHeight;
+        if (imgWidth === 0 || imgHeight === 0) {
+            console.error('Invalid image dimensions:', { imgWidth, imgHeight });
+            return null;
+        }
 
-    // Draw the image onto the canvas
-    const context = canvas.getContext('2d');
-    context.drawImage(img, 0, 0, imgWidth, imgHeight);
+        const canvas = document.createElement('canvas');
+        canvas.width = imgWidth;
+        canvas.height = imgHeight;
 
-    flashScreen();
+        // Draw the image onto the canvas
+        const context = canvas.getContext('2d');
+        context.drawImage(img, 0, 0, imgWidth, imgHeight);
 
-    // Get the snapshot as a base64-encoded image
-    return canvas.toDataURL('image/jpeg');
+        flashScreen();
+
+        // Get the snapshot as a base64-encoded image
+        const snapshot = canvas.toDataURL('image/jpeg');
+        console.log(`Snapshot captured: ${snapshot.substring(0, 50)}... (${snapshot.length} chars)`);
+        return snapshot;
+    } catch (error) {
+        console.error('Error taking snapshot:', error);
+        return null;
+    }
 }
-
 
 function showInstruction(message, duration = 3000) {
     messageDiv.innerText = message;
@@ -318,9 +369,6 @@ function showInstruction(message, duration = 3000) {
         }, duration);
     }
 }
-
-
-
 
 function delay(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
@@ -357,8 +405,6 @@ printBtn.addEventListener('click', async () => {
     }
 });
 
-
-
 cancelBtn.addEventListener('click', resetUI);
 
 function resetUI() {
@@ -374,7 +420,6 @@ function resetUI() {
     // Display the welcome message again
     showInstruction(welcomeMessage, 0); // Show indefinitely
 }
-
 
 const appElement = document.getElementById('app');
 
