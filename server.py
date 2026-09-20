@@ -41,19 +41,27 @@ global_camera = cv2.VideoCapture(cameraIndex)
 
 def list_available_cameras():
     """Print a list of available camera indices."""
-    index = 0
+    import time
     available_cameras = []
-
-    while True:
-        cap = cv2.VideoCapture(index)
-        if cap.read()[0]:  # Check if the camera is accessible
-            available_cameras.append(index)
-        else:
+    
+    # Try multiple times with delays
+    for attempt in range(3):
+        print(f"Camera detection attempt {attempt + 1}")
+        for index in range(5):  # Check indices 0-4
+            cap = cv2.VideoCapture(index)
+            time.sleep(0.5)  # Give camera time to initialize
+            success, frame = cap.read()
+            if success and frame is not None:
+                available_cameras.append(index)
+                print(f"  Camera {index}: Available")
+            cap.release()
+            time.sleep(0.1)
+        
+        if available_cameras:
             break
-        cap.release()
-        index += 1
-
-    return available_cameras
+        time.sleep(1)  # Wait before retry
+    
+    return list(set(available_cameras))  # Remove duplicates
 
 def generate_frames():
     local_camera = cv2.VideoCapture(cameraIndex)
@@ -108,7 +116,7 @@ def print_photo():
         if test_mode:
             logging.info("Test mode: Skipping actual printing. Processed file saved as 'processed_image.jpg'.")
         else:
-            printer_name = "Canon_SELPHY_CP1500_2"
+            printer_name = "Canon_SELPHY_CP1500"
             print_image(processed_file, printer_name)
 
         return jsonify({"success": True})
