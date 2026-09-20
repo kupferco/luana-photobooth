@@ -4,3 +4,5 @@ processed_image.jpg
 sent_to_print.jpg
 .DS_Store
 __pycache__
+test_image*.jpg
+captured_photo.jpg
