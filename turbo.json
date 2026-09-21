@@ -1,6 +1,24 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "ui": "tui",
+  "globalPassThroughEnv": [
+    "NODE_ENV",
+    "PORT",
+    "DATABASE_URL",
+    "JWT_SECRET",
+    "RESEND_API_KEY",
+    "RESEND_FROM",
+    "GCP_PROJECT_ID",
+    "GCS_BUCKET",
+    "GCS_SIGNER_SERVICE_ACCOUNT",
+    "GOOGLE_APPLICATION_CREDENTIALS",
+    "ACCESS_TOKEN_TTL",
+    "REFRESH_TOKEN_TTL",
+    "EXPO_PUBLIC_API_URL",
+    "EXPO_PUBLIC_API_MODE",
+    "EXPO_PUBLIC_GUEST_URL",
+    "VITE_API_URL"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],

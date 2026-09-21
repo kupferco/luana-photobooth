@@ -48,9 +48,13 @@ const env = {
   EXPO_PUBLIC_GUEST_URL: guest,
   EXPO_PUBLIC_API_URL: api,
   VITE_API_URL: api,
-  // The API trusts localhost origins in development; the phone arrives as a
-  // LAN address, so allow that too.
-  CORS_EXTRA_ORIGINS: `${guest},http://${host}:8083`,
 }
+
+/*
+ * Turbo 2 runs tasks in a strict environment and drops anything not declared,
+ * so these have to be listed in turbo.json's globalPassThroughEnv as well as
+ * set here. Without that the booth's QR was built with the fallback and sent
+ * phones to localhost.
+ */
 
 spawn('npx', ['turbo', 'run', 'dev'], { stdio: 'inherit', env })
