@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react'
+import { StyleSheet } from 'react-native'
 import { useTheme } from '../theme'
 import { CameraUnavailableError, type CameraProps, type CapturedShot } from './types'
 
@@ -158,7 +159,16 @@ export function CameraView({
 
   useImperativeHandle(ref, () => ({ capture }), [capture])
 
-  const flatStyle = (style ?? {}) as Record<string, unknown>
+  /**
+   * This file renders real DOM, but `style` arrives as a React Native
+   * StyleProp -- which may be an array, a nested array, or a registered id,
+   * none of which a DOM style attribute understands. Spreading an array here
+   * yields { 0: ..., 1: ... }, and React DOM then tries to assign style[0]
+   * and throws "Indexed property setter is not supported".
+   *
+   * StyleSheet.flatten collapses all of those to one plain object.
+   */
+  const flatStyle = (StyleSheet.flatten(style) ?? {}) as Record<string, unknown>
 
   if (fatal) {
     return (
