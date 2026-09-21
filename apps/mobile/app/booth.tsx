@@ -1,5 +1,6 @@
 import { CLASSIC_3UP, retentionNotice, type Template } from '@photobooth/shared'
 import { useKeepAwake } from 'expo-keep-awake'
+import QRCode from 'react-native-qrcode-svg'
 import { router } from 'expo-router'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
@@ -33,6 +34,15 @@ import { Body, Button, Card, Heading, Notice, Screen, Spinner } from '../src/ui'
  * wrong here is camera timing and upload latency on venue wifi, and a
  * fixture upload always succeeds instantly.
  */
+
+/**
+ * Where the QR sends a guest. Baked in per environment at build time, like
+ * the API URL, so a staging booth cannot send people to production.
+ */
+const GUEST_BASE =
+  process.env.EXPO_PUBLIC_GUEST_URL ?? 'http://localhost:5173'
+
+const guestUrl = (joinCode: string) => `${GUEST_BASE}/${joinCode}`
 
 const COUNTDOWN_FROM = 3
 const COUNT_INTERVAL_MS = 1000
@@ -323,11 +333,27 @@ export default function Booth() {
         <Pressable style={styles.fill} onPress={startLocal}>
           <View style={styles.centre}>
             <Text style={[styles.big, { color: '#fff' }]}>{t('booth.tapToStart')}</Text>
+
             {poll?.event.joinCode ? (
-              <Text style={[styles.code, { color: theme.color.action.bg }]}>
-                {poll.event.joinCode}
-              </Text>
+              <View style={styles.joinBlock}>
+                <Text style={[styles.hint, { color: 'rgba(255,255,255,0.85)' }]}>
+                  {t('booth.scanToTrigger')}
+                </Text>
+
+                {/* White quiet zone: scanners need the contrast, and on a dark
+                    booth screen a bare QR reads poorly from a metre away. */}
+                <View style={styles.qrPlate}>
+                  <QRCode value={guestUrl(poll.event.joinCode)} size={148} />
+                </View>
+
+                {/* The code stays as the fallback for a phone that will not
+                    scan, not as the main instruction. */}
+                <Text style={[styles.codeSmall, { color: 'rgba(255,255,255,0.65)' }]}>
+                  {t('booth.orEnterCode', { code: poll.event.joinCode })}
+                </Text>
+              </View>
             ) : null}
+
             {retention ? (
               <Text style={[styles.retention, { color: 'rgba(255,255,255,0.75)' }]}>
                 {retention}
@@ -469,4 +495,7 @@ const styles = StyleSheet.create({
   exitHandle: { position: 'absolute', top: 0, left: 0, width: 72, height: 72 },
   caption: { fontSize: 20, fontWeight: weight('600') },
   retention: { fontSize: 15, textAlign: 'center', marginTop: 8 },
+  joinBlock: { alignItems: 'center', gap: 10 },
+  qrPlate: { backgroundColor: '#fff', padding: 12, borderRadius: 12 },
+  codeSmall: { fontSize: 14, letterSpacing: 2 },
 })

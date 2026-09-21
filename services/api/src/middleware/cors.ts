@@ -19,6 +19,9 @@ const ALLOWED = new Set([
   'https://photolu-staging.web.app',
   'https://photolu.firebaseapp.com',
   'https://photobooth.kupfer.co',
+  // The guest page is its own origin, and the only one strangers load.
+  'https://photolu-guest.web.app',
+  'https://photolu-guest-staging.web.app',
 ])
 
 /** Expo's web dev server moves ports, so localhost is matched by pattern. */

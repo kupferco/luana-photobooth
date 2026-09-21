@@ -10,7 +10,9 @@
       "apiUrl": "https://photolu-api-staging-194349492339.europe-west2.run.app",
       "webUrl": "https://photolu-staging.web.app",
       "minInstances": 0,
-      "secretSuffix": "staging"
+      "secretSuffix": "staging",
+      "guestTarget": "guest-staging",
+      "guestUrl": "https://photolu-guest-staging.web.app"
     },
     "prod": {
       "service": "photolu-api-prod",
@@ -19,7 +21,9 @@
       "apiUrl": "https://photolu-api-prod-194349492339.europe-west2.run.app",
       "webUrl": "https://photolu.web.app",
       "minInstances": 1,
-      "secretSuffix": "prod"
+      "secretSuffix": "prod",
+      "guestTarget": "guest",
+      "guestUrl": "https://photolu-guest.web.app"
     }
   }
 }

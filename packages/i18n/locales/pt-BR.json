@@ -94,7 +94,9 @@
     "tapToContinue": "Toque para continuar",
     "exit": "Sair do modo cabine",
     "exitConfirm": "Sair do modo cabine?",
-    "eventEnded": "Este evento foi encerrado."
+    "eventEnded": "Este evento foi encerrado.",
+    "scanToTrigger": "Escaneie para tirar a foto pelo seu celular",
+    "orEnterCode": "ou use o código {code}"
   },
   "guest": {
     "welcome": "Você está em {name}",
@@ -111,7 +113,12 @@
     "emailMe": "Enviar para meu e-mail",
     "emailLabel": "Seu e-mail",
     "emailSent": "Enviado. Veja sua caixa de entrada.",
-    "failed": "Algo deu errado. Peça para alguém tentar de novo."
+    "failed": "Algo deu errado. Peça para alguém tentar de novo.",
+    "noCode": "Escaneie o QR code na mesa para começar.",
+    "welcomeHint": "Toque para começar. A cabine vai tirar {count} fotos.",
+    "youAreNext": "Você é o próximo.",
+    "save": "Salvar foto",
+    "again": "Tirar outra"
   },
   "common": {
     "back": "Voltar",

@@ -94,7 +94,9 @@
     "tapToContinue": "Tap to continue",
     "exit": "Leave booth mode",
     "exitConfirm": "Leave booth mode?",
-    "eventEnded": "This event has ended."
+    "eventEnded": "This event has ended.",
+    "scanToTrigger": "Scan to start from your own phone",
+    "orEnterCode": "or use code {code}"
   },
   "guest": {
     "welcome": "You are at {name}",
@@ -111,7 +113,12 @@
     "emailMe": "Email it to me",
     "emailLabel": "Your email",
     "emailSent": "Sent. Check your inbox.",
-    "failed": "Something went wrong. Ask someone to try again."
+    "failed": "Something went wrong. Ask someone to try again.",
+    "noCode": "Scan the QR code on the table to start.",
+    "welcomeHint": "Tap to start. The booth will take {count} photos.",
+    "youAreNext": "You are next.",
+    "save": "Save photo",
+    "again": "Take another"
   },
   "common": {
     "back": "Back",

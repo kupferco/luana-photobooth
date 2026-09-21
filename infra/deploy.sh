@@ -93,9 +93,17 @@ deploy_front() {
   # might mistake for the product.
   EXPO_PUBLIC_API_URL="$api" \
   EXPO_PUBLIC_API_MODE="live" \
+  EXPO_PUBLIC_GUEST_URL="$(cfg "$env" guestUrl)" \
     npm run build:web --workspace @photobooth/mobile
 
-  firebase deploy --only "hosting:$target" --project "$PROJECT"
+  # The guest page is its own bundle and its own site: it is the only thing a
+  # stranger loads, and keeping it out of the Expo export is what keeps it
+  # 66 KB rather than 305 KB.
+  local guestTarget; guestTarget=$(cfg "$env" guestTarget)
+  echo "==> Guest -> $(cfg "$env" guestUrl) ($env)"
+  VITE_API_URL="$api" npm run build --workspace @photobooth/guest
+
+  firebase deploy --only "hosting:$target,hosting:$guestTarget" --project "$PROJECT"
 }
 
 for env in "${ENV_LIST[@]}"; do

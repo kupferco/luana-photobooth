@@ -10,6 +10,12 @@
         ],
         "staging": [
           "photolu-staging"
+        ],
+        "guest": [
+          "photolu-guest"
+        ],
+        "guest-staging": [
+          "photolu-guest-staging"
         ]
       }
     }
