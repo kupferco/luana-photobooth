@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm'
+import { and, desc, eq, inArray, isNull, lt, sql } from 'drizzle-orm'
 import { CLASSIC_3UP, type Template } from '@photobooth/shared'
 import { db } from './client'
 import {
@@ -331,11 +331,97 @@ export async function updateSession(
 }
 
 /**
+ * How long a session may sit in each unfinished state before it is written
+ * off.
+ *
+ * A live booth polls every couple of seconds and claims the head of the queue
+ * at once, so anything queued for minutes means the booth is not there --
+ * somebody tapped start and walked away, or the phone was closed. Capture
+ * takes about twenty seconds and composing takes a few, so those limits are
+ * generous by a wide margin and only catch a booth that actually died.
+ *
+ * Without this, abandoned sessions stayed queued forever and every later
+ * guest was told there were people ahead of them who had long since left.
+ */
+const STALE_MS = {
+  queued: 5 * 60_000,
+  capturing: 3 * 60_000,
+  composing: 2 * 60_000,
+} as const
+
+/**
+ * Writes off sessions that have clearly been abandoned.
+ *
+ * Swept lazily, whenever the queue is read, rather than on a schedule: the
+ * queue is read every couple of seconds while a party is running, which is
+ * exactly when it matters, and it needs no scheduler to be running for the
+ * booth to behave.
+ */
+export async function expireStaleSessions(tenantId: string, eventId: string) {
+  const now = Date.now()
+
+  const scope = and(
+    eq(sessions.tenantId, tenantId),
+    eq(sessions.eventId, eventId),
+    isNull(sessions.deletedAt),
+  )
+
+  // Nobody came: not a failure, so it is not reported as one.
+  await db
+    .update(sessions)
+    .set({ status: 'abandoned', updatedAt: new Date() })
+    .where(
+      and(
+        scope,
+        eq(sessions.status, 'queued'),
+        lt(sessions.updatedAt, new Date(now - STALE_MS.queued)),
+      ),
+    )
+
+  // The booth stopped mid-sequence. That is a failure, and the guest should
+  // be told rather than left on a spinner.
+  await db
+    .update(sessions)
+    .set({
+      status: 'failed',
+      error: 'The booth stopped before the photos were finished.',
+      updatedAt: new Date(),
+    })
+    .where(
+      and(
+        scope,
+        eq(sessions.status, 'capturing'),
+        lt(sessions.updatedAt, new Date(now - STALE_MS.capturing)),
+      ),
+    )
+
+  await db
+    .update(sessions)
+    .set({
+      status: 'failed',
+      error: 'The photo could not be put together.',
+      updatedAt: new Date(),
+    })
+    .where(
+      and(
+        scope,
+        eq(sessions.status, 'composing'),
+        lt(sessions.updatedAt, new Date(now - STALE_MS.composing)),
+      ),
+    )
+}
+
+/**
  * The queue for one event: sessions still waiting or mid-capture, oldest
  * first. The booth takes the head of this; a guest's position comes from
  * their index in it.
+ *
+ * Stale entries are swept first, so the number a guest is shown is people who
+ * are actually still waiting.
  */
 export async function eventQueue(tenantId: string, eventId: string) {
+  await expireStaleSessions(tenantId, eventId)
+
   return db
     .select()
     .from(sessions)

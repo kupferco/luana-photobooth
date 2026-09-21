@@ -14,6 +14,7 @@ import {
   getLiveEventByJoinCode,
   getSessionByCode,
   getTemplate,
+  listDevices,
   toTemplate,
   updateSession,
 } from '../db/repo'
@@ -38,6 +39,19 @@ export const hashGuestToken = (token: string) =>
  * the guest page, booth screen, QR card and emails cannot disagree about the
  * date even where they differ in wording.
  */
+/** A booth that has not called in for half a minute is not there. */
+const BOOTH_ONLINE_MS = 30_000
+
+async function isBoothOnline(tenantId: string, eventId: string): Promise<boolean> {
+  const devices = await listDevices(tenantId, eventId)
+  return devices.some(
+    (d) =>
+      d.kind === 'booth' &&
+      d.lastSeenAt !== null &&
+      Date.now() - d.lastSeenAt.getTime() < BOOTH_ONLINE_MS,
+  )
+}
+
 sessionRoutes.get('/join/:joinCode', async (req, res, next) => {
   try {
     const code = normaliseCode(req.params.joinCode ?? '')
@@ -70,6 +84,7 @@ sessionRoutes.get('/join/:joinCode', async (req, res, next) => {
       },
       shotsExpected: template ? shotCount(toTemplate(template)) : 3,
       queueDepth: queue.length,
+      boothOnline: await isBoothOnline(event.tenantId, event.id),
     })
   } catch (e) {
     return next(e)
@@ -182,6 +197,7 @@ sessionRoutes.get('/sessions/:code', async (req, res, next) => {
       shotCount: session.shotsExpected,
       shotsTaken: session.shotsTaken,
       print: null,
+      boothOnline: await isBoothOnline(session.tenantId, session.eventId),
       error: session.error,
       retentionUntil: event.retentionUntil.toISOString(),
     }

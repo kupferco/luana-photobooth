@@ -131,7 +131,9 @@
     "welcomeHint": "Toque para começar. A cabine vai tirar {count} fotos.",
     "youAreNext": "Você é o próximo.",
     "save": "Salvar foto",
-    "again": "Tirar outra"
+    "again": "Tirar outra",
+    "boothOffline": "A cabine não está ligada",
+    "boothOfflineHint": "Ninguém está com a cabine ligada agora. Peça para alguém da festa ligá-la."
   },
   "common": {
     "back": "Voltar",

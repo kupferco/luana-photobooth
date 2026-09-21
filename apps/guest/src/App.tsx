@@ -155,7 +155,9 @@ export function App() {
         <h1>{info.event.name}</h1>
         <p className="muted">{t('guest.welcomeHint', { count: info.shotsExpected })}</p>
 
-        {info.queueDepth > 0 ? (
+        {!info.boothOnline ? (
+          <p className="notice">{t('guest.boothOfflineHint')}</p>
+        ) : info.queueDepth > 0 ? (
           <p className="notice">{t.plural('guest.queuePosition', info.queueDepth)}</p>
         ) : null}
 
@@ -176,13 +178,25 @@ export function App() {
 
       {view.status === 'queued' ? (
         <>
-          <p className="big-status">{t('guest.queued')}</p>
-          <p className="muted">
-            {view.queuePosition && view.queuePosition > 0
-              ? t.plural('guest.queuePosition', view.queuePosition)
-              : t('guest.youAreNext')}
-          </p>
-          <div className="spinner" />
+          {/* A queue behind a booth that is switched off is not a queue, and
+              saying "1 person ahead of you" when nothing is running is worse
+              than saying nothing. */}
+          {view.boothOnline ? (
+            <>
+              <p className="big-status">{t('guest.queued')}</p>
+              <p className="muted">
+                {view.queuePosition && view.queuePosition > 0
+                  ? t.plural('guest.queuePosition', view.queuePosition)
+                  : t('guest.youAreNext')}
+              </p>
+              <div className="spinner" />
+            </>
+          ) : (
+            <>
+              <p className="big-status">{t('guest.boothOffline')}</p>
+              <p className="muted">{t('guest.boothOfflineHint')}</p>
+            </>
+          )}
         </>
       ) : null}
 

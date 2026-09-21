@@ -20,6 +20,7 @@ export interface JoinInfo {
   }
   shotsExpected: number
   queueDepth: number
+  boothOnline: boolean
 }
 
 export interface StartedSession {

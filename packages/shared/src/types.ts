@@ -68,6 +68,14 @@ export const SessionViewSchema = z.object({
       queuePosition: z.number().int().nonnegative().nullable(),
     })
     .nullable(),
+  /**
+   * Whether the booth phone has called in recently.
+   *
+   * Without this a guest waiting behind a booth that is switched off sees a
+   * queue and a spinner, and no way to tell the difference between "someone
+   * is having their photo taken" and "there is nothing at the other end".
+   */
+  boothOnline: z.boolean(),
   error: z.string().nullable(),
   /** When this session's photos are deleted. Shown to the guest verbatim. */
   retentionUntil: z.string().datetime(),
