@@ -1,7 +1,7 @@
-import { and, desc, eq, isNull } from 'drizzle-orm'
+import { and, desc, eq, inArray, isNull } from 'drizzle-orm'
 import { CLASSIC_3UP, type Template } from '@photobooth/shared'
 import { db } from './client'
-import { devices, events, templates } from './schema'
+import { devices, events, photos, sessions, templates } from './schema'
 
 /**
  * The tenant-scoped data access layer.
@@ -252,4 +252,141 @@ export async function touchDevice(
       updatedAt: new Date(),
     })
     .where(eq(devices.id, deviceId))
+}
+
+// ---------------------------------------------------------------------------
+// Sessions
+// ---------------------------------------------------------------------------
+
+export async function createSession(
+  tenantId: string,
+  input: {
+    eventId: string
+    code: string
+    guestTokenHash: string
+    shotsExpected: number
+  },
+) {
+  const [row] = await db
+    .insert(sessions)
+    .values({ tenantId, ...input })
+    .returning()
+  if (!row) throw new Error('Could not create the session.')
+  return row
+}
+
+/**
+ * By code, for a guest who has no account. The token in their URL is checked
+ * by the caller; this only finds the row.
+ */
+export async function getSessionByCode(code: string) {
+  const [row] = await db
+    .select()
+    .from(sessions)
+    .where(and(eq(sessions.code, code), isNull(sessions.deletedAt)))
+    .limit(1)
+  return row ?? null
+}
+
+export async function getSession(tenantId: string, sessionId: string) {
+  const [row] = await db
+    .select()
+    .from(sessions)
+    .where(
+      and(
+        eq(sessions.tenantId, tenantId),
+        eq(sessions.id, sessionId),
+        isNull(sessions.deletedAt),
+      ),
+    )
+    .limit(1)
+  return row ?? null
+}
+
+export async function updateSession(
+  tenantId: string,
+  sessionId: string,
+  patch: Partial<{
+    status: 'queued' | 'capturing' | 'composing' | 'ready' | 'failed' | 'abandoned'
+    shotsTaken: number
+    montagePath: string | null
+    error: string | null
+    deletedAt: Date | null
+  }>,
+) {
+  const [row] = await db
+    .update(sessions)
+    .set({ ...patch, updatedAt: new Date() })
+    .where(and(eq(sessions.tenantId, tenantId), eq(sessions.id, sessionId)))
+    .returning()
+  return row ?? null
+}
+
+/**
+ * The queue for one event: sessions still waiting or mid-capture, oldest
+ * first. The booth takes the head of this; a guest's position comes from
+ * their index in it.
+ */
+export async function eventQueue(tenantId: string, eventId: string) {
+  return db
+    .select()
+    .from(sessions)
+    .where(
+      and(
+        eq(sessions.tenantId, tenantId),
+        eq(sessions.eventId, eventId),
+        inArray(sessions.status, ['queued', 'capturing']),
+        isNull(sessions.deletedAt),
+      ),
+    )
+    .orderBy(sessions.createdAt)
+}
+
+export async function listEventSessions(tenantId: string, eventId: string) {
+  return db
+    .select()
+    .from(sessions)
+    .where(
+      and(
+        eq(sessions.tenantId, tenantId),
+        eq(sessions.eventId, eventId),
+        isNull(sessions.deletedAt),
+      ),
+    )
+    .orderBy(desc(sessions.createdAt))
+}
+
+// ---------------------------------------------------------------------------
+// Photos
+// ---------------------------------------------------------------------------
+
+export async function recordPhoto(
+  tenantId: string,
+  input: {
+    sessionId: string
+    idx: number
+    gcsPath: string
+    width: number
+    height: number
+  },
+) {
+  const [row] = await db
+    .insert(photos)
+    .values({ tenantId, ...input })
+    .onConflictDoUpdate({
+      target: [photos.sessionId, photos.idx],
+      // A retried upload should replace the shot, not fail the sequence.
+      set: { gcsPath: input.gcsPath, width: input.width, height: input.height },
+    })
+    .returning()
+  if (!row) throw new Error('Could not record the photo.')
+  return row
+}
+
+export async function listSessionPhotos(tenantId: string, sessionId: string) {
+  return db
+    .select()
+    .from(photos)
+    .where(and(eq(photos.tenantId, tenantId), eq(photos.sessionId, sessionId)))
+    .orderBy(photos.idx)
 }

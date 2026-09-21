@@ -1,5 +1,18 @@
 {
   "projects": {
     "default": "photolu"
-  }
+  },
+  "targets": {
+    "photolu": {
+      "hosting": {
+        "prod": [
+          "photolu"
+        ],
+        "staging": [
+          "photolu-staging"
+        ]
+      }
+    }
+  },
+  "etags": {}
 }
