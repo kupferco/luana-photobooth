@@ -41,7 +41,7 @@ secure context, and `http://192.168.x.x` is not one. Serving from a real
 domain with a real certificate makes it a non-issue.
 
 **Cost:** no internet, no party. Mitigated by tethering the Pi and booth phone
-to a 4G hotspot — about 1 MB per session, so 40 sessions is 40 MB.
+to a 4G hotspot — measured at ~2 MB per session, so 40 sessions is ~80 MB.
 
 **Offline fallback** is deferred, and is not a config flag: it means the Pi
 runs the whole application locally and syncs later. It stays affordable
@@ -88,8 +88,12 @@ Isolation, in layers:
 
 1. One data-access module; every function takes `tenantId` as a required
    typed argument. No raw Drizzle calls outside it.
-2. GCS paths prefixed `t/<tenant>/e/<event>/s/<session>/`, signed URLs always
-   scoped to one object, never a prefix listing.
+2. Signed URLs always scoped to one exact object, never a prefix listing.
+   Paths are `<tier>/t/<tenant>/e/<event>/s/<session>/` — tier first, because
+   GCS lifecycle rules only match from the start of a name, and tiering is
+   what lets raw frames and montages expire on different schedules.
+   Isolation never depended on segment order; `assertWithinTenant()` checks
+   the tenant segment and rejects traversal regardless.
 3. Postgres RLS held in reserve — Neon's pooled driver needs `SET LOCAL` in
    an explicit transaction per request. Add it before taking real money.
 
