@@ -15,6 +15,7 @@
     "start": "turbo run dev",
     "server": "npm run dev --workspace @photobooth/api",
     "client": "npm run dev --workspace @photobooth/mobile",
+    "client:live": "EXPO_PUBLIC_API_MODE=live EXPO_PUBLIC_API_URL=http://localhost:8080 npm run dev --workspace @photobooth/mobile",
     "guest": "npm run dev --workspace @photobooth/guest",
     "build": "turbo run build",
     "typecheck": "turbo run typecheck",

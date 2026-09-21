@@ -11,7 +11,7 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native'
-import { api } from '../src/api'
+import { api, usingFixtures } from '../src/api'
 import { booth, isPaired, savePairing, uploadShot, type BoothPoll } from '../src/booth/client'
 import { MontagePreview } from '../src/booth/MontagePreview'
 import { CameraView, type CameraRef, type CapturedShot } from '../src/camera'
@@ -61,6 +61,7 @@ export default function Booth() {
 
   const cameraRef = useRef<CameraRef>(null)
   const [paired, setPaired] = useState<boolean | null>(null)
+  const [pairing, setPairing] = useState(false)
   const [poll, setPoll] = useState<BoothPoll | null>(null)
   const [phase, setPhase] = useState<Phase>({ kind: 'setup' })
   const [shots, setShots] = useState<CapturedShot[]>([])
@@ -80,6 +81,7 @@ export default function Booth() {
 
   const pair = useCallback(async () => {
     if (!tenantId || !active) return
+    setPairing(true)
     try {
       const result = await api.claimBooth(tenantId, active.id)
       await savePairing(result.token)
@@ -87,6 +89,8 @@ export default function Booth() {
       setPhase({ kind: 'idle' })
     } catch (e) {
       setPhase({ kind: 'error', message: e instanceof Error ? e.message : String(e) })
+    } finally {
+      setPairing(false)
     }
   }, [tenantId, active])
 
@@ -237,7 +241,20 @@ export default function Booth() {
           <Body>{active ? active.name : t('event.none')}</Body>
           <Body muted>{t('booth.pairHint')}</Body>
         </Card>
-        <Button label={t('booth.pair')} onPress={pair} disabled={!active} />
+
+        {/* Shown here too: this screen returns before the stage below, so an
+            error raised while pairing would otherwise never appear and the
+            button would look like it did nothing. */}
+        {phase.kind === 'error' ? <Notice tone="bad">{phase.message}</Notice> : null}
+
+        {usingFixtures ? <Notice tone="warn">{t('booth.needsLiveApi')}</Notice> : null}
+
+        <Button
+          label={t('booth.pair')}
+          onPress={pair}
+          disabled={!active}
+          busy={pairing}
+        />
         <Button label={t('common.back')} variant="secondary" onPress={() => router.back()} />
       </Screen>
     )
@@ -250,6 +267,10 @@ export default function Booth() {
       <Screen>
         <Heading>{t('booth.rotate')}</Heading>
         <Body muted>{t('booth.rotateHint')}</Body>
+        {/* Same trap as the pairing screen: without this, an error raised
+            while the phone is upright stays invisible until someone happens
+            to rotate it. */}
+        {phase.kind === 'error' ? <Notice tone="bad">{phase.message}</Notice> : null}
       </Screen>
     )
   }

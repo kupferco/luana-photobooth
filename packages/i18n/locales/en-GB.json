@@ -86,7 +86,8 @@
     "getReady": "Get ready…",
     "shotOf": "Photo {current} of {total}",
     "pair": "Use this phone as the booth",
-    "pairHint": "This phone will take the photos. Keep it plugged in, and leave this screen open."
+    "pairHint": "This phone will take the photos. Keep it plugged in, and leave this screen open.",
+    "needsLiveApi": "Booth mode needs the real API. Run: npm run client:live, with npm run server in another terminal."
   },
   "guest": {
     "welcome": "You are at {name}",

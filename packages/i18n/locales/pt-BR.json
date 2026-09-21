@@ -86,7 +86,8 @@
     "getReady": "Preparar…",
     "shotOf": "Foto {current} de {total}",
     "pair": "Usar este celular como cabine",
-    "pairHint": "Este celular vai tirar as fotos. Mantenha-o na tomada e deixe esta tela aberta."
+    "pairHint": "Este celular vai tirar as fotos. Mantenha-o na tomada e deixe esta tela aberta.",
+    "needsLiveApi": "O modo cabine precisa da API real. Rode: npm run client:live (com npm run server em outro terminal)."
   },
   "guest": {
     "welcome": "Você está em {name}",
