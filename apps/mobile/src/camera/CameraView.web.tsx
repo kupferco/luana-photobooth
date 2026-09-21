@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react'
+import { useTheme } from '../theme'
 import { CameraUnavailableError, type CameraProps, type CapturedShot } from './types'
 
 /**
@@ -19,6 +20,7 @@ export function CameraView({
   onError,
   style,
 }: CameraProps) {
+  const theme = useTheme()
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const [ready, setReady] = useState(false)
@@ -167,8 +169,8 @@ export function CameraView({
           justifyContent: 'center',
           padding: 24,
           textAlign: 'center',
-          color: '#b00020',
-          background: '#1c1c1e',
+          color: theme.color.danger.bg,
+          background: theme.color.surface.raised,
           ...flatStyle,
         }}
       >
@@ -187,7 +189,7 @@ export function CameraView({
         width: '100%',
         height: '100%',
         objectFit: 'cover',
-        background: '#000',
+        background: '#000',  // true black: letterbox bars, not a themed surface
         transform: mirrorPreview ? 'scaleX(-1)' : undefined,
         ...flatStyle,
       }}

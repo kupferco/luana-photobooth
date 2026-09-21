@@ -1,6 +1,7 @@
 import { CameraView as ExpoCameraView, useCameraPermissions } from 'expo-camera'
 import { useCallback, useEffect, useImperativeHandle, useRef } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
+import { useTheme } from '../theme'
 import { CameraUnavailableError, type CameraProps, type CapturedShot } from './types'
 
 /**
@@ -20,6 +21,7 @@ export function CameraView({
   onError,
   style,
 }: CameraProps) {
+  const theme = useTheme()
   const cameraRef = useRef<ExpoCameraView | null>(null)
   const [permission, requestPermission] = useCameraPermissions()
 
@@ -79,13 +81,27 @@ export function CameraView({
   useImperativeHandle(ref, () => ({ capture }), [capture])
 
   if (!permission) {
-    return <View style={[styles.fallback, style]} />
+    return (
+      <View
+        style={[
+          styles.fallback,
+          { backgroundColor: theme.color.surface.raised },
+          style,
+        ]}
+      />
+    )
   }
 
   if (!permission.granted) {
     return (
-      <View style={[styles.fallback, style]}>
-        <Text style={styles.fallbackText}>
+      <View
+        style={[
+          styles.fallback,
+          { backgroundColor: theme.color.surface.raised },
+          style,
+        ]}
+      >
+        <Text style={[styles.fallbackText, { color: theme.color.text.primary }]}>
           The photo booth needs camera access.
         </Text>
       </View>
@@ -109,13 +125,13 @@ export function CameraView({
 }
 
 const styles = StyleSheet.create({
+  // True black behind the preview: a camera convention, not a themed surface.
   camera: { flex: 1, backgroundColor: '#000' },
   fallback: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#1c1c1e',
     padding: 24,
   },
-  fallbackText: { color: '#fff', textAlign: 'center' },
+  fallbackText: { textAlign: 'center' },
 })

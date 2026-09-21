@@ -1,0 +1,113 @@
+{
+  "name": "photobooth-dark",
+  "palette": {
+    "amber": {
+      "300": "#fcd34d",
+      "400": "#fbbf24",
+      "500": "#f5c518",
+      "600": "#d9a800",
+      "700": "#b38700"
+    },
+    "neutral": {
+      "0": "#ffffff",
+      "50": "#fafafa",
+      "100": "#f4f4f5",
+      "200": "#e4e4e7",
+      "300": "#c7c7cc",
+      "400": "#a1a1aa",
+      "500": "#8e8e93",
+      "600": "#52525b",
+      "700": "#3f3f46",
+      "800": "#27272a",
+      "850": "#1f1f23",
+      "900": "#18181b",
+      "950": "#0b0b0d"
+    },
+    "green": {
+      "400": "#4ade80",
+      "500": "#22c55e",
+      "600": "#16a34a"
+    },
+    "red": {
+      "400": "#f87171",
+      "500": "#ef4444",
+      "600": "#dc2626"
+    }
+  },
+  "color": {
+    "surface": {
+      "base": "{neutral.950}",
+      "raised": "{neutral.850}",
+      "sunken": "{neutral.900}"
+    },
+    "text": {
+      "primary": "{neutral.50}",
+      "secondary": "{neutral.500}",
+      "inverse": "{neutral.950}",
+      "disabled": "{neutral.600}"
+    },
+    "action": {
+      "bg": "{amber.500}",
+      "bgPressed": "{amber.600}",
+      "fg": "{neutral.950}"
+    },
+    "actionSecondary": {
+      "bg": "{neutral.800}",
+      "bgPressed": "{neutral.700}",
+      "fg": "{neutral.50}",
+      "border": "{neutral.700}"
+    },
+    "danger": {
+      "bg": "{red.600}",
+      "bgPressed": "{red.500}",
+      "fg": "{neutral.0}"
+    },
+    "border": {
+      "subtle": "{neutral.800}",
+      "strong": "{neutral.700}"
+    },
+    "focus": {
+      "ring": "{amber.400}"
+    },
+    "status": {
+      "good": "{green.500}",
+      "ok": "{amber.400}",
+      "poor": "{amber.600}",
+      "bad": "{red.500}"
+    }
+  },
+  "space": {
+    "0": 0,
+    "1": 4,
+    "2": 8,
+    "3": 12,
+    "4": 16,
+    "5": 20,
+    "6": 24,
+    "8": 32,
+    "10": 40
+  },
+  "radius": {
+    "none": 0,
+    "sm": 6,
+    "md": 10,
+    "lg": 16,
+    "xl": 22,
+    "full": 9999
+  },
+  "fontSize": {
+    "xs": 12,
+    "sm": 14,
+    "md": 16,
+    "lg": 18,
+    "xl": 22,
+    "2xl": 28,
+    "3xl": 34
+  },
+  "fontWeight": {
+    "regular": "400",
+    "medium": "500",
+    "semibold": "600",
+    "bold": "700"
+  }
+}
