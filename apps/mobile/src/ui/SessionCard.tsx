@@ -3,6 +3,7 @@ import { Image, Text, TextInput, View } from 'react-native'
 import type { GallerySession } from '../api'
 import { useLocale, useT } from '../locale'
 import { useTheme } from '../theme'
+import type { ShareOutcome } from '../share'
 import { Button, Card, Row } from './index'
 
 /**
@@ -18,6 +19,7 @@ interface Props {
   session: GallerySession
   onPrint(): Promise<void>
   onEmail(to: string): Promise<void>
+  onShare(): Promise<ShareOutcome>
 }
 
 function areEqual(a: Props, b: Props): boolean {
@@ -36,12 +38,13 @@ export const SessionCard = memo(function SessionCard({
   session,
   onPrint,
   onEmail,
+  onShare,
 }: Props) {
   const t = useTheme()
   const tr = useT()
   const { locale } = useLocale()
 
-  const [busy, setBusy] = useState<'print' | 'email' | null>(null)
+  const [busy, setBusy] = useState<'print' | 'email' | 'share' | null>(null)
   const [emailing, setEmailing] = useState(false)
   const [to, setTo] = useState('')
   const [done, setDone] = useState<string | null>(null)
@@ -49,7 +52,31 @@ export const SessionCard = memo(function SessionCard({
 
   const ready = session.status === 'ready'
 
-  const run = async (kind: 'print' | 'email', action: () => Promise<void>) => {
+  /**
+   * Sharing has three honest outcomes and they are not interchangeable.
+   * Cancelling the sheet should say nothing at all -- a confirmation after
+   * someone backed out is noise. Falling back to the clipboard must say so,
+   * because a silent copy is indistinguishable from a dead button.
+   */
+  const share = async () => {
+    setBusy('share')
+    setError(null)
+    try {
+      const outcome = await onShare()
+      if (outcome === 'copied') setDone(tr('dashboard.linkCopied'))
+      else if (outcome === 'unsupported') setError(tr('dashboard.shareUnsupported'))
+      else if (outcome === 'shared') setDone(tr('dashboard.shared'))
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e))
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  const run = async (
+    kind: 'print' | 'email' | 'share',
+    action: () => Promise<void>,
+  ) => {
     setBusy(kind)
     setError(null)
     try {
@@ -127,6 +154,14 @@ export const SessionCard = memo(function SessionCard({
               variant="secondary"
               busy={busy === 'print'}
               onPress={() => void run('print', onPrint)}
+            />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Button
+              label={tr('dashboard.share')}
+              variant="secondary"
+              busy={busy === 'share'}
+              onPress={() => void share()}
             />
           </View>
           <View style={{ flex: 1 }}>

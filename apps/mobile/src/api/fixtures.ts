@@ -257,6 +257,11 @@ export const fixtureApi: PhotoboothApi = {
     }
   },
 
+  async shareLink() {
+    await delay()
+    return { url: MONTAGE, title: 'Fixture event', expiresInDays: 7 }
+  },
+
   async emailMontage(_tenantId, _eventId, sessionId, to) {
     await delay(600)
     if (!to.includes('@')) {

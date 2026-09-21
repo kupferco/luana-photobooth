@@ -13,6 +13,7 @@
   },
   "scripts": {
     "start": "turbo run dev",
+    "lan": "node infra/lan.mjs",
     "server": "npm run dev --workspace @photobooth/api",
     "client": "npm run dev --workspace @photobooth/mobile",
     "client:fixtures": "EXPO_PUBLIC_API_MODE=fixtures npm run dev --workspace @photobooth/mobile",

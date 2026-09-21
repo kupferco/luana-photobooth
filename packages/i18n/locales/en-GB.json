@@ -67,7 +67,12 @@
     "printedCount": {
       "one": "printed {count} time",
       "other": "printed {count} times"
-    }
+    },
+    "share": "Share",
+    "shared": "Shared",
+    "linkCopied": "Link copied",
+    "shareUnsupported": "Could not share on this device.",
+    "shareText": "Your photo from {name}"
   },
   "retention": {
     "guest": "Your photos are saved until {date}.",

@@ -86,6 +86,12 @@ export interface PhotoboothApi {
     sessionId: string,
     to: string,
   ): Promise<void>
+  /** A long-lived link, for pasting into whatever the owner already uses. */
+  shareLink(
+    tenantId: string,
+    eventId: string,
+    sessionId: string,
+  ): Promise<{ url: string; title: string; expiresInDays: number }>
 }
 
 export class ApiError extends Error {

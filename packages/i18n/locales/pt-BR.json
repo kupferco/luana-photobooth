@@ -67,7 +67,12 @@
     "printedCount": {
       "one": "impressa {count} vez",
       "other": "impressa {count} vezes"
-    }
+    },
+    "share": "Compartilhar",
+    "shared": "Compartilhado",
+    "linkCopied": "Link copiado",
+    "shareUnsupported": "Não foi possível compartilhar neste dispositivo.",
+    "shareText": "Sua foto de {name}"
   },
   "retention": {
     "guest": "Suas fotos ficam guardadas até {date}.",

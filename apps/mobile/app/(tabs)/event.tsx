@@ -11,6 +11,7 @@ import {
 import { useLocale, useT } from '../../src/locale'
 import { useActiveEvent } from '../../src/event-context'
 import { useSession } from '../../src/session'
+import { shareLink } from '../../src/share'
 import { useTheme } from '../../src/theme'
 import {
   Body,
@@ -214,6 +215,10 @@ export default function EventTab() {
           onEmail={async (to) => {
             await api.emailMontage(tenantId!, event.id, session.id, to)
             await load()
+          }}
+          onShare={async () => {
+            const { url, title } = await api.shareLink(tenantId!, event.id, session.id)
+            return shareLink(url, title, t('dashboard.shareText', { name: event.name }))
           }}
         />
       ))}

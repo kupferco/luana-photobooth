@@ -237,6 +237,13 @@ export const liveApi: PhotoboothApi = {
     )
   },
 
+  async shareLink(tenantId, eventId, sessionId) {
+    return request<{ url: string; title: string; expiresInDays: number }>(
+      'POST',
+      `/events/${eventId}/sessions/${sessionId}/share-link?tenantId=${encodeURIComponent(tenantId)}`,
+    )
+  },
+
   async emailMontage(tenantId, eventId, sessionId, to) {
     await request(
       'POST',

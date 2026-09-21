@@ -27,10 +27,17 @@ const ALLOWED = new Set([
 /** Expo's web dev server moves ports, so localhost is matched by pattern. */
 const LOCALHOST = /^http:\/\/localhost:\d+$/
 
+/**
+ * Private network addresses, for testing from a phone on the same wifi.
+ * Development only -- a deployed service has no business trusting a LAN.
+ */
+const PRIVATE_LAN =
+  /^http:\/\/(?:10\.|192\.168\.|172\.(?:1[6-9]|2\d|3[01])\.)\d+(?:\.\d+)*(?::\d+)?$/
+
 function isAllowed(origin: string): boolean {
   if (ALLOWED.has(origin)) return true
-  // Only in development: a production deployment should never trust localhost.
-  return process.env.NODE_ENV !== 'production' && LOCALHOST.test(origin)
+  if (process.env.NODE_ENV === 'production') return false
+  return LOCALHOST.test(origin) || PRIVATE_LAN.test(origin)
 }
 
 export function cors(req: Request, res: Response, next: NextFunction): void {

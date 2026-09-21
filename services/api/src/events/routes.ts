@@ -243,6 +243,49 @@ eventRoutes.post('/:eventId/sessions/:sessionId/print', async (req, res, next) =
   }
 })
 
+/**
+ * A link worth sending someone.
+ *
+ * Signed for seven days -- the V4 maximum -- rather than the hour the gallery
+ * uses. A link pasted into WhatsApp gets opened when someone gets round to
+ * it, which is not within the hour, and a dead link is worse than no link.
+ */
+eventRoutes.post('/:eventId/sessions/:sessionId/share-link', async (req, res, next) => {
+  try {
+    const query = TenantQuery.safeParse(req.query)
+    if (!query.success) {
+      return res.status(400).json({
+        error: { code: 'invalid_request', message: 'tenantId is required.' },
+      })
+    }
+    requireTenant(req, query.data.tenantId)
+
+    const session = await getSession(query.data.tenantId, req.params.sessionId!)
+    if (!session || session.eventId !== req.params.eventId) {
+      return res.status(404).json({ error: { code: 'not_found', message: 'Not found' } })
+    }
+    if (!session.montagePath) {
+      return res.status(409).json({
+        error: { code: 'not_ready', message: 'That photo is not finished yet.' },
+      })
+    }
+
+    const event = await getEvent(query.data.tenantId, session.eventId)
+
+    return res.json({
+      url: await createReadUrl(
+        session.montagePath,
+        query.data.tenantId,
+        MAX_SIGNED_URL_MS,
+      ),
+      title: event?.name ?? 'Photo Booth',
+      expiresInDays: 7,
+    })
+  } catch (e) {
+    return next(e)
+  }
+})
+
 /** Email a montage to whoever the owner names. */
 eventRoutes.post('/:eventId/sessions/:sessionId/email', async (req, res, next) => {
   try {
