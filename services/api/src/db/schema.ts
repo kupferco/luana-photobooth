@@ -82,15 +82,12 @@ export const users = pgTable(
   'users',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    /** Identity Platform uid. Null until their first successful sign-in. */
-    authUid: text('auth_uid'),
     email: text('email').notNull(),
     name: text('name'),
     ...timestamps,
   },
   (t) => [
     uniqueIndex('users_email_key').on(t.email),
-    uniqueIndex('users_auth_uid_key').on(t.authUid),
   ],
 )
 
@@ -132,6 +129,41 @@ export const signinCodes = pgTable(
     createdAt: timestamps.createdAt,
   },
   (t) => [index('signin_codes_email_idx').on(t.email, t.expiresAt)],
+)
+
+/**
+ * Refresh tokens, stored hashed and rotated on every use.
+ *
+ * `familyId` groups every token descended from one sign-in. If a token that
+ * has already been spent comes back, two parties hold it and there is no way
+ * to tell which is the thief -- so the whole family is revoked. That signs the
+ * real person out too, which is the correct trade when the alternative is
+ * leaving an attacker signed in.
+ *
+ * SHA-256 rather than a password hash: these are 256 bits of randomness, not
+ * something a human chose, so there is nothing to brute-force and the check
+ * runs on every refresh.
+ */
+export const refreshTokens = pgTable(
+  'refresh_tokens',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    familyId: uuid('family_id').notNull(),
+    tokenHash: text('token_hash').notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    /** Set when rotated. A second use of the same token is the reuse signal. */
+    usedAt: timestamp('used_at', { withTimezone: true }),
+    revokedAt: timestamp('revoked_at', { withTimezone: true }),
+    createdAt: timestamps.createdAt,
+  },
+  (t) => [
+    uniqueIndex('refresh_tokens_hash_key').on(t.tokenHash),
+    index('refresh_tokens_family_idx').on(t.familyId),
+    index('refresh_tokens_user_idx').on(t.userId),
+  ],
 )
 
 // ---------------------------------------------------------------------------
