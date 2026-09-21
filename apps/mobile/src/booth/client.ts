@@ -120,11 +120,23 @@ export const booth = {
     sessionId: string,
     shots: { idx: number; width: number; height: number }[],
   ) =>
-    call<{ id: string; code: string; status: string; bytes: number }>(
-      'POST',
-      `/booth/sessions/${sessionId}/complete`,
-      { shots },
-    ),
+    call<{
+      id: string
+      code: string
+      status: string
+      bytes: number
+      /** Only true for sessions started at the booth. */
+      canPrint: boolean
+    }>('POST', `/booth/sessions/${sessionId}/complete`, { shots }),
+
+  /**
+   * Print, from the booth.
+   *
+   * Refused by the server for a guest-started session: that photo belongs to
+   * whoever triggered it, and they decide on their own phone.
+   */
+  print: (sessionId: string) =>
+    call<{ id: string; status: string }>('POST', `/booth/sessions/${sessionId}/print`),
 }
 
 /**

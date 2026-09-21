@@ -75,6 +75,10 @@ export default function Booth() {
   const [phase, setPhase] = useState<Phase>({ kind: 'setup' })
   const [shots, setShots] = useState<CapturedShot[]>([])
   const [lastCode, setLastCode] = useState<string | null>(null)
+  const [finished, setFinished] = useState<{ id: string; canPrint: boolean } | null>(
+    null,
+  )
+  const [printState, setPrintState] = useState<'idle' | 'sending' | 'sent'>('idle')
   const [confirmExit, setConfirmExit] = useState(false)
 
   // A run in progress must not be interrupted by the poll loop starting
@@ -212,7 +216,7 @@ export default function Booth() {
           uploads.map((ticket) => uploadShot(ticket, taken[ticket.idx]!.blob)),
         )
 
-        await booth.complete(
+        const done = await booth.complete(
           sessionId,
           taken.map((shot, idx) => ({
             idx,
@@ -221,6 +225,8 @@ export default function Booth() {
           })),
         )
 
+        setFinished({ id: done.id, canPrint: done.canPrint })
+        setPrintState('idle')
         setPhase({ kind: 'done' })
         await wait(RESULT_TIMEOUT_MS)
         reset()
@@ -243,8 +249,24 @@ export default function Booth() {
       })
       return []
     })
+    setFinished(null)
+    setPrintState('idle')
     setPhase({ kind: 'idle' })
   }, [])
+
+  const printFinished = useCallback(async () => {
+    if (!finished || printState !== 'idle') return
+    setPrintState('sending')
+    try {
+      await booth.print(finished.id)
+      setPrintState('sent')
+    } catch {
+      // The booth is unattended and the guest is standing there; a failed
+      // print is not worth a dialog they cannot act on. The owner sees the
+      // job's state on the dashboard.
+      setPrintState('idle')
+    }
+  }, [finished, printState])
 
   const startLocal = useCallback(async () => {
     if (running.current) return
@@ -428,6 +450,22 @@ export default function Booth() {
           </View>
 
           <Text style={[styles.caption, { color: '#fff' }]}>{t('guest.ready')}</Text>
+
+          {/* Only for a session started here. A guest who triggered from
+              their own phone prints from there, and printing it at the booth
+              as well would produce copies nobody asked for. */}
+          {finished?.canPrint ? (
+            <View style={{ width: '60%', maxWidth: 360 }}>
+              <Button
+                label={
+                  printState === 'sent' ? t('booth.printSent') : t('dashboard.print')
+                }
+                busy={printState === 'sending'}
+                disabled={printState === 'sent'}
+                onPress={() => void printFinished()}
+              />
+            </View>
+          ) : null}
 
           {lastCode ? (
             <View style={styles.centreRow}>

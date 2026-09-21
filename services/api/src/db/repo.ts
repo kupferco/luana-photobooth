@@ -273,6 +273,7 @@ export async function createSession(
     code: string
     guestTokenHash: string
     shotsExpected: number
+    origin: 'guest' | 'booth'
   },
 ) {
   const [row] = await db

@@ -109,7 +109,8 @@
     "exitConfirm": "Leave booth mode?",
     "eventEnded": "This event has ended.",
     "scanToTrigger": "Scan to start from your own phone",
-    "orEnterCode": "or use code {code}"
+    "orEnterCode": "or use code {code}",
+    "printSent": "Sent to the printer"
   },
   "guest": {
     "welcome": "You are at {name}",
@@ -141,7 +142,12 @@
       "one": "{count} second left",
       "other": "{count} seconds left"
     },
-    "missedTurn": "You missed your turn, but you are still in the queue."
+    "missedTurn": "You missed your turn, but you are still in the queue.",
+    "printing": "Sent to the printer",
+    "share": "Share",
+    "shareText": "Our photo from {name}",
+    "linkCopied": "Link copied",
+    "shareUnsupported": "Could not share on this device."
   },
   "common": {
     "back": "Back",

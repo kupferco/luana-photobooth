@@ -6,6 +6,7 @@ import {
   forgetLocal,
   recall,
   remember,
+  shareMontage,
   type JoinInfo,
   type StartedSession,
 } from './api'
@@ -125,6 +126,35 @@ export function App() {
       setError(e instanceof Error ? e.message : String(e))
     }
   }, [session])
+
+  const [notice, setNotice] = useState<string | null>(null)
+  const [printing, setPrinting] = useState(false)
+
+  const print = useCallback(async () => {
+    if (!session) return
+    setPrinting(true)
+    setError(null)
+    try {
+      await api.print(session.code, session.token)
+      setNotice(t('guest.printing'))
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e))
+    } finally {
+      setPrinting(false)
+    }
+  }, [session, t])
+
+  const share = useCallback(async () => {
+    if (!view?.montageUrl || !info) return
+    setError(null)
+    const outcome = await shareMontage(
+      view.montageUrl,
+      info.event.name,
+      t('guest.shareText', { name: info.event.name }),
+    )
+    if (outcome === 'copied') setNotice(t('guest.linkCopied'))
+    else if (outcome === 'unsupported') setError(t('guest.shareUnsupported'))
+  }, [view, info, t])
 
   const again = useCallback(() => {
     forgetLocal(joinCode)
@@ -249,10 +279,17 @@ export function App() {
         <>
           <img className="montage" src={view.montageUrl} alt={t('guest.ready')} />
           <p className="code">{view.code}</p>
-          <button className="primary" onClick={() => window.open(view.montageUrl!, '_blank')}>
+
+          <button className="primary" onClick={print} disabled={printing || !!view.print}>
+            {view.print ? t('guest.printing') : t('guest.print')}
+          </button>
+          <button onClick={share}>{t('guest.share')}</button>
+          <button onClick={() => window.open(view.montageUrl!, '_blank')}>
             {t('guest.save')}
           </button>
-          <button onClick={again}>{t('guest.again')}</button>
+          <button className="quiet" onClick={again}>
+            {t('guest.again')}
+          </button>
         </>
       ) : null}
 
@@ -266,6 +303,7 @@ export function App() {
         </>
       ) : null}
 
+      {notice ? <p className="good">{notice}</p> : null}
       {error ? <p className="bad">{error}</p> : null}
 
       <p className="fine">{info.event.retentionNoticeFull}</p>

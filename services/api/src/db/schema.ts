@@ -53,6 +53,18 @@ export const printJobStatus = pgEnum('print_job_status', [
   'failed',
   'cancelled',
 ])
+/**
+ * Who started a session.
+ *
+ * It decides who may print it. A guest who triggered from their own phone
+ * has the montage in their hand and chooses there; a session started at the
+ * booth has no guest device, so the booth itself offers the print. Without
+ * that distinction the booth would either print things the guest had not
+ * asked for, or leave booth-started photos with no way to reach the printer
+ * at all.
+ */
+export const sessionOrigin = pgEnum('session_origin', ['guest', 'booth'])
+
 export const assetKind = pgEnum('asset_kind', ['background'])
 export const emailKind = pgEnum('email_kind', [
   'signin_code',
@@ -306,6 +318,7 @@ export const sessions = pgTable(
      * would still not open anyone's photos.
      */
     guestTokenHash: text('guest_token_hash').notNull(),
+    origin: sessionOrigin('origin').notNull().default('guest'),
     status: sessionStatus('status').notNull().default('queued'),
 
     /**

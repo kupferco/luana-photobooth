@@ -11,9 +11,11 @@ import {
   createSession,
   getEvent,
   getLiveEventByJoinCode,
+  countPrints,
   getSessionByCode,
   getTemplate,
   listDevices,
+  queuePrint,
   toTemplate,
   updateSession,
 } from '../db/repo'
@@ -44,6 +46,15 @@ export const hashGuestToken = (token: string) =>
  * the guest page, booth screen, QR card and emails cannot disagree about the
  * date even where they differ in wording.
  */
+/**
+ * How many prints one guest may ask for.
+ *
+ * A SELPHY cassette holds a limited number of sheets and a party runs out of
+ * them long before it runs out of guests. The owner can print more from the
+ * dashboard; this only caps what a guest can do unattended.
+ */
+const MAX_GUEST_PRINTS = 2
+
 /** A booth that has not called in for half a minute is not there. */
 const BOOTH_ONLINE_MS = 30_000
 
@@ -149,6 +160,7 @@ sessionRoutes.post('/join/:joinCode/sessions', async (req, res, next) => {
       code: sessionCode(),
       guestTokenHash: hashGuestToken(token),
       shotsExpected,
+      origin: 'guest',
     })
 
     return res.status(201).json({
@@ -196,6 +208,7 @@ sessionRoutes.get('/sessions/:code', async (req, res, next) => {
       return res.status(404).json({ error: { code: 'not_found', message: 'Not found' } })
     }
 
+    const printed = (await countPrints(session.tenantId, session.id)) > 0
     const boothOnline = await isBoothOnline(session.tenantId, session.eventId)
     const state = await advanceQueue(session.tenantId, session.eventId, boothOnline)
     const position = state.queue.findIndex((s) => s.id === session.id)
@@ -210,7 +223,9 @@ sessionRoutes.get('/sessions/:code', async (req, res, next) => {
         : null,
       shotCount: session.shotsExpected,
       shotsTaken: session.shotsTaken,
-      print: null,
+      print: printed
+        ? { status: 'queued' as const, queuePosition: null }
+        : null,
       boothOnline,
       yourTurn:
         isHead && state.awaitingConfirmation
@@ -257,6 +272,52 @@ sessionRoutes.post('/sessions/:code/confirm', async (req, res, next) => {
     }
 
     return res.status(202).json({ confirmed: true })
+  } catch (e) {
+    return next(e)
+  }
+})
+
+/**
+ * The guest prints their own photo.
+ *
+ * Authorised by the token in their link, like everything else they can do.
+ * Capped, because a print is a sheet of paper and a party has a finite
+ * supply -- one enthusiastic guest should not be able to empty the cassette
+ * from their phone.
+ */
+sessionRoutes.post('/sessions/:code/print', async (req, res, next) => {
+  try {
+    const query = TokenQuery.safeParse(req.query)
+    if (!query.success) {
+      return res.status(404).json({ error: { code: 'not_found', message: 'Not found' } })
+    }
+
+    const session = await getSessionByCode(normaliseCode(req.params.code ?? ''))
+    if (!session || session.guestTokenHash !== hashGuestToken(query.data.token)) {
+      return res.status(404).json({ error: { code: 'not_found', message: 'Not found' } })
+    }
+    if (session.status !== 'ready' || !session.montagePath) {
+      return res.status(409).json({
+        error: { code: 'not_ready', message: 'Your photo is not finished yet.' },
+      })
+    }
+
+    const already = await countPrints(session.tenantId, session.id)
+    if (already >= MAX_GUEST_PRINTS) {
+      return res.status(429).json({
+        error: {
+          code: 'print_limit',
+          message: 'That is already printing. Ask the host if you need another.',
+        },
+      })
+    }
+
+    const job = await queuePrint(session.tenantId, {
+      sessionId: session.id,
+      requestedBy: 'guest',
+    })
+
+    return res.status(202).json({ id: job.id, status: job.status })
   } catch (e) {
     return next(e)
   }

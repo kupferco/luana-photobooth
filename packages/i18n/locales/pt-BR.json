@@ -109,7 +109,8 @@
     "exitConfirm": "Sair do modo cabine?",
     "eventEnded": "Este evento foi encerrado.",
     "scanToTrigger": "Escaneie para tirar a foto pelo seu celular",
-    "orEnterCode": "ou use o código {code}"
+    "orEnterCode": "ou use o código {code}",
+    "printSent": "Enviado para a impressora"
   },
   "guest": {
     "welcome": "Você está em {name}",
@@ -141,7 +142,12 @@
       "one": "{count} segundo restante",
       "other": "{count} segundos restantes"
     },
-    "missedTurn": "Você perdeu a vez, mas continua na fila."
+    "missedTurn": "Você perdeu a vez, mas continua na fila.",
+    "printing": "Indo para a impressora",
+    "share": "Compartilhar",
+    "shareText": "Nossa foto de {name}",
+    "linkCopied": "Link copiado",
+    "shareUnsupported": "Não foi possível compartilhar neste aparelho."
   },
   "common": {
     "back": "Voltar",

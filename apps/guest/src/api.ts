@@ -92,11 +92,48 @@ export const api = {
       { method: 'POST' },
     ),
 
+  print: (code: string, token: string) =>
+    call<{ id: string; status: string }>(
+      `/sessions/${encodeURIComponent(code)}/print?token=${encodeURIComponent(token)}`,
+      { method: 'POST' },
+    ),
+
   forget: (code: string, token: string) =>
     call<void>(
       `/sessions/${encodeURIComponent(code)}?token=${encodeURIComponent(token)}`,
       { method: 'DELETE' },
     ),
+}
+
+/**
+ * Opens the phone's own share sheet -- WhatsApp, Messages, AirDrop, whatever
+ * this person already uses. Falls back to the clipboard where it is missing,
+ * and says which happened: a silent copy is indistinguishable from a dead
+ * button.
+ */
+export type ShareOutcome = 'shared' | 'copied' | 'dismissed' | 'unsupported'
+
+export async function shareMontage(
+  url: string,
+  title: string,
+  text: string,
+): Promise<ShareOutcome> {
+  if (navigator.share) {
+    try {
+      await navigator.share({ title, text, url })
+      return 'shared'
+    } catch (e) {
+      // Cancelling is a choice, not a failure, and must not fall through to
+      // copying something they decided not to send.
+      if ((e as { name?: string })?.name === 'AbortError') return 'dismissed'
+    }
+  }
+  try {
+    await navigator.clipboard.writeText(url)
+    return 'copied'
+  } catch {
+    return 'unsupported'
+  }
 }
 
 /**

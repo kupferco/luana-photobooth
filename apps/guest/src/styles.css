@@ -63,6 +63,11 @@ p {
   font-size: var(--text-sm);
 }
 
+.good {
+  color: var(--status-good);
+  font-size: var(--text-sm);
+}
+
 .notice {
   background: var(--surface-sunken);
   border-left: 3px solid var(--border-strong);

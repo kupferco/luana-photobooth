@@ -7,6 +7,7 @@ import {
   getSession,
   getTemplate,
   listSessionPhotos,
+  queuePrint,
   recordPhoto,
   toTemplate,
   updateSession,
@@ -116,6 +117,7 @@ boothRoutes.post('/sessions', async (req, res, next) => {
       code: sessionCode(),
       guestTokenHash: hashGuestToken(token),
       shotsExpected,
+      origin: 'booth',
     })
 
     // Nobody to confirm with: whoever tapped is standing at the booth, and
@@ -128,6 +130,49 @@ boothRoutes.post('/sessions', async (req, res, next) => {
       token,
       shotsExpected,
     })
+  } catch (e) {
+    return next(e)
+  }
+})
+
+/**
+ * Print, from the booth.
+ *
+ * Only for sessions started at the booth. A guest who triggered from their
+ * own phone has the montage in their hand and decides there; the booth
+ * printing it as well would produce copies nobody asked for.
+ *
+ * A booth-started photo that nobody prints simply stays in the event's
+ * gallery. Someone has to ask for paper.
+ */
+boothRoutes.post('/sessions/:sessionId/print', async (req, res, next) => {
+  try {
+    const { tenantId } = boothEvent(req)
+    const session = await getSession(tenantId, req.params.sessionId!)
+
+    if (!session) {
+      return res.status(404).json({ error: { code: 'not_found', message: 'Not found' } })
+    }
+    if (session.origin !== 'booth') {
+      return res.status(403).json({
+        error: {
+          code: 'guest_owned',
+          message: 'This photo belongs to the guest who started it.',
+        },
+      })
+    }
+    if (session.status !== 'ready' || !session.montagePath) {
+      return res.status(409).json({
+        error: { code: 'not_ready', message: 'That photo is not finished yet.' },
+      })
+    }
+
+    const job = await queuePrint(tenantId, {
+      sessionId: session.id,
+      requestedBy: `booth:${req.device!.deviceId}`,
+    })
+
+    return res.status(202).json({ id: job.id, status: job.status })
   } catch (e) {
     return next(e)
   }
@@ -280,6 +325,8 @@ boothRoutes.post('/sessions/:sessionId/complete', async (req, res, next) => {
         code: ready!.code,
         status: ready!.status,
         bytes: montage.length,
+        // Only a booth-started session offers a print here.
+        canPrint: ready!.origin === 'booth',
       })
     } catch (cause) {
       const message = cause instanceof Error ? cause.message : String(cause)
