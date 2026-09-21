@@ -1,0 +1,25 @@
+{
+  "name": "photobooth",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Multi-tenant photo booth: Expo app (owner + booth mode), web guest page, Cloud Run API, Raspberry Pi print agent.",
+  "workspaces": [
+    "apps/*",
+    "services/*",
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "typecheck": "turbo run typecheck",
+    "lint": "turbo run lint",
+    "clean": "rm -rf node_modules apps/*/node_modules services/*/node_modules packages/*/node_modules"
+  },
+  "devDependencies": {
+    "turbo": "^2.3.3",
+    "typescript": "^5.7.2"
+  }
+}
