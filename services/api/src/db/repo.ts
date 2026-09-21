@@ -1,7 +1,15 @@
-import { and, desc, eq, inArray, isNull } from 'drizzle-orm'
+import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm'
 import { CLASSIC_3UP, type Template } from '@photobooth/shared'
 import { db } from './client'
-import { devices, events, photos, sessions, templates } from './schema'
+import {
+  devices,
+  emailDeliveries,
+  events,
+  photos,
+  printJobs,
+  sessions,
+  templates,
+} from './schema'
 
 /**
  * The tenant-scoped data access layer.
@@ -389,4 +397,74 @@ export async function listSessionPhotos(tenantId: string, sessionId: string) {
     .from(photos)
     .where(and(eq(photos.tenantId, tenantId), eq(photos.sessionId, sessionId)))
     .orderBy(photos.idx)
+}
+
+// ---------------------------------------------------------------------------
+// Dashboard
+// ---------------------------------------------------------------------------
+
+/** A device is "online" if it has called in recently. */
+const ONLINE_WINDOW_MS = 30_000
+
+export async function eventStats(tenantId: string, eventId: string) {
+  const queue = await eventQueue(tenantId, eventId)
+
+  const [counted] = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(sessions)
+    .where(
+      and(
+        eq(sessions.tenantId, tenantId),
+        eq(sessions.eventId, eventId),
+        isNull(sessions.deletedAt),
+      ),
+    )
+
+  const rows = await listDevices(tenantId, eventId)
+  const fresh = (at: Date | null) =>
+    at !== null && Date.now() - at.getTime() < ONLINE_WINDOW_MS
+
+  const boothDevice = rows.find((d) => d.kind === 'booth' && fresh(d.lastSeenAt))
+  const agentDevice = rows.find((d) => d.kind === 'agent')
+
+  return {
+    queueDepth: queue.length,
+    sessionsToday: counted?.n ?? 0,
+    boothOnline: Boolean(boothDevice),
+    agentOnline: Boolean(agentDevice && fresh(agentDevice.lastSeenAt)),
+    printer: agentDevice?.printerState ?? null,
+  }
+}
+
+/** Sessions for the gallery, newest first, with print and email counts. */
+export async function gallery(tenantId: string, eventId: string) {
+  const rows = await listEventSessions(tenantId, eventId)
+  if (rows.length === 0) return []
+
+  const ids = rows.map((r) => r.id)
+
+  const prints = await db
+    .select({ sessionId: printJobs.sessionId, n: sql<number>`count(*)::int` })
+    .from(printJobs)
+    .where(and(eq(printJobs.tenantId, tenantId), inArray(printJobs.sessionId, ids)))
+    .groupBy(printJobs.sessionId)
+
+  const emails = await db
+    .select({ sessionId: emailDeliveries.sessionId, to: emailDeliveries.toEmail })
+    .from(emailDeliveries)
+    .where(
+      and(
+        eq(emailDeliveries.kind, 'guest_photos'),
+        inArray(emailDeliveries.sessionId, ids),
+      ),
+    )
+
+  const printCounts = new Map(prints.map((p) => [p.sessionId, p.n]))
+  const emailedTo = new Map(emails.map((e) => [e.sessionId, e.to]))
+
+  return rows.map((row) => ({
+    row,
+    printCount: printCounts.get(row.id) ?? 0,
+    emailedTo: emailedTo.get(row.id) ?? null,
+  }))
 }

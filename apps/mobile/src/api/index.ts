@@ -5,16 +5,16 @@ import type { PhotoboothApi } from './types'
 /**
  * Which backend the screens talk to.
  *
- * Fixtures by default while the flows around the capture sequence are still
- * being designed -- signing in, the dashboard, the gallery, emailing a
- * montage. Set EXPO_PUBLIC_API_MODE=live to point at the real API.
+ * The real API is the default, including locally: `npm run client` should
+ * give you the actual product, not a rehearsal of it. Needing a second
+ * command for the real thing was friction with no purpose.
  *
- * The capture path itself is not mocked: what could be wrong about it lives
- * in real timing and real uploads, which a fixture cannot reproduce.
+ * Fixtures are opt-in, via `npm run client:fixtures`, for designing screens
+ * without a server running. They are not a mode anything ships in.
  */
-const MODE = process.env.EXPO_PUBLIC_API_MODE ?? 'fixtures'
+const MODE = process.env.EXPO_PUBLIC_API_MODE ?? 'live'
 
-export const usingFixtures = MODE !== 'live'
+export const usingFixtures = MODE === 'fixtures'
 
 export const api: PhotoboothApi = usingFixtures ? fixtureApi : liveApi
 

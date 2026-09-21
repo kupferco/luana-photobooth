@@ -199,12 +199,19 @@ export const liveApi: PhotoboothApi = {
     })
   },
 
-  async eventStats(): Promise<EventLiveStats> {
-    return notBuiltYet('The live dashboard')
+  async eventStats(tenantId, eventId) {
+    return request<EventLiveStats>(
+      'GET',
+      `/events/${eventId}/stats?tenantId=${encodeURIComponent(tenantId)}`,
+    )
   },
 
-  async listSessions(): Promise<GallerySession[]> {
-    return notBuiltYet('The gallery')
+  async listSessions(tenantId, eventId) {
+    const result = await request<{ sessions: GallerySession[] }>(
+      'GET',
+      `/events/${eventId}/sessions?tenantId=${encodeURIComponent(tenantId)}`,
+    )
+    return result.sessions
   },
 
   async reprint() {

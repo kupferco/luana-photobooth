@@ -3,6 +3,8 @@ import { Router } from 'express'
 import { z } from 'zod'
 import {
   createEvent,
+  eventStats,
+  gallery,
   getEvent,
   listEvents,
   listTemplates,
@@ -12,6 +14,7 @@ import {
 } from '../db/repo'
 import { eventJoinCode } from '../lib/codes'
 import { requireAuth, requireTenant } from '../middleware/auth'
+import { createReadUrl } from '../storage/gcs'
 
 export const eventRoutes: Router = Router()
 
@@ -129,6 +132,69 @@ eventRoutes.get('/:eventId', async (req, res, next) => {
       template: template ? toTemplate(template) : null,
       shotsExpected: template ? shotCount(toTemplate(template)) : null,
     })
+  } catch (e) {
+    return next(e)
+  }
+})
+
+/** What the owner's dashboard polls while a party is running. */
+eventRoutes.get('/:eventId/stats', async (req, res, next) => {
+  try {
+    const query = TenantQuery.safeParse(req.query)
+    if (!query.success) {
+      return res.status(400).json({
+        error: { code: 'invalid_request', message: 'tenantId is required.' },
+      })
+    }
+    requireTenant(req, query.data.tenantId)
+
+    const event = await getEvent(query.data.tenantId, req.params.eventId!)
+    if (!event) {
+      return res.status(404).json({ error: { code: 'not_found', message: 'Not found' } })
+    }
+
+    return res.json(await eventStats(query.data.tenantId, event.id))
+  } catch (e) {
+    return next(e)
+  }
+})
+
+/**
+ * The gallery. Montage URLs are signed per request and short-lived, so the
+ * list cannot be cached into a set of durable links to someone's photos.
+ */
+eventRoutes.get('/:eventId/sessions', async (req, res, next) => {
+  try {
+    const query = TenantQuery.safeParse(req.query)
+    if (!query.success) {
+      return res.status(400).json({
+        error: { code: 'invalid_request', message: 'tenantId is required.' },
+      })
+    }
+    requireTenant(req, query.data.tenantId)
+
+    const event = await getEvent(query.data.tenantId, req.params.eventId!)
+    if (!event) {
+      return res.status(404).json({ error: { code: 'not_found', message: 'Not found' } })
+    }
+
+    const rows = await gallery(query.data.tenantId, event.id)
+
+    const sessions = await Promise.all(
+      rows.map(async ({ row, printCount, emailedTo }) => ({
+        id: row.id,
+        code: row.code,
+        status: row.status,
+        createdAt: row.createdAt.toISOString(),
+        montageUrl: row.montagePath
+          ? await createReadUrl(row.montagePath, query.data.tenantId)
+          : null,
+        printCount,
+        emailedTo,
+      })),
+    )
+
+    return res.json({ sessions })
   } catch (e) {
     return next(e)
   }

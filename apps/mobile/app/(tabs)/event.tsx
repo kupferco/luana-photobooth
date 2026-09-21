@@ -40,17 +40,25 @@ export default function EventTab() {
   const [event, setEvent] = useState<Event | null>(null)
   const [stats, setStats] = useState<EventLiveStats | null>(null)
   const [sessions, setSessions] = useState<GallerySession[] | null>(null)
+  const [loadError, setLoadError] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     if (!tenantId || !id) return
-    const [e, s, list] = await Promise.all([
-      api.getEvent(tenantId, id),
-      api.eventStats(tenantId, id),
-      api.listSessions(tenantId, id),
-    ])
-    setEvent(e)
-    setStats(s)
-    setSessions(list)
+    try {
+      const [e, s, list] = await Promise.all([
+        api.getEvent(tenantId, id),
+        api.eventStats(tenantId, id),
+        api.listSessions(tenantId, id),
+      ])
+      setEvent(e)
+      setStats(s)
+      setSessions(list)
+      setLoadError(null)
+    } catch (err) {
+      // Anything unhandled here left the screen on a permanent spinner with
+      // no clue why -- which is how a missing endpoint looked like a hang.
+      setLoadError(err instanceof Error ? err.message : String(err))
+    }
   }, [tenantId, id])
 
   useEffect(() => {
@@ -75,6 +83,15 @@ export default function EventTab() {
           <Body muted>{t('event.noneHint')}</Body>
         </Card>
         <Button label={t('events.new')} onPress={() => router.push('/events/new')} />
+      </Screen>
+    )
+  }
+
+  if (loadError) {
+    return (
+      <Screen>
+        <Notice tone="bad">{loadError}</Notice>
+        <Button label={t('common.retry')} onPress={() => void load()} />
       </Screen>
     )
   }
@@ -186,8 +203,12 @@ export default function EventTab() {
           key={session.id}
           session={session}
           onReprint={async () => {
-            await api.reprint(tenantId!, session.id)
-            await load()
+            try {
+              await api.reprint(tenantId!, session.id)
+              await load()
+            } catch (err) {
+              setLoadError(err instanceof Error ? err.message : String(err))
+            }
           }}
         />
       ))}
