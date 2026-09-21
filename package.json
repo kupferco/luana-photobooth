@@ -2,6 +2,7 @@
   "name": "photobooth",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "npm@11.5.1",
   "description": "Multi-tenant photo booth: Expo app (owner + booth mode), web guest page, Cloud Run API, Raspberry Pi print agent.",
   "workspaces": [
     "apps/*",
