@@ -74,9 +74,18 @@ export interface PhotoboothApi {
   /** Binds this phone to an event as the booth, returning its device token. */
   claimBooth(tenantId: string, eventId: string): Promise<{ token: string }>
 
-  // Actions the owner takes on someone else's montage
-  reprint(tenantId: string, sessionId: string): Promise<void>
-  emailMontage(tenantId: string, sessionId: string, to: string): Promise<void>
+  // Actions the owner takes on a montage.
+  //
+  // "print", not "reprint": nothing here knows whether paper came out. The
+  // job is queued and the printer may be busy, out of paper or unplugged, so
+  // claiming a previous print succeeded would be a guess.
+  printMontage(tenantId: string, eventId: string, sessionId: string): Promise<void>
+  emailMontage(
+    tenantId: string,
+    eventId: string,
+    sessionId: string,
+    to: string,
+  ): Promise<void>
 }
 
 export class ApiError extends Error {

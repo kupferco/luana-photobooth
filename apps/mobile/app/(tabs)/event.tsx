@@ -1,7 +1,7 @@
 import { daysRemaining } from '@photobooth/shared'
 import { router } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
-import { Image, Pressable, Text, View } from 'react-native'
+import { Text, View } from 'react-native'
 import {
   api,
   type Event,
@@ -23,6 +23,7 @@ import {
   Screen,
   Spinner,
 } from '../../src/ui'
+import { SessionCard } from '../../src/ui/SessionCard'
 
 /**
  * The owner's view during a party: is it working, what has it made, and the
@@ -52,7 +53,11 @@ export default function EventTab() {
       ])
       setEvent(e)
       setStats(s)
-      setSessions(list)
+      setSessions((previous) =>
+        previous && JSON.stringify(previous) === JSON.stringify(list)
+          ? previous
+          : list,
+      )
       setLoadError(null)
     } catch (err) {
       // Anything unhandled here left the screen on a permanent spinner with
@@ -199,16 +204,16 @@ export default function EventTab() {
 
       <Label>{t.plural('common.photos', ready.length)}</Label>
       {sessions.map((session) => (
-        <SessionRow
+        <SessionCard
           key={session.id}
           session={session}
-          onReprint={async () => {
-            try {
-              await api.reprint(tenantId!, session.id)
-              await load()
-            } catch (err) {
-              setLoadError(err instanceof Error ? err.message : String(err))
-            }
+          onPrint={async () => {
+            await api.printMontage(tenantId!, event.id, session.id)
+            await load()
+          }}
+          onEmail={async (to) => {
+            await api.emailMontage(tenantId!, event.id, session.id, to)
+            await load()
           }}
         />
       ))}
@@ -263,78 +268,5 @@ function Health({
         {ok ? okText : badText}
       </Text>
     </Row>
-  )
-}
-
-function SessionRow({
-  session,
-  onReprint,
-}: {
-  session: GallerySession
-  onReprint: () => void
-}) {
-  const theme = useTheme()
-  const t = useT()
-  const { locale } = useLocale()
-
-  return (
-    <Card>
-      <Row>
-        {session.montageUrl ? (
-          <Image
-            source={{ uri: session.montageUrl }}
-            style={{
-              width: 90,
-              height: 60,
-              borderRadius: theme.radius.sm,
-              backgroundColor: theme.color.surface.sunken,
-            }}
-          />
-        ) : (
-          <View
-            style={{
-              width: 90,
-              height: 60,
-              borderRadius: theme.radius.sm,
-              backgroundColor: theme.color.surface.sunken,
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <Text style={{ color: theme.color.text.disabled, fontSize: theme.fontSize.xs }}>
-              {session.status === 'failed' ? 'failed' : session.status}
-            </Text>
-          </View>
-        )}
-
-        <View style={{ flex: 1, gap: 2 }}>
-          <Text style={{ color: theme.color.text.primary, fontSize: theme.fontSize.sm, letterSpacing: 1 }}>
-            {session.code}
-          </Text>
-          <Text style={{ color: theme.color.text.secondary, fontSize: theme.fontSize.xs }}>
-            {new Date(session.createdAt).toLocaleTimeString(locale, {
-              hour: '2-digit',
-              minute: '2-digit',
-            })}
-            {session.printCount > 0 ? ` · printed ${session.printCount}×` : ''}
-            {session.emailedTo ? ' · emailed' : ''}
-          </Text>
-        </View>
-
-        {session.status === 'ready' ? (
-          <Pressable onPress={onReprint}>
-            <Text
-              style={{
-                color: theme.color.action.bg,
-                fontSize: theme.fontSize.sm,
-                fontWeight: '600',
-              }}
-            >
-              {t('dashboard.reprint')}
-            </Text>
-          </Pressable>
-        ) : null}
-      </Row>
-    </Card>
   )
 }

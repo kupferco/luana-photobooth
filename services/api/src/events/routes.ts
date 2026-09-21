@@ -6,15 +6,18 @@ import {
   eventStats,
   gallery,
   getEvent,
+  getSession,
   listEvents,
   listTemplates,
+  queuePrint,
   softDeleteEvent,
   toTemplate,
   updateEvent,
 } from '../db/repo'
 import { eventJoinCode } from '../lib/codes'
 import { requireAuth, requireTenant } from '../middleware/auth'
-import { createReadUrl } from '../storage/gcs'
+import { queueEmail } from '../email/queue'
+import { createReadUrl, MAX_SIGNED_URL_MS } from '../storage/gcs'
 
 export const eventRoutes: Router = Router()
 
@@ -195,6 +198,102 @@ eventRoutes.get('/:eventId/sessions', async (req, res, next) => {
     )
 
     return res.json({ sessions })
+  } catch (e) {
+    return next(e)
+  }
+})
+
+const EmailBody = z.object({ to: z.string().email() })
+
+/**
+ * Print a montage.
+ *
+ * Queues the job; the print agent collects it. Nothing here waits for paper
+ * to come out, because the Pi may be mid-print or out of paper, and an owner
+ * tapping print should not sit on a spinner while that resolves.
+ */
+eventRoutes.post('/:eventId/sessions/:sessionId/print', async (req, res, next) => {
+  try {
+    const query = TenantQuery.safeParse(req.query)
+    if (!query.success) {
+      return res.status(400).json({
+        error: { code: 'invalid_request', message: 'tenantId is required.' },
+      })
+    }
+    const membership = requireTenant(req, query.data.tenantId)
+
+    const session = await getSession(query.data.tenantId, req.params.sessionId!)
+    if (!session || session.eventId !== req.params.eventId) {
+      return res.status(404).json({ error: { code: 'not_found', message: 'Not found' } })
+    }
+    if (session.status !== 'ready' || !session.montagePath) {
+      return res.status(409).json({
+        error: { code: 'not_ready', message: 'That photo is not finished yet.' },
+      })
+    }
+
+    const job = await queuePrint(query.data.tenantId, {
+      sessionId: session.id,
+      requestedBy: `${membership.role}:${req.auth!.userId}`,
+    })
+
+    return res.status(202).json({ id: job.id, status: job.status })
+  } catch (e) {
+    return next(e)
+  }
+})
+
+/** Email a montage to whoever the owner names. */
+eventRoutes.post('/:eventId/sessions/:sessionId/email', async (req, res, next) => {
+  try {
+    const query = TenantQuery.safeParse(req.query)
+    const body = EmailBody.safeParse(req.body)
+    if (!query.success || !body.success) {
+      return res.status(400).json({
+        error: { code: 'invalid_email', message: 'That does not look like an email address.' },
+      })
+    }
+    requireTenant(req, query.data.tenantId)
+
+    const session = await getSession(query.data.tenantId, req.params.sessionId!)
+    if (!session || session.eventId !== req.params.eventId) {
+      return res.status(404).json({ error: { code: 'not_found', message: 'Not found' } })
+    }
+    if (!session.montagePath) {
+      return res.status(409).json({
+        error: { code: 'not_ready', message: 'That photo is not finished yet.' },
+      })
+    }
+
+    const event = await getEvent(query.data.tenantId, session.eventId)
+
+    // A week is the longest a V4 signature can live, and is long enough that
+    // the link still works when someone opens the email days later.
+    const link = await createReadUrl(
+      session.montagePath,
+      query.data.tenantId,
+      MAX_SIGNED_URL_MS,
+    )
+
+    await queueEmail({
+      to: body.data.to,
+      kind: 'guest_photos',
+      tenantId: query.data.tenantId,
+      sessionId: session.id,
+      subject: `Your photo from ${event?.name ?? 'the party'}`,
+      text:
+        `Here is your photo: ${link}\n\n` +
+        (event
+          ? `It is saved until ${event.retentionUntil.toLocaleDateString('en-GB', {
+              day: 'numeric',
+              month: 'long',
+              year: 'numeric',
+            })}.\n\n`
+          : '') +
+        `This link works for seven days. Save the picture to keep it.`,
+    })
+
+    return res.status(202).json({ sent: true })
   } catch (e) {
     return next(e)
   }

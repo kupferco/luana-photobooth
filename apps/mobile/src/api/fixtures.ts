@@ -249,7 +249,7 @@ export const fixtureApi: PhotoboothApi = {
     return SESSIONS[eventId] ?? []
   },
 
-  async reprint(_tenantId, sessionId) {
+  async printMontage(_tenantId, _eventId, sessionId) {
     await delay()
     for (const list of Object.values(SESSIONS)) {
       const found = list.find((s) => s.id === sessionId)
@@ -257,7 +257,7 @@ export const fixtureApi: PhotoboothApi = {
     }
   },
 
-  async emailMontage(_tenantId, sessionId, to) {
+  async emailMontage(_tenantId, _eventId, sessionId, to) {
     await delay(600)
     if (!to.includes('@')) {
       throw new ApiError('That does not look like an email address.', 'invalid_email', 400)

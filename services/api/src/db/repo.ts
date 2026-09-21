@@ -468,3 +468,29 @@ export async function gallery(tenantId: string, eventId: string) {
     emailedTo: emailedTo.get(row.id) ?? null,
   }))
 }
+
+// ---------------------------------------------------------------------------
+// Prints and emails the owner asks for
+// ---------------------------------------------------------------------------
+
+export async function queuePrint(
+  tenantId: string,
+  input: { sessionId: string; requestedBy: string },
+) {
+  // The agent is picked at claim time, not here: whichever printer is paired
+  // to the event when the job is actually collected.
+  const [row] = await db
+    .insert(printJobs)
+    .values({ tenantId, sessionId: input.sessionId, requestedBy: input.requestedBy })
+    .returning()
+  if (!row) throw new Error('Could not queue the print.')
+  return row
+}
+
+export async function countPrints(tenantId: string, sessionId: string) {
+  const [row] = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(printJobs)
+    .where(and(eq(printJobs.tenantId, tenantId), eq(printJobs.sessionId, sessionId)))
+  return row?.n ?? 0
+}

@@ -118,15 +118,6 @@ async function request<T>(
   return payload as T
 }
 
-/** Endpoints the screens want but the API does not serve yet. */
-function notBuiltYet(what: string): never {
-  throw new ApiError(
-    `${what} is not wired to the API yet — run in fixtures mode.`,
-    'not_implemented',
-    501,
-  )
-}
-
 export const liveApi: PhotoboothApi = {
   async requestCode(email) {
     return request('POST', '/auth/code', { email })
@@ -239,11 +230,18 @@ export const liveApi: PhotoboothApi = {
     return result.sessions
   },
 
-  async reprint() {
-    return notBuiltYet('Reprint')
+  async printMontage(tenantId, eventId, sessionId) {
+    await request(
+      'POST',
+      `/events/${eventId}/sessions/${sessionId}/print?tenantId=${encodeURIComponent(tenantId)}`,
+    )
   },
 
-  async emailMontage() {
-    return notBuiltYet('Emailing a montage')
+  async emailMontage(tenantId, eventId, sessionId, to) {
+    await request(
+      'POST',
+      `/events/${eventId}/sessions/${sessionId}/email?tenantId=${encodeURIComponent(tenantId)}`,
+      { to },
+    )
   },
 }

@@ -63,6 +63,39 @@ const UPLOAD_TTL_MS = 15 * 60 * 1000
 /** A guest looking at their montage. Refreshed by polling, so it can be short. */
 const READ_TTL_MS = 60 * 60 * 1000
 
+const HOUR_MS = 60 * 60 * 1000
+
+/**
+ * Signed read URLs, reused within the hour.
+ *
+ * Signing the same object twice produces two different URLs, because a V4
+ * signature covers `X-Goog-Date` -- the moment of signing -- as well as the
+ * expiry. Quantising the expiry alone is not enough; the date still moves
+ * every second and the signature moves with it.
+ *
+ * That mattered: the gallery polls every few seconds and handed the browser a
+ * set of URLs it had never seen each time, so every montage was downloaded
+ * again. 79 MB in four minutes, and a visible flicker as each image reloaded.
+ *
+ * So the generated URL is cached against the hour it was made in. Every
+ * request in that hour gets the identical string, the browser's cache does
+ * its job, and the images simply stay on screen. Each instance keeps its own
+ * cache, which is fine: the worst case is one extra fetch after a request
+ * lands on a different instance.
+ */
+const urlCache = new Map<string, string>()
+
+function hourBucket(now = Date.now()): number {
+  return Math.floor(now / HOUR_MS)
+}
+
+/** Drops buckets other than the current one; there are only ever a few. */
+function evictStale(bucket: number): void {
+  for (const key of urlCache.keys()) {
+    if (!key.endsWith(`@${bucket}`)) urlCache.delete(key)
+  }
+}
+
 export interface UploadTicket {
   /** PUT the bytes here, with exactly the Content-Type below. */
   url: string
@@ -105,18 +138,45 @@ export async function createUploadTicket(
 export async function createReadUrl(
   path: string,
   tenantId: string,
-  ttlMs = READ_TTL_MS,
+  ttlMs?: number,
 ): Promise<string> {
   assertWithinTenant(path, tenantId)
+
+  // An explicit window means a one-off link -- an email, say -- which should
+  // not be served from, or poisoned into, the shared cache.
+  if (ttlMs !== undefined) {
+    const bucket = await getBucket()
+    const [url] = await bucket.file(path).getSignedUrl({
+      version: 'v4',
+      action: 'read',
+      expires: Date.now() + ttlMs,
+    })
+    return url
+  }
+
+  const slot = hourBucket()
+  const key = `${path}@${slot}`
+
+  const cached = urlCache.get(key)
+  if (cached) return cached
+
+  evictStale(slot)
 
   const bucket = await getBucket()
   const [url] = await bucket.file(path).getSignedUrl({
     version: 'v4',
     action: 'read',
-    expires: Date.now() + ttlMs,
+    // Two hours, so a URL handed out at the end of its hour still works well
+    // past the point it stops being served from the cache.
+    expires: Date.now() + 2 * HOUR_MS,
   })
+
+  urlCache.set(key, url)
   return url
 }
+
+/** V4 signatures cannot outlive seven days, which is the cap for an email link. */
+export const MAX_SIGNED_URL_MS = 7 * 24 * HOUR_MS
 
 /** Server-side read, for composing the montage with sharp. */
 export async function download(path: string, tenantId: string): Promise<Buffer> {

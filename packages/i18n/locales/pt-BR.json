@@ -58,8 +58,16 @@
     "printing": "Imprimindo",
     "qrTitle": "QR code dos convidados",
     "qrHint": "Os convidados escaneiam para acionar a cabine pelo próprio celular. Também dá para tocar direto na tela da cabine.",
-    "reprint": "Imprimir de novo",
-    "downloadAll": "Baixar todas as {count} fotos"
+    "downloadAll": "Baixar todas as {count} fotos",
+    "print": "Imprimir",
+    "printQueued": "Na fila de impressão",
+    "email": "E-mail",
+    "emailPrompt": "Enviar para qual e-mail?",
+    "emailSent": "Enviado",
+    "printedCount": {
+      "one": "impressa {count} vez",
+      "other": "impressa {count} vezes"
+    }
   },
   "retention": {
     "guest": "Suas fotos ficam guardadas até {date}.",

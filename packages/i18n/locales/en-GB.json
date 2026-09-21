@@ -58,8 +58,16 @@
     "printing": "Printing",
     "qrTitle": "Guest QR code",
     "qrHint": "Guests scan this to start the booth from their own phone. They can also just tap the booth screen.",
-    "reprint": "Reprint",
-    "downloadAll": "Download all {count} photos"
+    "downloadAll": "Download all {count} photos",
+    "print": "Print",
+    "printQueued": "Sent to printer",
+    "email": "Email",
+    "emailPrompt": "Email it to",
+    "emailSent": "Sent",
+    "printedCount": {
+      "one": "printed {count} time",
+      "other": "printed {count} times"
+    }
   },
   "retention": {
     "guest": "Your photos are saved until {date}.",
