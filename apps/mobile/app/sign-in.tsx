@@ -41,7 +41,7 @@ export default function SignIn() {
     try {
       const { user } = await api.verifyCode(email.trim(), code.trim())
       signIn(user)
-      router.replace('/events')
+      router.replace('/(tabs)')
     } catch (e) {
       setError(e instanceof ApiError ? e.message : t('auth.couldNotSignIn'))
       setCode('')

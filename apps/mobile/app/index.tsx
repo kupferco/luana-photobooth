@@ -2,7 +2,7 @@ import { Redirect } from 'expo-router'
 import { useSession } from '../src/session'
 import { Screen, Spinner } from '../src/ui'
 
-/** Decides where someone lands. Real screens live under /events. */
+/** Decides where someone lands. */
 export default function Index() {
   const { user, loading } = useSession()
 
@@ -14,5 +14,5 @@ export default function Index() {
     )
   }
 
-  return <Redirect href={user ? '/events' : '/sign-in'} />
+  return <Redirect href={user ? '/(tabs)' : '/sign-in'} />
 }

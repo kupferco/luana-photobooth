@@ -3,6 +3,9 @@
     "name": "Cabine de Fotos"
   },
   "nav": {
+    "home": "Início",
+    "event": "Evento",
+    "profile": "Perfil",
     "events": "Eventos",
     "settings": "Ajustes"
   },
@@ -112,5 +115,32 @@
   },
   "dev": {
     "fixtures": "Dados fictícios. Use EXPO_PUBLIC_API_MODE=live para acessar a API real."
+  },
+  "home": {
+    "title": "Início",
+    "noEvents": "Nenhum evento ainda.",
+    "noEventsHint": "Crie um, imprima o QR code e deixe na mesa.",
+    "totalEvents": "Eventos",
+    "totalPhotos": "Fotos",
+    "totalPrints": "Impressões",
+    "past": "Anteriores",
+    "upcoming": "Próximos"
+  },
+  "profile": {
+    "title": "Perfil",
+    "language": "Idioma",
+    "appearance": "Aparência",
+    "system": "Do sistema",
+    "light": "Claro",
+    "dark": "Escuro"
+  },
+  "event": {
+    "none": "Nenhum evento selecionado.",
+    "noneHint": "Crie um evento ou escolha um na tela de Início.",
+    "settings": "Detalhes do evento",
+    "emailMontage": "Enviar por e-mail",
+    "emailPrompt": "Para qual e-mail?",
+    "send": "Enviar",
+    "sent": "Enviado."
   }
 }

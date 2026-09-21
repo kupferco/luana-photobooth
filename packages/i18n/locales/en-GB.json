@@ -3,6 +3,9 @@
     "name": "Photo Booth"
   },
   "nav": {
+    "home": "Home",
+    "event": "Event",
+    "profile": "Profile",
     "events": "Events",
     "settings": "Settings"
   },
@@ -112,5 +115,32 @@
   },
   "dev": {
     "fixtures": "Fixture data. Set EXPO_PUBLIC_API_MODE=live to use the real API."
+  },
+  "home": {
+    "title": "Home",
+    "noEvents": "No events yet.",
+    "noEventsHint": "Set one up, print its QR code, and put it on the table.",
+    "totalEvents": "Events",
+    "totalPhotos": "Photos",
+    "totalPrints": "Prints",
+    "past": "Past",
+    "upcoming": "Coming up"
+  },
+  "profile": {
+    "title": "Profile",
+    "language": "Language",
+    "appearance": "Appearance",
+    "system": "System",
+    "light": "Light",
+    "dark": "Dark"
+  },
+  "event": {
+    "none": "No event selected.",
+    "noneHint": "Create one, or pick one from Home.",
+    "settings": "Event details",
+    "emailMontage": "Email this",
+    "emailPrompt": "Which email?",
+    "send": "Send",
+    "sent": "Sent."
   }
 }

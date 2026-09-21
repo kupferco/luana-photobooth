@@ -1,30 +1,33 @@
 import { Stack } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
-import { LocaleProvider } from '../src/locale'
+import { ActiveEventProvider } from '../src/event-context'
+import { LocaleProvider, useT } from '../src/locale'
 import { SessionProvider } from '../src/session'
-import { ThemeProvider, useTheme } from '../src/theme'
-import { useT } from '../src/locale'
+import { ThemeProvider, useAppearance, useTheme } from '../src/theme'
 
 export default function RootLayout() {
   return (
     <ThemeProvider>
       <LocaleProvider>
         <SessionProvider>
-          <Navigator />
+          <ActiveEventProvider>
+            <Navigator />
+          </ActiveEventProvider>
         </SessionProvider>
       </LocaleProvider>
     </ThemeProvider>
   )
 }
 
-/** Split out so it sits inside the providers and can read the theme. */
+/** Split out so it sits inside the providers and can read theme and copy. */
 function Navigator() {
   const theme = useTheme()
+  const { resolved } = useAppearance()
   const t = useT()
 
   return (
     <>
-      <StatusBar style="light" />
+      <StatusBar style={resolved === 'light' ? 'dark' : 'light'} />
       <Stack
         screenOptions={{
           headerStyle: { backgroundColor: theme.color.surface.raised },
@@ -32,14 +35,14 @@ function Navigator() {
           contentStyle: { backgroundColor: theme.color.surface.base },
         }}
       >
-        <Stack.Screen name="index" options={{ title: t('app.name') }} />
+        {/* The tab bar draws its own headers. */}
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="sign-in" options={{ title: t('auth.signIn') }} />
-        <Stack.Screen name="events/index" options={{ title: t('events.title') }} />
         <Stack.Screen name="events/new" options={{ title: t('events.new') }} />
-        {/* The event's own name is the title, set by the screen itself. */}
-        <Stack.Screen name="events/[id]" options={{ title: '' }} />
-        <Stack.Screen name="settings" options={{ title: t('nav.settings') }} />
-        <Stack.Screen name="booth" options={{ title: t('booth.title') }} />
+        {/* Outside the tabs on purpose: booth mode needs the whole screen,
+            and a tab bar under it is something to catch mid-countdown. */}
+        <Stack.Screen name="booth" options={{ headerShown: false }} />
         <Stack.Screen name="spike" options={{ title: t('booth.cameraCheck') }} />
       </Stack>
     </>

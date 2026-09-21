@@ -1,7 +1,14 @@
 import { resolveTheme, type Theme } from '@dk/ui-tokens'
 import photoboothDark from '@dk/ui-tokens/themes/photobooth.dark.json'
-import { createContext, useContext, useMemo, type ReactNode } from 'react'
-import type { TextStyle } from 'react-native'
+import photoboothLight from '@dk/ui-tokens/themes/photobooth.light.json'
+import {
+  createContext,
+  useContext,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react'
+import { useColorScheme, type TextStyle } from 'react-native'
 
 /**
  * Theme access for the app.
@@ -11,24 +18,60 @@ import type { TextStyle } from 'react-native'
  * only React-aware part.
  *
  * roles.ts is kept byte-identical to the copy in Housekeeper on purpose. The
- * palette is this project's; the *contract* is shared, and keeping it
+ * palettes are this project's; the *contract* is shared, and keeping it
  * unchanged is what makes pulling both into one package later a move rather
- * than a reconciliation.
+ * than a reconciliation. Light and dark are two themes against that one
+ * contract, not two sets of components.
  */
 
-const ThemeContext = createContext<Theme | null>(null)
+export type Appearance = 'system' | 'light' | 'dark'
+
+interface ThemeState {
+  theme: Theme
+  appearance: Appearance
+  /** What is actually on screen once 'system' is resolved. */
+  resolved: 'light' | 'dark'
+  setAppearance(appearance: Appearance): void
+}
+
+const ThemeContext = createContext<ThemeState | null>(null)
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  // Resolved once here so a screen reading theme.color.border.subtle directly
-  // gets a colour rather than the string "{neutral.800}".
-  const theme = useMemo(() => resolveTheme(photoboothDark as Theme), [])
-  return <ThemeContext.Provider value={theme}>{children}</ThemeContext.Provider>
+  const system = useColorScheme()
+  const [appearance, setAppearance] = useState<Appearance>('system')
+
+  const resolved: 'light' | 'dark' =
+    appearance === 'system' ? (system === 'light' ? 'light' : 'dark') : appearance
+
+  const value = useMemo<ThemeState>(() => {
+    const source = resolved === 'light' ? photoboothLight : photoboothDark
+    // Resolved once here so a screen reading theme.color.border.subtle
+    // directly gets a colour rather than the string "{neutral.800}".
+    return {
+      theme: resolveTheme(source as Theme),
+      appearance,
+      resolved,
+      setAppearance,
+    }
+  }, [resolved, appearance])
+
+  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
+}
+
+function useThemeState(): ThemeState {
+  const value = useContext(ThemeContext)
+  if (!value) throw new Error('useTheme must be used inside a ThemeProvider.')
+  return value
 }
 
 export function useTheme(): Theme {
-  const theme = useContext(ThemeContext)
-  if (!theme) throw new Error('useTheme must be used inside a ThemeProvider.')
-  return theme
+  return useThemeState().theme
+}
+
+/** For the appearance control in Profile. */
+export function useAppearance(): Omit<ThemeState, 'theme'> {
+  const { appearance, resolved, setAppearance } = useThemeState()
+  return { appearance, resolved, setAppearance }
 }
 
 /**

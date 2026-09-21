@@ -2,12 +2,14 @@ import { router } from 'expo-router'
 import { useState } from 'react'
 import { api, ApiError } from '../../src/api'
 import { useT } from '../../src/locale'
+import { useActiveEvent } from '../../src/event-context'
 import { useSession } from '../../src/session'
 import { Body, Button, Field, Heading, Notice, Screen } from '../../src/ui'
 
 export default function NewEvent() {
   const { tenantId } = useSession()
   const t = useT()
+  const { setActive, refresh } = useActiveEvent()
   const [name, setName] = useState('')
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10))
   const [busy, setBusy] = useState(false)
@@ -22,7 +24,9 @@ export default function NewEvent() {
         name: name.trim(),
         eventDate: new Date(date).toISOString(),
       })
-      router.replace(`/events/${event.id}`)
+      await refresh()
+      setActive(event.id)
+      router.replace('/(tabs)/event')
     } catch (e) {
       setError(e instanceof ApiError ? e.message : t('events.couldNotCreate'))
     } finally {

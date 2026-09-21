@@ -1,5 +1,5 @@
 import { daysRemaining } from '@photobooth/shared'
-import { Stack, router, useLocalSearchParams } from 'expo-router'
+import { router } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
 import { Image, Pressable, Text, View } from 'react-native'
 import {
@@ -9,6 +9,7 @@ import {
   type GallerySession,
 } from '../../src/api'
 import { useLocale, useT } from '../../src/locale'
+import { useActiveEvent } from '../../src/event-context'
 import { useSession } from '../../src/session'
 import { useTheme } from '../../src/theme'
 import {
@@ -28,8 +29,9 @@ import {
  * two things they will actually reach for -- reprint, and download everything
  * before it expires.
  */
-export default function EventDashboard() {
-  const { id } = useLocalSearchParams<{ id: string }>()
+export default function EventTab() {
+  const { active, loading: loadingEvents, refresh } = useActiveEvent()
+  const id = active?.id
   const { tenantId } = useSession()
   const theme = useTheme()
   const t = useT()
@@ -63,6 +65,20 @@ export default function EventDashboard() {
     return () => clearInterval(timer)
   }, [event?.status, load])
 
+  // The tab is contextual, so it needs something to say when nothing is
+  // selected -- first run, or every event deleted.
+  if (!loadingEvents && !active) {
+    return (
+      <Screen>
+        <Card>
+          <Body>{t('event.none')}</Body>
+          <Body muted>{t('event.noneHint')}</Body>
+        </Card>
+        <Button label={t('events.new')} onPress={() => router.push('/events/new')} />
+      </Screen>
+    )
+  }
+
   if (!event || !stats || !sessions) {
     return (
       <Screen>
@@ -76,7 +92,6 @@ export default function EventDashboard() {
 
   return (
     <Screen>
-      <Stack.Screen options={{ title: event.name }} />
       <Heading>{event.name}</Heading>
 
       {/* Anything wrong with the hardware comes first: during a party this is
@@ -146,6 +161,7 @@ export default function EventDashboard() {
           label={t('events.start')}
           onPress={async () => {
             setEvent(await api.setEventStatus(tenantId!, event.id, 'live'))
+            await refresh()
           }}
         />
       ) : null}
@@ -158,6 +174,7 @@ export default function EventDashboard() {
             variant="secondary"
             onPress={async () => {
               setEvent(await api.setEventStatus(tenantId!, event.id, 'ended'))
+              await refresh()
             }}
           />
         </>
