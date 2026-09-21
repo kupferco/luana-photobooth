@@ -38,3 +38,6 @@ sent_to_print.jpg
 captured_photo.jpg
 test_image*.jpg
 __pycache__
+
+# firebase deploy cache
+.firebase/
