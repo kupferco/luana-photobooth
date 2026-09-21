@@ -1,5 +1,5 @@
-import { daysRemaining, ownerRetentionNotice } from '@photobooth/shared'
-import { router, useLocalSearchParams } from 'expo-router'
+import { daysRemaining } from '@photobooth/shared'
+import { Stack, router, useLocalSearchParams } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
 import { Image, Pressable, Text, View } from 'react-native'
 import {
@@ -8,6 +8,7 @@ import {
   type EventLiveStats,
   type GallerySession,
 } from '../../src/api'
+import { useLocale, useT } from '../../src/locale'
 import { useSession } from '../../src/session'
 import { useTheme } from '../../src/theme'
 import {
@@ -30,7 +31,9 @@ import {
 export default function EventDashboard() {
   const { id } = useLocalSearchParams<{ id: string }>()
   const { tenantId } = useSession()
-  const t = useTheme()
+  const theme = useTheme()
+  const t = useT()
+  const { locale } = useLocale()
 
   const [event, setEvent] = useState<Event | null>(null)
   const [stats, setStats] = useState<EventLiveStats | null>(null)
@@ -73,23 +76,29 @@ export default function EventDashboard() {
 
   return (
     <Screen>
+      <Stack.Screen options={{ title: event.name }} />
       <Heading>{event.name}</Heading>
 
       {/* Anything wrong with the hardware comes first: during a party this is
           the only part of the screen that matters. */}
       {event.status === 'live' ? (
         <Card>
-          <Label>Right now</Label>
+          <Label>{t('dashboard.rightNow')}</Label>
           <Row>
-            <Stat label="In the queue" value={String(stats.queueDepth)} />
-            <Stat label="Photos taken" value={String(stats.sessionsToday)} />
+            <Stat label={t('dashboard.inQueue')} value={String(stats.queueDepth)} />
+            <Stat label={t('dashboard.photosTaken')} value={String(stats.sessionsToday)} />
           </Row>
-          <Health label="Booth" ok={stats.boothOnline} okText="Connected" badText="Not connected" />
           <Health
-            label="Printer"
+            label={t('dashboard.booth')}
+            ok={stats.boothOnline}
+            okText={t('dashboard.connected')}
+            badText={t('dashboard.notConnected')}
+          />
+          <Health
+            label={t('dashboard.printer')}
             ok={stats.agentOnline && stats.printer?.state !== 'stopped'}
-            okText={stats.printer?.state === 'printing' ? 'Printing' : 'Ready'}
-            badText={stats.printer?.message ?? 'Not connected'}
+            okText={stats.printer?.state === 'printing' ? t('dashboard.printing') : t('dashboard.ready')}
+            badText={stats.printer?.message ?? t('dashboard.notConnected')}
           />
         </Card>
       ) : null}
@@ -97,10 +106,18 @@ export default function EventDashboard() {
       {event.status === 'ended' ? (
         <Card>
           <Notice tone={expiring <= 3 ? 'bad' : 'warn'}>
-            {ownerRetentionNotice(new Date(event.retentionUntil))}
+            {expiring === 0
+              ? t('retention.deletedToday')
+              : t('retention.ownerCountdown', {
+                  date: new Date(event.retentionUntil).toLocaleDateString(locale, {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric',
+                  }),
+                })}
           </Notice>
           <Button
-            label={`Download all ${ready.length} photos`}
+            label={t('dashboard.downloadAll', { count: ready.length })}
             onPress={() => {
               /* wired with the zip endpoint */
             }}
@@ -109,11 +126,11 @@ export default function EventDashboard() {
       ) : null}
 
       <Card>
-        <Label>Guest QR code</Label>
+        <Label>{t('dashboard.qrTitle')}</Label>
         <Text
           style={{
-            color: t.color.text.primary,
-            fontSize: t.fontSize['3xl'],
+            color: theme.color.text.primary,
+            fontSize: theme.fontSize['3xl'],
             fontWeight: '700',
             letterSpacing: 6,
             textAlign: 'center',
@@ -121,15 +138,12 @@ export default function EventDashboard() {
         >
           {event.joinCode}
         </Text>
-        <Body muted>
-          Guests scan this to start the booth from their own phone. They can
-          also just tap the booth screen.
-        </Body>
+<Body muted>{t('dashboard.qrHint')}</Body>
       </Card>
 
       {event.status === 'draft' ? (
         <Button
-          label="Start the party"
+          label={t('events.start')}
           onPress={async () => {
             setEvent(await api.setEventStatus(tenantId!, event.id, 'live'))
           }}
@@ -138,9 +152,9 @@ export default function EventDashboard() {
 
       {event.status === 'live' ? (
         <>
-          <Button label="Use this phone as the booth" onPress={() => router.push('/booth')} />
+          <Button label={t('events.useAsBooth')} onPress={() => router.push('/booth')} />
           <Button
-            label="End the party"
+            label={t('events.end')}
             variant="secondary"
             onPress={async () => {
               setEvent(await api.setEventStatus(tenantId!, event.id, 'ended'))
@@ -149,7 +163,7 @@ export default function EventDashboard() {
         </>
       ) : null}
 
-      <Label>{ready.length} photos</Label>
+      <Label>{t.plural('common.photos', ready.length)}</Label>
       {sessions.map((session) => (
         <SessionRow
           key={session.id}
@@ -165,10 +179,10 @@ export default function EventDashboard() {
 }
 
 function Stat({ label, value }: { label: string; value: string }) {
-  const t = useTheme()
+  const theme = useTheme()
   return (
     <View style={{ flex: 1, gap: 2 }}>
-      <Text style={{ color: t.color.text.primary, fontSize: t.fontSize['2xl'], fontWeight: '700' }}>
+      <Text style={{ color: theme.color.text.primary, fontSize: theme.fontSize['2xl'], fontWeight: '700' }}>
         {value}
       </Text>
       <Label>{label}</Label>
@@ -187,7 +201,7 @@ function Health({
   okText: string
   badText: string
 }) {
-  const t = useTheme()
+  const theme = useTheme()
   return (
     <Row>
       <View
@@ -195,16 +209,16 @@ function Health({
           width: 8,
           height: 8,
           borderRadius: 4,
-          backgroundColor: ok ? t.color.status.good : t.color.status.bad,
+          backgroundColor: ok ? theme.color.status.good : theme.color.status.bad,
         }}
       />
-      <Text style={{ color: t.color.text.secondary, fontSize: t.fontSize.sm, width: 70 }}>
+      <Text style={{ color: theme.color.text.secondary, fontSize: theme.fontSize.sm, width: 70 }}>
         {label}
       </Text>
       <Text
         style={{
-          color: ok ? t.color.text.primary : t.color.status.bad,
-          fontSize: t.fontSize.sm,
+          color: ok ? theme.color.text.primary : theme.color.status.bad,
+          fontSize: theme.fontSize.sm,
           fontWeight: ok ? '400' : '600',
         }}
       >
@@ -221,7 +235,9 @@ function SessionRow({
   session: GallerySession
   onReprint: () => void
 }) {
-  const t = useTheme()
+  const theme = useTheme()
+  const t = useT()
+  const { locale } = useLocale()
 
   return (
     <Card>
@@ -232,8 +248,8 @@ function SessionRow({
             style={{
               width: 90,
               height: 60,
-              borderRadius: t.radius.sm,
-              backgroundColor: t.color.surface.sunken,
+              borderRadius: theme.radius.sm,
+              backgroundColor: theme.color.surface.sunken,
             }}
           />
         ) : (
@@ -241,24 +257,24 @@ function SessionRow({
             style={{
               width: 90,
               height: 60,
-              borderRadius: t.radius.sm,
-              backgroundColor: t.color.surface.sunken,
+              borderRadius: theme.radius.sm,
+              backgroundColor: theme.color.surface.sunken,
               alignItems: 'center',
               justifyContent: 'center',
             }}
           >
-            <Text style={{ color: t.color.text.disabled, fontSize: t.fontSize.xs }}>
+            <Text style={{ color: theme.color.text.disabled, fontSize: theme.fontSize.xs }}>
               {session.status === 'failed' ? 'failed' : session.status}
             </Text>
           </View>
         )}
 
         <View style={{ flex: 1, gap: 2 }}>
-          <Text style={{ color: t.color.text.primary, fontSize: t.fontSize.sm, letterSpacing: 1 }}>
+          <Text style={{ color: theme.color.text.primary, fontSize: theme.fontSize.sm, letterSpacing: 1 }}>
             {session.code}
           </Text>
-          <Text style={{ color: t.color.text.secondary, fontSize: t.fontSize.xs }}>
-            {new Date(session.createdAt).toLocaleTimeString('en-GB', {
+          <Text style={{ color: theme.color.text.secondary, fontSize: theme.fontSize.xs }}>
+            {new Date(session.createdAt).toLocaleTimeString(locale, {
               hour: '2-digit',
               minute: '2-digit',
             })}
@@ -271,12 +287,12 @@ function SessionRow({
           <Pressable onPress={onReprint}>
             <Text
               style={{
-                color: t.color.action.bg,
-                fontSize: t.fontSize.sm,
+                color: theme.color.action.bg,
+                fontSize: theme.fontSize.sm,
                 fontWeight: '600',
               }}
             >
-              Reprint
+              {t('dashboard.reprint')}
             </Text>
           </Pressable>
         ) : null}

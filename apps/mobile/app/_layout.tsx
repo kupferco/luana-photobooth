@@ -1,14 +1,18 @@
 import { Stack } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
+import { LocaleProvider } from '../src/locale'
 import { SessionProvider } from '../src/session'
 import { ThemeProvider, useTheme } from '../src/theme'
+import { useT } from '../src/locale'
 
 export default function RootLayout() {
   return (
     <ThemeProvider>
-      <SessionProvider>
-        <Navigator />
-      </SessionProvider>
+      <LocaleProvider>
+        <SessionProvider>
+          <Navigator />
+        </SessionProvider>
+      </LocaleProvider>
     </ThemeProvider>
   )
 }
@@ -16,6 +20,7 @@ export default function RootLayout() {
 /** Split out so it sits inside the providers and can read the theme. */
 function Navigator() {
   const theme = useTheme()
+  const t = useT()
 
   return (
     <>
@@ -27,13 +32,15 @@ function Navigator() {
           contentStyle: { backgroundColor: theme.color.surface.base },
         }}
       >
-        <Stack.Screen name="index" options={{ title: 'Photo Booth' }} />
-        <Stack.Screen name="sign-in" options={{ title: 'Sign in' }} />
-        <Stack.Screen name="events/index" options={{ title: 'Your parties' }} />
-        <Stack.Screen name="events/new" options={{ title: 'New party' }} />
-        <Stack.Screen name="events/[id]" options={{ title: 'Party' }} />
-        <Stack.Screen name="booth" options={{ title: 'Booth' }} />
-        <Stack.Screen name="spike" options={{ title: 'Camera check' }} />
+        <Stack.Screen name="index" options={{ title: t('app.name') }} />
+        <Stack.Screen name="sign-in" options={{ title: t('auth.signIn') }} />
+        <Stack.Screen name="events/index" options={{ title: t('events.title') }} />
+        <Stack.Screen name="events/new" options={{ title: t('events.new') }} />
+        {/* The event's own name is the title, set by the screen itself. */}
+        <Stack.Screen name="events/[id]" options={{ title: '' }} />
+        <Stack.Screen name="settings" options={{ title: t('nav.settings') }} />
+        <Stack.Screen name="booth" options={{ title: t('booth.title') }} />
+        <Stack.Screen name="spike" options={{ title: t('booth.cameraCheck') }} />
       </Stack>
     </>
   )

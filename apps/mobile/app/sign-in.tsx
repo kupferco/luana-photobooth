@@ -1,7 +1,7 @@
 import { router } from 'expo-router'
 import { useCallback, useRef, useState } from 'react'
-import { Text } from 'react-native'
 import { api, ApiError } from '../src/api'
+import { useT } from '../src/locale'
 import { useSession } from '../src/session'
 import { Body, Button, Field, Heading, Notice, Screen } from '../src/ui'
 
@@ -13,6 +13,7 @@ import { Body, Button, Field, Heading, Notice, Screen } from '../src/ui'
  */
 export default function SignIn() {
   const { signIn } = useSession()
+  const t = useT()
   const [step, setStep] = useState<'email' | 'code'>('email')
   const [email, setEmail] = useState('')
   const [code, setCode] = useState('')
@@ -28,7 +29,7 @@ export default function SignIn() {
       sentAt.current = Date.now()
       setStep('code')
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : 'Could not send the code.')
+      setError(e instanceof ApiError ? e.message : t('auth.couldNotSend'))
     } finally {
       setBusy(false)
     }
@@ -42,7 +43,7 @@ export default function SignIn() {
       signIn(user)
       router.replace('/events')
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : 'Could not sign you in.')
+      setError(e instanceof ApiError ? e.message : t('auth.couldNotSignIn'))
       setCode('')
     } finally {
       setBusy(false)
@@ -51,19 +52,17 @@ export default function SignIn() {
 
   return (
     <Screen>
-      <Heading>{step === 'email' ? 'Sign in' : 'Check your email'}</Heading>
+      <Heading>{step === 'email' ? t('auth.signIn') : t('auth.checkEmail')}</Heading>
 
       {step === 'email' ? (
         <>
-          <Body muted>
-            We will email you a six-digit code. No password to remember.
-          </Body>
+<Body muted>{t('auth.emailStep')}</Body>
 
           <Field
-            label="Email"
+            label={t('auth.emailLabel')}
             value={email}
             onChangeText={setEmail}
-            placeholder="you@example.com"
+            placeholder={t('auth.emailPlaceholder')}
             keyboardType="email-address"
             autoCapitalize="none"
             autoCorrect={false}
@@ -76,7 +75,7 @@ export default function SignIn() {
           {error ? <Notice tone="bad">{error}</Notice> : null}
 
           <Button
-            label="Send me a code"
+            label={t('auth.sendCode')}
             onPress={requestCode}
             busy={busy}
             disabled={!email.includes('@')}
@@ -84,16 +83,13 @@ export default function SignIn() {
         </>
       ) : (
         <>
-          <Body muted>
-            We sent a code to <Text style={{ fontWeight: '600' }}>{email}</Text>. It
-            expires in ten minutes.
-          </Body>
+<Body muted>{t('auth.codeSentTo', { email })}</Body>
 
           <Field
-            label="Six-digit code"
+            label={t('auth.codeLabel')}
             value={code}
             onChangeText={(v) => setCode(v.replace(/\D/g, '').slice(0, 6))}
-            placeholder="123456"
+            placeholder={t('auth.codePlaceholder')}
             keyboardType="number-pad"
             inputMode="numeric"
             autoComplete="one-time-code"
@@ -108,13 +104,13 @@ export default function SignIn() {
           {error ? <Notice tone="bad">{error}</Notice> : null}
 
           <Button
-            label="Sign in"
+            label={t('auth.signIn')}
             onPress={verify}
             busy={busy}
             disabled={code.length !== 6}
           />
           <Button
-            label="Use a different email"
+            label={t('auth.differentEmail')}
             variant="secondary"
             onPress={() => {
               setStep('email')

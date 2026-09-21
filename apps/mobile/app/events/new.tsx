@@ -1,11 +1,13 @@
 import { router } from 'expo-router'
 import { useState } from 'react'
 import { api, ApiError } from '../../src/api'
+import { useT } from '../../src/locale'
 import { useSession } from '../../src/session'
 import { Body, Button, Field, Heading, Notice, Screen } from '../../src/ui'
 
 export default function NewEvent() {
   const { tenantId } = useSession()
+  const t = useT()
   const [name, setName] = useState('')
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10))
   const [busy, setBusy] = useState(false)
@@ -22,7 +24,7 @@ export default function NewEvent() {
       })
       router.replace(`/events/${event.id}`)
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : 'Could not create the party.')
+      setError(e instanceof ApiError ? e.message : t('events.couldNotCreate'))
     } finally {
       setBusy(false)
     }
@@ -30,21 +32,18 @@ export default function NewEvent() {
 
   return (
     <Screen>
-      <Heading>New party</Heading>
-      <Body muted>
-        You can change any of this later. Photos are kept for 90 days after the
-        date you set.
-      </Body>
+      <Heading>{t('events.createTitle')}</Heading>
+<Body muted>{t('events.createHint')}</Body>
 
       <Field
-        label="What is it called?"
+        label={t('events.nameLabel')}
         value={name}
         onChangeText={setName}
-        placeholder="Luana's 8th birthday"
+        placeholder={t('events.namePlaceholder')}
         autoFocus
       />
       <Field
-        label="When?"
+        label={t('events.dateLabel')}
         value={date}
         onChangeText={setDate}
         placeholder="YYYY-MM-DD"
@@ -53,7 +52,7 @@ export default function NewEvent() {
 
       {error ? <Notice tone="bad">{error}</Notice> : null}
 
-      <Button label="Create" onPress={create} busy={busy} disabled={name.trim().length === 0} />
+      <Button label={t('events.create')} onPress={create} busy={busy} disabled={name.trim().length === 0} />
     </Screen>
   )
 }

@@ -1,0 +1,116 @@
+{
+  "app": {
+    "name": "Photo Booth"
+  },
+  "nav": {
+    "events": "Events",
+    "settings": "Settings"
+  },
+  "auth": {
+    "signIn": "Sign in",
+    "signOut": "Sign out",
+    "emailStep": "We will email you a six-digit code. No password to remember.",
+    "emailLabel": "Email",
+    "emailPlaceholder": "you@example.com",
+    "sendCode": "Send me a code",
+    "checkEmail": "Check your email",
+    "codeSentTo": "We sent a code to {email}. It expires in ten minutes.",
+    "codeLabel": "Six-digit code",
+    "codePlaceholder": "123456",
+    "differentEmail": "Use a different email",
+    "couldNotSend": "Could not send the code.",
+    "couldNotSignIn": "Could not sign you in.",
+    "signInToStart": "Sign in to set up an event."
+  },
+  "events": {
+    "title": "Your events",
+    "new": "New event",
+    "none": "No events yet.",
+    "noneHint": "Set one up, print its QR code, and put it on the table.",
+    "createTitle": "New event",
+    "createHint": "You can change any of this later. Photos are kept for 90 days after the date you set.",
+    "nameLabel": "What is it called?",
+    "namePlaceholder": "Luana's 8th birthday",
+    "dateLabel": "When?",
+    "create": "Create",
+    "couldNotCreate": "Could not create the event.",
+    "status": {
+      "draft": "Draft",
+      "live": "Live",
+      "ended": "Ended"
+    },
+    "start": "Start the event",
+    "end": "End the event",
+    "useAsBooth": "Use this phone as the booth"
+  },
+  "dashboard": {
+    "rightNow": "Right now",
+    "inQueue": "In the queue",
+    "photosTaken": "Photos taken",
+    "booth": "Booth",
+    "printer": "Printer",
+    "connected": "Connected",
+    "notConnected": "Not connected",
+    "ready": "Ready",
+    "printing": "Printing",
+    "qrTitle": "Guest QR code",
+    "qrHint": "Guests scan this to start the booth from their own phone. They can also just tap the booth screen.",
+    "reprint": "Reprint",
+    "downloadAll": "Download all {count} photos"
+  },
+  "retention": {
+    "guest": "Your photos are stored until {date}, then permanently deleted.",
+    "deleteMine": "Delete my photos",
+    "deletedToday": "These photos are being deleted today.",
+    "ownerCountdown": "Everything is deleted on {date} — download it before then.",
+    "daysLeft": {
+      "one": "{count} day left",
+      "other": "{count} days left"
+    },
+    "daysLeftAction": {
+      "one": "{count} day left — download them before they go.",
+      "other": "{count} days left — download them before they go."
+    }
+  },
+  "booth": {
+    "title": "Booth mode",
+    "notBuilt": "Not built yet.",
+    "notBuiltHint": "This is where the countdown, the shots and the montage will live. It is being built against the real API rather than fixtures, since the risk is in timing and uploads, not layout.",
+    "cameraCheck": "Camera check",
+    "rotate": "Turn the phone sideways",
+    "rotateHint": "The booth takes landscape photos. Upright, most of the picture would be cropped away.",
+    "tapToStart": "Tap to start",
+    "getReady": "Get ready…",
+    "shotOf": "Photo {current} of {total}"
+  },
+  "guest": {
+    "welcome": "You are at {name}",
+    "start": "Take our photo",
+    "queued": "Waiting for the booth",
+    "queuePosition": {
+      "one": "{count} person ahead of you",
+      "other": "{count} people ahead of you"
+    },
+    "capturing": "Look at the camera",
+    "composing": "Putting it together…",
+    "ready": "Here it is",
+    "print": "Print it",
+    "emailMe": "Email it to me",
+    "emailLabel": "Your email",
+    "emailSent": "Sent. Check your inbox.",
+    "failed": "Something went wrong. Ask someone to try again."
+  },
+  "common": {
+    "back": "Back",
+    "cancel": "Cancel",
+    "retry": "Try again",
+    "loading": "Loading…",
+    "photos": {
+      "one": "{count} photo",
+      "other": "{count} photos"
+    }
+  },
+  "dev": {
+    "fixtures": "Fixture data. Set EXPO_PUBLIC_API_MODE=live to use the real API."
+  }
+}

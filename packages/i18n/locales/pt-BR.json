@@ -1,0 +1,116 @@
+{
+  "app": {
+    "name": "Cabine de Fotos"
+  },
+  "nav": {
+    "events": "Eventos",
+    "settings": "Ajustes"
+  },
+  "auth": {
+    "signIn": "Entrar",
+    "signOut": "Sair",
+    "emailStep": "Enviaremos um código de seis dígitos por e-mail. Sem senha para lembrar.",
+    "emailLabel": "E-mail",
+    "emailPlaceholder": "voce@exemplo.com",
+    "sendCode": "Enviar meu código",
+    "checkEmail": "Veja seu e-mail",
+    "codeSentTo": "Enviamos um código para {email}. Ele expira em dez minutos.",
+    "codeLabel": "Código de seis dígitos",
+    "codePlaceholder": "123456",
+    "differentEmail": "Usar outro e-mail",
+    "couldNotSend": "Não foi possível enviar o código.",
+    "couldNotSignIn": "Não foi possível entrar.",
+    "signInToStart": "Entre para criar um evento."
+  },
+  "events": {
+    "title": "Seus eventos",
+    "new": "Novo evento",
+    "none": "Nenhum evento ainda.",
+    "noneHint": "Crie um, imprima o QR code e deixe na mesa.",
+    "createTitle": "Novo evento",
+    "createHint": "Você pode mudar tudo isso depois. As fotos ficam guardadas por 90 dias a partir da data escolhida.",
+    "nameLabel": "Qual é o nome?",
+    "namePlaceholder": "Aniversário de 8 anos da Luana",
+    "dateLabel": "Quando?",
+    "create": "Criar",
+    "couldNotCreate": "Não foi possível criar o evento.",
+    "status": {
+      "draft": "Rascunho",
+      "live": "No ar",
+      "ended": "Encerrado"
+    },
+    "start": "Começar o evento",
+    "end": "Encerrar o evento",
+    "useAsBooth": "Usar este celular como cabine"
+  },
+  "dashboard": {
+    "rightNow": "Agora",
+    "inQueue": "Na fila",
+    "photosTaken": "Fotos tiradas",
+    "booth": "Cabine",
+    "printer": "Impressora",
+    "connected": "Conectada",
+    "notConnected": "Desconectada",
+    "ready": "Pronta",
+    "printing": "Imprimindo",
+    "qrTitle": "QR code dos convidados",
+    "qrHint": "Os convidados escaneiam para acionar a cabine pelo próprio celular. Também dá para tocar direto na tela da cabine.",
+    "reprint": "Imprimir de novo",
+    "downloadAll": "Baixar todas as {count} fotos"
+  },
+  "retention": {
+    "guest": "Suas fotos ficam guardadas até {date} e depois são apagadas definitivamente.",
+    "deleteMine": "Apagar minhas fotos",
+    "deletedToday": "Estas fotos serão apagadas hoje.",
+    "ownerCountdown": "Tudo será apagado em {date} — baixe antes disso.",
+    "daysLeft": {
+      "one": "Falta {count} dia",
+      "other": "Faltam {count} dias"
+    },
+    "daysLeftAction": {
+      "one": "Falta {count} dia — baixe as fotos antes que sumam.",
+      "other": "Faltam {count} dias — baixe as fotos antes que sumam."
+    }
+  },
+  "booth": {
+    "title": "Modo cabine",
+    "notBuilt": "Ainda não construído.",
+    "notBuiltHint": "Aqui vão ficar a contagem regressiva, as fotos e a montagem. Esta parte está sendo feita direto na API real, e não com dados fictícios, porque o risco está no tempo e no envio, não no layout.",
+    "cameraCheck": "Testar a câmera",
+    "rotate": "Vire o celular de lado",
+    "rotateHint": "A cabine tira fotos deitadas. Em pé, a maior parte da imagem seria cortada.",
+    "tapToStart": "Toque para começar",
+    "getReady": "Preparar…",
+    "shotOf": "Foto {current} de {total}"
+  },
+  "guest": {
+    "welcome": "Você está em {name}",
+    "start": "Tirar nossa foto",
+    "queued": "Esperando a cabine",
+    "queuePosition": {
+      "one": "{count} pessoa na sua frente",
+      "other": "{count} pessoas na sua frente"
+    },
+    "capturing": "Olhe para a câmera",
+    "composing": "Montando…",
+    "ready": "Aqui está",
+    "print": "Imprimir",
+    "emailMe": "Enviar para meu e-mail",
+    "emailLabel": "Seu e-mail",
+    "emailSent": "Enviado. Veja sua caixa de entrada.",
+    "failed": "Algo deu errado. Peça para alguém tentar de novo."
+  },
+  "common": {
+    "back": "Voltar",
+    "cancel": "Cancelar",
+    "retry": "Tentar de novo",
+    "loading": "Carregando…",
+    "photos": {
+      "one": "{count} foto",
+      "other": "{count} fotos"
+    }
+  },
+  "dev": {
+    "fixtures": "Dados fictícios. Use EXPO_PUBLIC_API_MODE=live para acessar a API real."
+  }
+}

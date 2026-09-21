@@ -3,12 +3,14 @@ import { Link, router, useFocusEffect } from 'expo-router'
 import { useCallback, useState } from 'react'
 import { Pressable, Text, View } from 'react-native'
 import { api, usingFixtures, type Event } from '../../src/api'
+import { useLocale, useT } from '../../src/locale'
 import { useSession } from '../../src/session'
 import { Body, Button, Card, Heading, Label, Notice, Row, Screen, Spinner } from '../../src/ui'
 import { useTheme } from '../../src/theme'
 
 export default function EventsList() {
   const { tenantId, user } = useSession()
+  const t = useT()
   const [events, setEvents] = useState<Event[] | null>(null)
 
   useFocusEffect(
@@ -27,9 +29,9 @@ export default function EventsList() {
   if (!user) {
     return (
       <Screen>
-        <Heading>Photo Booth</Heading>
-        <Body muted>Sign in to set up a party.</Body>
-        <Button label="Sign in" onPress={() => router.push('/sign-in')} />
+        <Heading>{t('app.name')}</Heading>
+        <Body muted>{t('auth.signInToStart')}</Body>
+        <Button label={t('auth.signIn')} onPress={() => router.push('/sign-in')} />
       </Screen>
     )
   }
@@ -38,32 +40,34 @@ export default function EventsList() {
     <Screen>
       {usingFixtures ? (
         <Notice tone="warn">
-          Fixture data. Set EXPO_PUBLIC_API_MODE=live to use the real API.
-        </Notice>
+{t('dev.fixtures')}</Notice>
       ) : null}
-
-      <Heading>Your parties</Heading>
 
       {events === null ? (
         <Spinner />
       ) : events.length === 0 ? (
         <Card>
-          <Body>No parties yet.</Body>
-          <Body muted>
-            Set one up, print its QR code, and put it on the table.
-          </Body>
+          <Body>{t('events.none')}</Body>
+<Body muted>{t('events.noneHint')}</Body>
         </Card>
       ) : (
         events.map((event) => <EventRow key={event.id} event={event} />)
       )}
 
-      <Button label="New party" onPress={() => router.push('/events/new')} />
+      <Button label={t('events.new')} onPress={() => router.push('/events/new')} />
+      <Button
+        label={t('nav.settings')}
+        variant="secondary"
+        onPress={() => router.push('/settings')}
+      />
     </Screen>
   )
 }
 
 function EventRow({ event }: { event: Event }) {
-  const t = useTheme()
+  const theme = useTheme()
+  const t = useT()
+  const { locale } = useLocale()
   const expiring = daysRemaining(new Date(event.retentionUntil))
 
   return (
@@ -75,15 +79,15 @@ function EventRow({ event }: { event: Event }) {
             <View style={{ flex: 1, gap: 2 }}>
               <Text
                 style={{
-                  color: t.color.text.primary,
-                  fontSize: t.fontSize.lg,
+                  color: theme.color.text.primary,
+                  fontSize: theme.fontSize.lg,
                   fontWeight: '600',
                 }}
               >
                 {event.name}
               </Text>
-              <Text style={{ color: t.color.text.secondary, fontSize: t.fontSize.sm }}>
-                {new Date(event.eventDate).toLocaleDateString('en-GB', {
+              <Text style={{ color: theme.color.text.secondary, fontSize: theme.fontSize.sm }}>
+                {new Date(event.eventDate).toLocaleDateString(locale, {
                   day: 'numeric',
                   month: 'long',
                   year: 'numeric',
@@ -92,8 +96,8 @@ function EventRow({ event }: { event: Event }) {
             </View>
             <Text
               style={{
-                color: t.color.text.secondary,
-                fontSize: t.fontSize.sm,
+                color: theme.color.text.secondary,
+                fontSize: theme.fontSize.sm,
                 letterSpacing: 1,
               }}
             >
@@ -106,8 +110,8 @@ function EventRow({ event }: { event: Event }) {
           {event.status === 'ended' && expiring <= 14 ? (
             <Notice tone={expiring <= 3 ? 'bad' : 'warn'}>
               {expiring === 0
-                ? 'These photos are being deleted today.'
-                : `${expiring} day${expiring === 1 ? '' : 's'} left — download them before they go.`}
+                ? t('retention.deletedToday')
+                : t.plural('retention.daysLeftAction', expiring)}
             </Notice>
           ) : null}
         </Card>
@@ -117,13 +121,14 @@ function EventRow({ event }: { event: Event }) {
 }
 
 function StatusDot({ status }: { status: Event['status'] }) {
-  const t = useTheme()
+  const theme = useTheme()
+  const t = useT()
   const colour =
     status === 'live'
-      ? t.color.status.good
+      ? theme.color.status.good
       : status === 'draft'
-        ? t.color.text.disabled
-        : t.color.text.secondary
+        ? theme.color.text.disabled
+        : theme.color.text.secondary
 
   return (
     <View style={{ gap: 4, alignItems: 'center', width: 52 }}>
@@ -135,7 +140,7 @@ function StatusDot({ status }: { status: Event['status'] }) {
           backgroundColor: colour,
         }}
       />
-      <Label>{status}</Label>
+      <Label>{t(`events.status.${status}`)}</Label>
     </View>
   )
 }

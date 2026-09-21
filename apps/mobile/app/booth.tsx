@@ -1,4 +1,5 @@
 import { router } from 'expo-router'
+import { useT } from '../src/locale'
 import { Body, Button, Heading, Notice, Screen } from '../src/ui'
 
 /**
@@ -7,17 +8,14 @@ import { Body, Button, Heading, Notice, Screen } from '../src/ui'
  * real camera timing and real uploads, which fixtures cannot reproduce.
  */
 export default function Booth() {
+  const t = useT()
   return (
     <Screen>
-      <Heading>Booth mode</Heading>
-      <Notice tone="warn">Not built yet.</Notice>
-      <Body muted>
-        This is where the countdown, the shots and the montage will live. It is
-        being built against the real API rather than fixtures, since the risk
-        is in timing and uploads, not layout.
-      </Body>
-      <Button label="Camera check" onPress={() => router.push('/spike')} />
-      <Button label="Back" variant="secondary" onPress={() => router.back()} />
+      <Heading>{t('booth.title')}</Heading>
+      <Notice tone="warn">{t('booth.notBuilt')}</Notice>
+<Body muted>{t('booth.notBuiltHint')}</Body>
+      <Button label={t('booth.cameraCheck')} onPress={() => router.push('/spike')} />
+      <Button label={t('common.back')} variant="secondary" onPress={() => router.back()} />
     </Screen>
   )
 }
