@@ -1,3 +1,20 @@
+> ## ⚠️ Archived — v1
+>
+> This is the **original** photo booth: a Flask server on a single machine,
+> capturing from a USB webcam over MJPEG, composing the montage in the
+> browser, and printing straight to a Canon SELPHY CP1500 via `lp`.
+>
+> It ran at Luana's party on **13 September 2025** and worked. It is kept
+> here as a reference for the parts that were proven — especially the
+> montage geometry and the printing path — and as a fallback.
+>
+> **Do not develop here.** The current product lives in the repository
+> root. The exact state as it ran is also tagged `v1-luana-2025-09`.
+>
+> Photos from that party are in `v1/archive/` and are git-ignored.
+
+---
+
 # Luana Photo Booth
 
 Luana Photo Booth is a DIY photo booth application designed for events, allowing users to capture photos, compose a final layout, and print directly using a connected printer. It supports both testing and real printing modes.

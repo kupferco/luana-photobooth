@@ -1,8 +1,40 @@
+# --- dependencies ---
+node_modules/
+.pnpm-store/
+
+# --- build output ---
+dist/
+build/
+.expo/
+.turbo/
+*.tsbuildinfo
+
+# --- secrets / local config ---
+.env
+.env.*
+!.env.example
+*-service-account.json
+*.pem
+
+# --- logs ---
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# --- os / editor ---
+.DS_Store
+.idea/
+*.swp
+
+# --- local runtime data (photos, sqlite, scratch) ---
+data/
+tmp/
+
+# --- v1 (archived) runtime artefacts ---
 archive
 last_composed_image.jpg
 processed_image.jpg
 sent_to_print.jpg
-.DS_Store
-__pycache__
-test_image*.jpg
 captured_photo.jpg
+test_image*.jpg
+__pycache__
