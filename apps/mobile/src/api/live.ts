@@ -192,6 +192,13 @@ export const liveApi: PhotoboothApi = {
     return result.event
   },
 
+  async claimBooth(tenantId, eventId) {
+    return request<{ deviceId: string; token: string }>('POST', '/devices/booth', {
+      tenantId,
+      eventId,
+    })
+  },
+
   async eventStats(): Promise<EventLiveStats> {
     return notBuiltYet('The live dashboard')
   },

@@ -84,7 +84,9 @@
     "rotateHint": "The booth takes landscape photos. Upright, most of the picture would be cropped away.",
     "tapToStart": "Tap to start",
     "getReady": "Get ready…",
-    "shotOf": "Photo {current} of {total}"
+    "shotOf": "Photo {current} of {total}",
+    "pair": "Use this phone as the booth",
+    "pairHint": "This phone will take the photos. Keep it plugged in, and leave this screen open."
   },
   "guest": {
     "welcome": "You are at {name}",

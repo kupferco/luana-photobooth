@@ -71,6 +71,9 @@ export interface PhotoboothApi {
   eventStats(tenantId: string, eventId: string): Promise<EventLiveStats>
   listSessions(tenantId: string, eventId: string): Promise<GallerySession[]>
 
+  /** Binds this phone to an event as the booth, returning its device token. */
+  claimBooth(tenantId: string, eventId: string): Promise<{ token: string }>
+
   // Actions the owner takes on someone else's montage
   reprint(tenantId: string, sessionId: string): Promise<void>
   emailMontage(tenantId: string, sessionId: string, to: string): Promise<void>

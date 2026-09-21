@@ -55,6 +55,13 @@ boothRoutes.get('/poll', async (req, res, next) => {
     const queue = await eventQueue(tenantId, eventId)
     const next_ = queue[0] ?? null
 
+    // The booth needs the layout to draw its own preview while the server
+    // composes the print file, so it comes down with the poll rather than
+    // being fetched separately every session.
+    const templateRow = event.templateId
+      ? await getTemplate(tenantId, event.templateId)
+      : null
+
     return res.json({
       event: {
         id: event.id,
@@ -63,6 +70,7 @@ boothRoutes.get('/poll', async (req, res, next) => {
         joinCode: event.joinCode,
         retentionUntil: event.retentionUntil.toISOString(),
       },
+      template: templateRow ? toTemplate(templateRow) : null,
       queueDepth: queue.length,
       next: next_
         ? {

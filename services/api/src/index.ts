@@ -5,13 +5,20 @@ import { deviceRoutes } from './devices/routes'
 import { eventRoutes } from './events/routes'
 import { sessionRoutes } from './sessions/routes'
 import { env, isProduction } from './config/env'
+import { cors } from './middleware/cors'
 
 const app = express()
 
+app.use(cors)
 app.use(express.json({ limit: '1mb' }))
 
-/** Cloud Run health check. Must not touch the database. */
-app.get('/healthz', (_req, res) => {
+/**
+ * Health check. Must not touch the database.
+ *
+ * Not /healthz: Google's frontend intercepts that path on a run.app domain
+ * and answers 404 itself, so the request never reaches the container.
+ */
+app.get('/health', (_req, res) => {
   res.status(200).json({ ok: true })
 })
 

@@ -220,6 +220,17 @@ export const fixtureApi: PhotoboothApi = {
     return event
   },
 
+  async claimBooth() {
+    await delay()
+    // Booth mode talks to the real API even in fixtures mode, so this token
+    // would not work. Saying so beats a confusing 401 later.
+    throw new ApiError(
+      'Booth mode needs the real API. Set EXPO_PUBLIC_API_MODE=live.',
+      'fixtures_only',
+      400,
+    )
+  },
+
   async eventStats(_tenantId, eventId) {
     await delay(200)
     return (

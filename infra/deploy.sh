@@ -67,6 +67,7 @@ deploy_back() {
     --region "$REGION" \
     --platform managed \
     --allow-unauthenticated \
+    --service-account "photolu-api@$PROJECT.iam.gserviceaccount.com" \
     --min-instances "$min" \
     --max-instances 10 \
     --cpu 1 \
@@ -83,9 +84,15 @@ deploy_front() {
 
   echo "==> Client -> $(cfg "$env" hostingSite) ($env)"
 
-  # The API URL is baked in at build time, so each environment gets its own
-  # bundle rather than discovering the backend at runtime.
+  # Baked in at build time, so each environment gets its own bundle rather
+  # than discovering the backend at runtime -- a staging build cannot talk to
+  # production.
+  #
+  # Deployed builds always use the real API. Fixtures are a local development
+  # convenience for designing screens, not something to ship to a URL someone
+  # might mistake for the product.
   EXPO_PUBLIC_API_URL="$api" \
+  EXPO_PUBLIC_API_MODE="live" \
     npm run build:web --workspace @photobooth/mobile
 
   firebase deploy --only "hosting:$target" --project "$PROJECT"

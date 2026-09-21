@@ -1,0 +1,11 @@
+.git/
+node_modules/
+**/node_modules/
+**/dist/
+**/.expo/
+v1/
+apps/mobile/
+docs/
+*.log
+.env
+.env.*

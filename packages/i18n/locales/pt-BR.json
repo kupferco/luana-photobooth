@@ -84,7 +84,9 @@
     "rotateHint": "A cabine tira fotos deitadas. Em pé, a maior parte da imagem seria cortada.",
     "tapToStart": "Toque para começar",
     "getReady": "Preparar…",
-    "shotOf": "Foto {current} de {total}"
+    "shotOf": "Foto {current} de {total}",
+    "pair": "Usar este celular como cabine",
+    "pairHint": "Este celular vai tirar as fotos. Mantenha-o na tomada e deixe esta tela aberta."
   },
   "guest": {
     "welcome": "Você está em {name}",
