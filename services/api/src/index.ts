@@ -1,5 +1,7 @@
 import express, { type NextFunction, type Request, type Response } from 'express'
 import { authRoutes } from './auth/routes'
+import { deviceRoutes } from './devices/routes'
+import { eventRoutes } from './events/routes'
 import { env, isProduction } from './config/env'
 
 const app = express()
@@ -12,6 +14,8 @@ app.get('/healthz', (_req, res) => {
 })
 
 app.use('/auth', authRoutes)
+app.use('/events', eventRoutes)
+app.use('/devices', deviceRoutes)
 
 app.use((_req, res) => {
   res.status(404).json({ error: { code: 'not_found', message: 'Not found' } })

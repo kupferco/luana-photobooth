@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { db } from '../db/client'
 import { memberships, tenants, users } from '../db/schema'
+import { seedDefaultTemplate } from '../db/repo'
 
 /**
  * Turning a verified email address into an account.
@@ -53,6 +54,10 @@ export async function findOrCreateAccount(email: string): Promise<Account> {
     await tx
       .insert(memberships)
       .values({ tenantId: tenant.id, userId: user.id, role: 'owner' })
+
+    // Start them with v1's proven layout so there is no empty state between
+    // signing up and being able to run a party.
+    await seedDefaultTemplate(tenant.id, tx)
 
     return {
       userId: user.id,

@@ -14,7 +14,7 @@ const EnvSchema = z.object({
 
   RESEND_API_KEY: z.string().min(1),
   /** Must be on a domain verified in Resend, or sends fail silently-ish. */
-  RESEND_FROM: z.string().default('Photo Booth <onboarding@resend.dev>'),
+  RESEND_FROM: z.string().default('Photo Booth <noreply@kupfer.co>'),
 
   /** At least 32 bytes. Generate with: openssl rand -base64 48 */
   JWT_SECRET: z.string().min(32),
