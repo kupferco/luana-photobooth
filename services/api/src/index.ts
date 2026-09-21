@@ -1,5 +1,6 @@
 import express, { type NextFunction, type Request, type Response } from 'express'
 import { authRoutes } from './auth/routes'
+import { agentRoutes } from './agent/routes'
 import { boothRoutes } from './booth/routes'
 import { deviceRoutes } from './devices/routes'
 import { eventRoutes } from './events/routes'
@@ -26,6 +27,7 @@ app.use('/auth', authRoutes)
 app.use('/events', eventRoutes)
 app.use('/devices', deviceRoutes)
 app.use('/booth', boothRoutes)
+app.use('/agent', agentRoutes)
 app.use('/', sessionRoutes)
 
 app.use((_req, res) => {
