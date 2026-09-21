@@ -62,7 +62,7 @@
     "downloadAll": "Baixar todas as {count} fotos"
   },
   "retention": {
-    "guest": "Suas fotos ficam guardadas até {date} e depois são apagadas definitivamente.",
+    "guest": "Suas fotos ficam guardadas até {date}.",
     "deleteMine": "Apagar minhas fotos",
     "deletedToday": "Estas fotos serão apagadas hoje.",
     "ownerCountdown": "Tudo será apagado em {date} — baixe antes disso.",
@@ -73,7 +73,8 @@
     "daysLeftAction": {
       "one": "Falta {count} dia — baixe as fotos antes que sumam.",
       "other": "Faltam {count} dias — baixe as fotos antes que sumam."
-    }
+    },
+    "guestFull": "Suas fotos ficam guardadas até {date} e depois são apagadas. Você pode apagá-las antes disso quando quiser."
   },
   "booth": {
     "title": "Modo cabine",

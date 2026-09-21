@@ -1,5 +1,10 @@
 import { createHash } from 'node:crypto'
-import { retentionNotice, shotCount, type SessionView } from '@photobooth/shared'
+import {
+  retentionNotice,
+  retentionNoticeFull,
+  shotCount,
+  type SessionView,
+} from '@photobooth/shared'
 import { Router } from 'express'
 import { z } from 'zod'
 import {
@@ -29,8 +34,9 @@ export const hashGuestToken = (token: string) =>
  * What the guest page shows before anyone taps anything: which party this is,
  * how many shots to expect, how long the photos are kept.
  *
- * The retention line is served from the event's single retentionUntil value,
- * so the guest page, booth screen, QR card and emails cannot disagree.
+ * Both retention lines come from the event's single retentionUntil value, so
+ * the guest page, booth screen, QR card and emails cannot disagree about the
+ * date even where they differ in wording.
  */
 sessionRoutes.get('/join/:joinCode', async (req, res, next) => {
   try {
@@ -57,7 +63,10 @@ sessionRoutes.get('/join/:joinCode', async (req, res, next) => {
         name: event.name,
         joinCode: event.joinCode,
         retentionUntil: event.retentionUntil.toISOString(),
+        // Short for a header, full for beside the email field. The guest page
+        // decides which moment it is; the date behind both is the same value.
         retentionNotice: retentionNotice(event.retentionUntil),
+        retentionNoticeFull: retentionNoticeFull(event.retentionUntil),
       },
       shotsExpected: template ? shotCount(toTemplate(template)) : 3,
       queueDepth: queue.length,

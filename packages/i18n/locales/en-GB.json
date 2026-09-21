@@ -62,7 +62,7 @@
     "downloadAll": "Download all {count} photos"
   },
   "retention": {
-    "guest": "Your photos are stored until {date}, then permanently deleted.",
+    "guest": "Your photos are saved until {date}.",
     "deleteMine": "Delete my photos",
     "deletedToday": "These photos are being deleted today.",
     "ownerCountdown": "Everything is deleted on {date} — download it before then.",
@@ -73,7 +73,8 @@
     "daysLeftAction": {
       "one": "{count} day left — download them before they go.",
       "other": "{count} days left — download them before they go."
-    }
+    },
+    "guestFull": "Your photos are saved until {date} and then deleted. You can delete them sooner from this page whenever you like."
   },
   "booth": {
     "title": "Booth mode",

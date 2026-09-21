@@ -312,6 +312,11 @@ export default function Booth() {
                 {poll.event.joinCode}
               </Text>
             ) : null}
+            {retention ? (
+              <Text style={[styles.retention, { color: 'rgba(255,255,255,0.75)' }]}>
+                {retention}
+              </Text>
+            ) : null}
           </View>
         </Pressable>
       ) : null}
@@ -372,12 +377,6 @@ export default function Booth() {
         </View>
       ) : null}
 
-      {/* Visible to anyone standing in the queue, at every phase. */}
-      {retention ? (
-        <Text style={[styles.footer, { color: 'rgba(255,255,255,0.7)' }]}>
-          {retention}
-        </Text>
-      ) : null}
     </View>
   )
 }
@@ -399,12 +398,5 @@ const styles = StyleSheet.create({
   code: { fontSize: 28, fontWeight: weight('700'), letterSpacing: 8 },
   count: { fontSize: 180, fontWeight: weight('700') },
   caption: { fontSize: 20, fontWeight: weight('600') },
-  footer: {
-    position: 'absolute',
-    bottom: 12,
-    left: 0,
-    right: 0,
-    textAlign: 'center',
-    fontSize: 13,
-  },
+  retention: { fontSize: 15, textAlign: 'center', marginTop: 8 },
 })

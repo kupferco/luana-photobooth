@@ -31,22 +31,40 @@ export function daysRemaining(until: Date, now: Date = new Date()): number {
   return Math.max(0, Math.ceil(ms / 86_400_000))
 }
 
-/**
- * The one sentence shown to guests, above the email field and on the booth's
- * idle screen. Plain language on purpose: no "data retention policy", no
- * asking anyone to read a policy page to find out what happens to a photo of
- * their child.
- */
-export function retentionNotice(
-  until: Date,
-  locale = 'en-GB',
-): string {
-  const date = until.toLocaleDateString(locale, {
+function formatDate(until: Date, locale: string): string {
+  return until.toLocaleDateString(locale, {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
   })
-  return `Your photos are stored until ${date}, then permanently deleted.`
+}
+
+/**
+ * The short form, for where someone is glancing rather than reading -- the
+ * booth's idle screen, a header.
+ *
+ * Positive on purpose. "Then permanently deleted" is true but it is a warning,
+ * and a warning is the wrong note to strike at a party. How long the photos
+ * are kept is the useful fact; that they end afterwards is implied by "until",
+ * and spelled out where someone is actually deciding something.
+ */
+export function retentionNotice(until: Date, locale = 'en-GB'): string {
+  return `Your photos are saved until ${formatDate(until, locale)}.`
+}
+
+/**
+ * The full form, for the moment a guest is deciding what to do with their
+ * photos -- beside the email field, and on the privacy page.
+ *
+ * Here the deletion is stated outright, along with the fact they can delete
+ * them sooner. Being clear is the point at this moment; at the booth it was
+ * only decoration.
+ */
+export function retentionNoticeFull(until: Date, locale = 'en-GB'): string {
+  return (
+    `Your photos are saved until ${formatDate(until, locale)} and then deleted. ` +
+    `You can delete them sooner from this page whenever you like.`
+  )
 }
 
 /** Shown on the owner's dashboard, where the countdown is the useful part. */

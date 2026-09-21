@@ -1,0 +1,17 @@
+[
+  {
+    "origin": [
+      "https://photolu.web.app",
+      "https://photolu-staging.web.app",
+      "https://photolu.firebaseapp.com",
+      "https://photobooth.kupfer.co",
+      "http://localhost:8081",
+      "http://localhost:8082",
+      "http://localhost:8083",
+      "http://localhost:19006"
+    ],
+    "method": ["GET", "PUT", "HEAD"],
+    "responseHeader": ["Content-Type", "Content-Length", "ETag", "x-goog-resumable"],
+    "maxAgeSeconds": 3600
+  }
+]
