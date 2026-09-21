@@ -1,11 +1,15 @@
 #!/usr/bin/env node
 /**
- * Runs the whole stack bound to this machine's LAN address, so a phone on the
+ * Starts everything: the API, the booth app and the guest page.
+ *
+ * Binds to this machine's LAN address when there is one, so a phone on the
  * same wifi can scan the booth's QR and actually reach the guest page.
+ * There is no reason to ever want the opposite, which is why this is not a
+ * separate command -- it was, and the name confused which app from where.
  *
  * The guest page needs no camera, so plain http over the LAN is fine for it.
- * The booth does need a secure context, but the booth stays on this machine
- * at localhost, which counts as one -- so only the phone crosses the network.
+ * The booth does need a secure context, but stays on this machine at
+ * localhost, which counts as one -- so only the phone crosses the network.
  */
 import { spawn } from 'node:child_process'
 import { networkInterfaces } from 'node:os'
@@ -19,20 +23,24 @@ function lanAddress() {
   return null
 }
 
-const host = lanAddress()
-if (!host) {
-  console.error('No LAN address found — are you on wifi?')
-  process.exit(1)
-}
+// No wifi is not a failure: everything still works on this machine, only the
+// phone cannot join in.
+const host = lanAddress() ?? 'localhost'
+const onLan = host !== 'localhost'
 
 const api = `http://${host}:8080`
 const guest = `http://${host}:5173`
 
 console.log(`
-  Booth   http://localhost:8083/booth   (this machine — camera needs localhost)
-  Guest   ${guest}/<CODE>   (scan the booth QR from a phone on the same wifi)
+  Booth   http://localhost:8083/booth   (this machine — the camera needs localhost)
+  Guest   ${guest}/<CODE>
   API     ${api}
 `)
+console.log(
+  onLan
+    ? '  Scan the booth QR from a phone on the same wifi to reach the guest page.\n'
+    : '  No LAN address found, so a phone cannot reach this. Local only.\n',
+)
 
 const env = {
   ...process.env,
