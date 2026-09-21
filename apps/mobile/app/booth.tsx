@@ -4,7 +4,6 @@ import QRCode from 'react-native-qrcode-svg'
 import { router } from 'expo-router'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
-  Dimensions,
   Platform,
   Pressable,
   StyleSheet,
@@ -63,7 +62,7 @@ type Phase =
 export default function Booth() {
   const t = useT()
   const theme = useTheme()
-  const { width } = useWindowDimensions()
+  const { width, height } = useWindowDimensions()
   const { active, loading: loadingEvents, error: eventsError } = useActiveEvent()
   const { tenantId } = useSession()
 
@@ -83,7 +82,19 @@ export default function Booth() {
   const running = useRef(false)
 
   const template: Template = poll?.template ?? CLASSIC_3UP
-  const landscape = width > Dimensions.get('window').height
+  const landscape = width > height
+
+  /**
+   * How wide the montage can be and still leave room for what sits under it.
+   *
+   * `reserved` is the caption, code and hint plus their gaps. The montage is
+   * 3:2, so the height left over caps the width at 1.5x it.
+   */
+  const montageWidth = (reserved: number) =>
+    Math.max(
+      180,
+      Math.min(width * 0.55, (height - reserved) * (3 / 2), 520),
+    )
 
   // --- pairing ------------------------------------------------------------
 
@@ -332,7 +343,14 @@ export default function Booth() {
       {phase.kind === 'idle' ? (
         <Pressable style={styles.fill} onPress={startLocal}>
           <View style={styles.centre}>
-            <Text style={[styles.big, { color: '#fff' }]}>{t('booth.tapToStart')}</Text>
+            <Text
+              style={[
+                styles.big,
+                { color: '#fff', fontSize: height < 420 ? 30 : 44 },
+              ]}
+            >
+              {t('booth.tapToStart')}
+            </Text>
 
             {poll?.event.joinCode ? (
               <View style={styles.joinBlock}>
@@ -343,7 +361,10 @@ export default function Booth() {
                 {/* White quiet zone: scanners need the contrast, and on a dark
                     booth screen a bare QR reads poorly from a metre away. */}
                 <View style={styles.qrPlate}>
-                  <QRCode value={guestUrl(poll.event.joinCode)} size={148} />
+                  <QRCode
+                    value={guestUrl(poll.event.joinCode)}
+                    size={height < 420 ? 104 : 148}
+                  />
                 </View>
 
                 {/* The code stays as the fallback for a phone that will not
@@ -382,7 +403,7 @@ export default function Booth() {
           <MontagePreview
             template={template}
             shotUris={template.cells.map((_, i) => shots[i]?.previewUri ?? null)}
-            width={Math.min(width * 0.8, 720)}
+            width={montageWidth(64)}
           />
         </View>
       ) : null}
@@ -402,7 +423,7 @@ export default function Booth() {
             <MontagePreview
               template={template}
               shotUris={template.cells.map((_, i) => shots[i]?.previewUri ?? null)}
-              width={Math.min(width * 0.55, 520)}
+              width={montageWidth(200)}
             />
           </View>
 
@@ -481,7 +502,8 @@ const styles = StyleSheet.create({
     bottom: 0,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 16,
+    gap: 10,
+    paddingVertical: 12,
   },
   big: { fontSize: 44, fontWeight: weight('700') },
   code: { fontSize: 28, fontWeight: weight('700'), letterSpacing: 8 },
