@@ -115,7 +115,8 @@
     "photos": {
       "one": "{count} foto",
       "other": "{count} fotos"
-    }
+    },
+    "offlineHint": "Você continua conectado. Verifique se o servidor está rodando (npm run server) e tente de novo."
   },
   "dev": {
     "fixtures": "Dados fictícios. Use EXPO_PUBLIC_API_MODE=live para acessar a API real."

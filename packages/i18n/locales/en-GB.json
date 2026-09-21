@@ -115,7 +115,8 @@
     "photos": {
       "one": "{count} photo",
       "other": "{count} photos"
-    }
+    },
+    "offlineHint": "You are still signed in. Check the server is running (npm run server) and try again."
   },
   "dev": {
     "fixtures": "Fixture data. Set EXPO_PUBLIC_API_MODE=live to use the real API."

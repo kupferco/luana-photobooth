@@ -42,13 +42,37 @@ async function setTokens(access: string | null, refresh: string | null) {
   else await clearToken(REFRESH_KEY)
 }
 
+/**
+ * Distinguishes "the server said no" from "the server could not be reached".
+ *
+ * They must not be treated alike: a rejected token means sign in again, while
+ * a dropped connection means try again later. Conflating them is what made a
+ * moment of bad wifi delete a perfectly good session.
+ */
+export class NetworkError extends ApiError {
+  constructor() {
+    super('Could not reach the server.', 'network', 0)
+    this.name = 'NetworkError'
+  }
+}
+
+async function send(path: string, init: RequestInit): Promise<Response> {
+  try {
+    return await fetch(BASE + path, init)
+  } catch {
+    // fetch only rejects for transport failures: server down, no network,
+    // DNS, CORS preflight refused.
+    throw new NetworkError()
+  }
+}
+
 async function request<T>(
   method: string,
   path: string,
   body?: unknown,
   retryOn401 = true,
 ): Promise<T> {
-  const response = await fetch(BASE + path, {
+  const response = await send(path, {
     method,
     headers: {
       'content-type': 'application/json',
@@ -60,7 +84,7 @@ async function request<T>(
   // One transparent refresh, then give up. Looping would turn a revoked
   // session into an infinite retry against the server.
   if (response.status === 401 && retryOn401 && refreshToken) {
-    const refreshed = await fetch(`${BASE}/auth/refresh`, {
+    const refreshed = await send('/auth/refresh', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ refreshToken }),
@@ -124,15 +148,20 @@ export const liveApi: PhotoboothApi = {
     // After a cold start there is a stored refresh token but no access token.
     // Trading it for one here is what makes the session survive a restart.
     if (!accessToken && refreshToken) {
-      const refreshed = await fetch(`${BASE}/auth/refresh`, {
+      const refreshed = await send('/auth/refresh', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ refreshToken }),
       })
+
       if (!refreshed.ok) {
+        // Only an explicit rejection clears the stored token. A NetworkError
+        // never reaches here -- send() throws it, and the caller decides --
+        // so an unreachable server can no longer sign someone out.
         await setTokens(null, null)
         return null
       }
+
       const tokens = (await refreshed.json()) as {
         accessToken: string
         refreshToken: string
@@ -142,11 +171,7 @@ export const liveApi: PhotoboothApi = {
 
     if (!accessToken) return null
 
-    try {
-      return await request<{ user: User }>('GET', '/auth/me')
-    } catch {
-      return null
-    }
+    return request<{ user: User }>('GET', '/auth/me')
   },
 
   async signOut() {
