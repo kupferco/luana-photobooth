@@ -91,6 +91,9 @@ deploy_front() {
   # Deployed builds always use the real API. Fixtures are a local development
   # convenience for designing screens, not something to ship to a URL someone
   # might mistake for the product.
+  # --clear is not optional here: Metro's cache key ignores EXPO_PUBLIC_*,
+  # so without it a prod build happily reuses the staging bundle -- which it
+  # did, and shipped a production booth pointing at the staging API.
   EXPO_PUBLIC_API_URL="$api" \
   EXPO_PUBLIC_API_MODE="live" \
   EXPO_PUBLIC_GUEST_URL="$(cfg "$env" guestUrl)" \
