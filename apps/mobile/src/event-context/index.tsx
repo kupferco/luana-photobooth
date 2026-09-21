@@ -26,6 +26,8 @@ interface ActiveEventState {
   events: Event[]
   active: Event | null
   loading: boolean
+  /** Set when the last load failed, so screens can say so rather than sit empty. */
+  error: string | null
   setActive(eventId: string): void
   refresh(): Promise<void>
 }
@@ -52,6 +54,7 @@ export function ActiveEventProvider({ children }: { children: ReactNode }) {
   const [events, setEvents] = useState<Event[]>([])
   const [chosenId, setChosenId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   const refresh = useCallback(async () => {
     if (!tenantId) {
@@ -59,9 +62,17 @@ export function ActiveEventProvider({ children }: { children: ReactNode }) {
       setLoading(false)
       return
     }
-    const rows = await api.listEvents(tenantId)
-    setEvents(rows)
-    setLoading(false)
+    try {
+      const rows = await api.listEvents(tenantId)
+      setEvents(rows)
+      setError(null)
+    } catch (e) {
+      // Without this the promise rejected unhandled, loading never cleared,
+      // and every screen downstream sat on a spinner with nothing to show.
+      setError(e instanceof Error ? e.message : String(e))
+    } finally {
+      setLoading(false)
+    }
   }, [tenantId])
 
   useEffect(() => {
@@ -74,10 +85,11 @@ export function ActiveEventProvider({ children }: { children: ReactNode }) {
       events,
       active: chosen ?? pick(events),
       loading,
+      error,
       setActive: setChosenId,
       refresh,
     }
-  }, [events, chosenId, loading, refresh])
+  }, [events, chosenId, loading, error, refresh])
 
   return (
     <ActiveEventContext.Provider value={value}>

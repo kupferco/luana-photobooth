@@ -54,7 +54,7 @@ export default function Booth() {
   const t = useT()
   const theme = useTheme()
   const { width } = useWindowDimensions()
-  const { active } = useActiveEvent()
+  const { active, loading: loadingEvents, error: eventsError } = useActiveEvent()
   const { tenantId } = useSession()
 
   useKeepAwake()
@@ -80,7 +80,16 @@ export default function Booth() {
   }, [])
 
   const pair = useCallback(async () => {
-    if (!tenantId || !active) return
+    // Never return silently: a button that ends in nothing is indistinguishable
+    // from a broken one, and this was reported as exactly that.
+    if (!tenantId) {
+      setPhase({ kind: 'error', message: t('booth.notSignedIn') })
+      return
+    }
+    if (!active) {
+      setPhase({ kind: 'error', message: t('event.none') })
+      return
+    }
     setPairing(true)
     try {
       const result = await api.claimBooth(tenantId, active.id)
@@ -92,7 +101,7 @@ export default function Booth() {
     } finally {
       setPairing(false)
     }
-  }, [tenantId, active])
+  }, [tenantId, active, t])
 
   // --- polling ------------------------------------------------------------
 
@@ -239,8 +248,13 @@ export default function Booth() {
         <Heading>{t('booth.title')}</Heading>
         <Card>
           <Body>{active ? active.name : t('event.none')}</Body>
-          <Body muted>{t('booth.pairHint')}</Body>
+          <Body muted>{active ? t('booth.pairHint') : t('event.noneHint')}</Body>
         </Card>
+
+        {eventsError ? <Notice tone="bad">{eventsError}</Notice> : null}
+        {!tenantId && !loadingEvents ? (
+          <Notice tone="bad">{t('booth.notSignedIn')}</Notice>
+        ) : null}
 
         {/* Shown here too: this screen returns before the stage below, so an
             error raised while pairing would otherwise never appear and the

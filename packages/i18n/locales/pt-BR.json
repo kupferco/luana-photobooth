@@ -87,7 +87,8 @@
     "shotOf": "Foto {current} de {total}",
     "pair": "Usar este celular como cabine",
     "pairHint": "Este celular vai tirar as fotos. Mantenha-o na tomada e deixe esta tela aberta.",
-    "needsLiveApi": "O modo cabine precisa da API real. Rode: npm run client:live (com npm run server em outro terminal)."
+    "needsLiveApi": "O modo cabine precisa da API real. Rode: npm run client:live (com npm run server em outro terminal).",
+    "notSignedIn": "Entre na sua conta antes de usar este celular como cabine."
   },
   "guest": {
     "welcome": "Você está em {name}",

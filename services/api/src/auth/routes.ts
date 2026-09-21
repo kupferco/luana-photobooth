@@ -112,5 +112,16 @@ authRoutes.post('/signout', async (req, res) => {
 
 /** Who am I. Used by the app on launch to decide where to send someone. */
 authRoutes.get('/me', requireAuth, (req, res) => {
-  return res.status(200).json({ user: req.auth })
+  const account = req.auth!
+  // Shaped by hand rather than returning the internal Account: that names the
+  // field `userId`, while /auth/verify returns `id`, and a client reading
+  // user.id after a reload silently got undefined.
+  return res.status(200).json({
+    user: {
+      id: account.userId,
+      email: account.email,
+      name: account.name,
+      memberships: account.memberships,
+    },
+  })
 })
