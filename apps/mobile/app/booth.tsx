@@ -65,6 +65,8 @@ export default function Booth() {
   const [poll, setPoll] = useState<BoothPoll | null>(null)
   const [phase, setPhase] = useState<Phase>({ kind: 'setup' })
   const [shots, setShots] = useState<CapturedShot[]>([])
+  const [lastCode, setLastCode] = useState<string | null>(null)
+  const [confirmExit, setConfirmExit] = useState(false)
 
   // A run in progress must not be interrupted by the poll loop starting
   // another, and the tap handler must not start a second sequence.
@@ -118,7 +120,7 @@ export default function Booth() {
 
         // A guest triggered from their phone. Same code path as a tap.
         if (!running.current && result.next && result.next.status === 'queued') {
-          void run(result.next.id, result.next.shotsExpected)
+          void run(result.next.id, result.next.shotsExpected, result.next.code)
         }
       } catch (e) {
         if (!cancelled) {
@@ -161,10 +163,11 @@ export default function Booth() {
   const wait = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
   const run = useCallback(
-    async (sessionId: string, shotsExpected: number) => {
+    async (sessionId: string, shotsExpected: number, code?: string) => {
       if (running.current) return
       running.current = true
       setShots([])
+      setLastCode(code ?? null)
 
       try {
         await booth.claim(sessionId)
@@ -226,7 +229,7 @@ export default function Booth() {
     if (running.current) return
     try {
       const session = await booth.startLocal()
-      await run(session.id, session.shotsExpected)
+      await run(session.id, session.shotsExpected, session.code)
     } catch (e) {
       setPhase({ kind: 'error', message: e instanceof Error ? e.message : String(e) })
     }
@@ -270,6 +273,19 @@ export default function Booth() {
           busy={pairing}
         />
         <Button label={t('common.back')} variant="secondary" onPress={() => router.back()} />
+      </Screen>
+    )
+  }
+
+  // Ending the event from the dashboard is how the owner stops the booth, so
+  // the booth has to notice. Without this it kept polling a finished party
+  // and still offered to take photos into it.
+  if (poll && poll.event.status !== 'live' && !running.current) {
+    return (
+      <Screen>
+        <Heading>{poll.event.name}</Heading>
+        <Notice tone="warn">{t('booth.eventEnded')}</Notice>
+        <Button label={t('common.back')} onPress={() => router.back()} />
       </Screen>
     )
   }
@@ -355,14 +371,61 @@ export default function Booth() {
       ) : null}
 
       {phase.kind === 'done' ? (
-        <Pressable style={[styles.fill, styles.centre]} onPress={reset}>
-          <MontagePreview
-            template={template}
-            shotUris={template.cells.map((_, i) => shots[i]?.previewUri ?? null)}
-            width={Math.min(width * 0.8, 720)}
-          />
+        <Pressable style={[styles.fill, styles.scrim, styles.centre]} onPress={reset}>
+          <View style={styles.tilt}>
+            <MontagePreview
+              template={template}
+              shotUris={template.cells.map((_, i) => shots[i]?.previewUri ?? null)}
+              width={Math.min(width * 0.55, 520)}
+            />
+          </View>
+
           <Text style={[styles.caption, { color: '#fff' }]}>{t('guest.ready')}</Text>
+
+          {lastCode ? (
+            <View style={styles.centreRow}>
+              <Text style={[styles.codeLabel, { color: 'rgba(255,255,255,0.7)' }]}>
+                {t('booth.yourCode')}
+              </Text>
+              <Text style={[styles.code, { color: theme.color.action.bg }]}>
+                {lastCode}
+              </Text>
+            </View>
+          ) : null}
+
+          <Text style={[styles.hint, { color: 'rgba(255,255,255,0.6)' }]}>
+            {t('booth.tapToContinue')}
+          </Text>
         </Pressable>
+      ) : null}
+
+      {/* Exit handle. Small, cornered and long-press only, so a guest cannot
+          leave booth mode by fumbling -- but the owner is never trapped. */}
+      <Pressable
+        style={styles.exitHandle}
+        onLongPress={() => setConfirmExit(true)}
+        delayLongPress={1500}
+        accessibilityLabel={t('booth.exit')}
+      />
+
+      {confirmExit ? (
+        <View style={[styles.fill, styles.scrim, styles.centre, { padding: 24 }]}>
+          <Text style={[styles.caption, { color: '#fff' }]}>{t('booth.exitConfirm')}</Text>
+          <View style={{ width: '100%', maxWidth: 420, gap: 12 }}>
+            <Button
+              label={t('booth.exit')}
+              onPress={() => {
+                setConfirmExit(false)
+                router.back()
+              }}
+            />
+            <Button
+              label={t('common.cancel')}
+              variant="secondary"
+              onPress={() => setConfirmExit(false)}
+            />
+          </View>
+        </View>
       ) : null}
 
       {phase.kind === 'error' ? (
@@ -397,6 +460,13 @@ const styles = StyleSheet.create({
   big: { fontSize: 44, fontWeight: weight('700') },
   code: { fontSize: 28, fontWeight: weight('700'), letterSpacing: 8 },
   count: { fontSize: 180, fontWeight: weight('700') },
+  // Sits like a print dropped on a table rather than filling the screen.
+  tilt: { transform: [{ rotate: '-3deg' }] },
+  scrim: { backgroundColor: 'rgba(0,0,0,0.72)' },
+  centreRow: { alignItems: 'center', gap: 2 },
+  codeLabel: { fontSize: 13, letterSpacing: 1, textTransform: 'uppercase' },
+  hint: { fontSize: 14 },
+  exitHandle: { position: 'absolute', top: 0, left: 0, width: 72, height: 72 },
   caption: { fontSize: 20, fontWeight: weight('600') },
   retention: { fontSize: 15, textAlign: 'center', marginTop: 8 },
 })

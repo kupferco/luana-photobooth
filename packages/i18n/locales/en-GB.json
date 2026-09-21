@@ -89,7 +89,12 @@
     "pair": "Use this phone as the booth",
     "pairHint": "This phone will take the photos. Keep it plugged in, and leave this screen open.",
     "needsLiveApi": "Booth mode needs the real API. Run: npm run client:live, with npm run server in another terminal.",
-    "notSignedIn": "Sign in before using this phone as the booth."
+    "notSignedIn": "Sign in before using this phone as the booth.",
+    "yourCode": "Your code",
+    "tapToContinue": "Tap to continue",
+    "exit": "Leave booth mode",
+    "exitConfirm": "Leave booth mode?",
+    "eventEnded": "This event has ended."
   },
   "guest": {
     "welcome": "You are at {name}",
