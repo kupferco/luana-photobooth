@@ -38,7 +38,8 @@
         {
           "cameraPermission": "The photo booth uses the camera to take your party photos."
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true

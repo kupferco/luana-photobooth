@@ -1,3 +1,4 @@
+import { clearToken, readToken, writeToken } from './storage'
 import type { Event, EventLiveStats, GallerySession, PhotoboothApi, User } from './types'
 import { ApiError } from './types'
 
@@ -5,15 +6,41 @@ import { ApiError } from './types'
  * The real client. Same shape as the fixtures, so a screen cannot tell which
  * one it has.
  *
- * Tokens live in memory here. Persisting them is a real decision -- different
- * storage on web and native -- and is deliberately left until the sign-in
- * flow has settled, rather than guessed at now and reworked.
+ * Tokens are held in memory and mirrored to platform storage -- the Keychain
+ * or Keystore on a device, localStorage on the web -- so signing in survives
+ * closing the app.
+ *
+ * Only the refresh token is persisted. The access token lives fifteen
+ * minutes, so storing it would mostly mean storing something expired; the
+ * first request after a cold start refreshes from the stored one instead.
  */
 
 const BASE = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8080'
 
+const REFRESH_KEY = 'photobooth.refresh'
+
 let accessToken: string | null = null
 let refreshToken: string | null = null
+
+/**
+ * Reads the stored token once per launch. Everything that needs a session
+ * awaits this, so a cold start cannot race it and decide nobody is signed in.
+ */
+let restored: Promise<void> | null = null
+
+function restore(): Promise<void> {
+  restored ??= readToken(REFRESH_KEY).then((stored) => {
+    refreshToken = stored
+  })
+  return restored
+}
+
+async function setTokens(access: string | null, refresh: string | null) {
+  accessToken = access
+  refreshToken = refresh
+  if (refresh) await writeToken(REFRESH_KEY, refresh)
+  else await clearToken(REFRESH_KEY)
+}
 
 async function request<T>(
   method: string,
@@ -43,12 +70,12 @@ async function request<T>(
         accessToken: string
         refreshToken: string
       }
-      accessToken = tokens.accessToken
-      refreshToken = tokens.refreshToken
+      await setTokens(tokens.accessToken, tokens.refreshToken)
       return request<T>(method, path, body, false)
     }
-    accessToken = null
-    refreshToken = null
+    // Refusing to refresh is terminal: the token is expired, revoked, or was
+    // replayed. Clearing it stops every later request retrying a dead session.
+    await setTokens(null, null)
   }
 
   if (response.status === 204) return undefined as T
@@ -87,13 +114,34 @@ export const liveApi: PhotoboothApi = {
       refreshToken: string
       user: User
     }>('POST', '/auth/verify', { email, code })
-    accessToken = result.accessToken
-    refreshToken = result.refreshToken
+    await setTokens(result.accessToken, result.refreshToken)
     return { user: result.user }
   },
 
   async me() {
+    await restore()
+
+    // After a cold start there is a stored refresh token but no access token.
+    // Trading it for one here is what makes the session survive a restart.
+    if (!accessToken && refreshToken) {
+      const refreshed = await fetch(`${BASE}/auth/refresh`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ refreshToken }),
+      })
+      if (!refreshed.ok) {
+        await setTokens(null, null)
+        return null
+      }
+      const tokens = (await refreshed.json()) as {
+        accessToken: string
+        refreshToken: string
+      }
+      await setTokens(tokens.accessToken, tokens.refreshToken)
+    }
+
     if (!accessToken) return null
+
     try {
       return await request<{ user: User }>('GET', '/auth/me')
     } catch {
@@ -102,11 +150,13 @@ export const liveApi: PhotoboothApi = {
   },
 
   async signOut() {
+    await restore()
     if (refreshToken) {
+      // Revokes the whole family server-side, so other devices signed in from
+      // the same sign-in go too.
       await request('POST', '/auth/signout', { refreshToken }).catch(() => {})
     }
-    accessToken = null
-    refreshToken = null
+    await setTokens(null, null)
   },
 
   async listEvents(tenantId) {

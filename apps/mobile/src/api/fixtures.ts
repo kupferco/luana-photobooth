@@ -1,4 +1,5 @@
 import { DEFAULT_MONTAGE_RETENTION_DAYS, retentionUntil } from '@photobooth/shared'
+import { clearToken, readToken, writeToken } from './storage'
 import type {
   Event,
   EventLiveStats,
@@ -126,8 +127,19 @@ const SESSIONS: Record<string, GallerySession[]> = {
   })),
 }
 
+const SESSION_KEY = 'photobooth.fixture-session'
+
 let signedIn = false
 let pendingEmail: string | null = null
+let restored: Promise<void> | null = null
+
+/** Mirrors the real client, so persistence behaves the same in both modes. */
+function restore(): Promise<void> {
+  restored ??= readToken(SESSION_KEY).then((value) => {
+    signedIn = value === 'yes'
+  })
+  return restored
+}
 
 export const fixtureApi: PhotoboothApi = {
   async requestCode(email) {
@@ -147,10 +159,12 @@ export const fixtureApi: PhotoboothApi = {
       throw new ApiError('That code is not right.', 'invalid', 400)
     }
     signedIn = true
+    await writeToken(SESSION_KEY, 'yes')
     return { user: { ...FIXTURE_USER, email } }
   },
 
   async me() {
+    await restore()
     await delay(120)
     return signedIn ? { user: FIXTURE_USER } : null
   },
@@ -158,6 +172,7 @@ export const fixtureApi: PhotoboothApi = {
   async signOut() {
     await delay(120)
     signedIn = false
+    await clearToken(SESSION_KEY)
   },
 
   async listEvents() {
