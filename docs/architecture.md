@@ -158,6 +158,36 @@ is strongest. One interface; nothing above knows which it got.
 frame themselves as in a mirror; the stored JPEG is not, so text in shot is
 not reversed on the print.
 
+#### Measured on an iPhone, iOS 26.6.2 (WebKit), 21 Sep 2026
+
+Secure context true, camera opens, capture succeeds. `width: {ideal: 1920}`
+is honoured exactly.
+
+| Orientation | Capture | Crop for an 845×520 cell | Oversampling (linear) |
+|---|---|---|---|
+| Landscape | 1920×1080, ~540 KB | 1755×1080 from (83, 0) | **2.08×** |
+| Portrait | 1080×1920, ~460 KB | 1080×665 from (0, 628) | 1.28× |
+
+Both crops match `centreCrop()` exactly, so v1's maths is confirmed correct
+on real device output.
+
+**The booth must run in landscape**, and not only for resolution. In portrait
+the 3:2 cell keeps just 35% of the frame height, so heads get cropped — the
+sensor is mostly thrown away. Landscape keeps 91% of the width and gives over
+twice the pixels into the same cell.
+
+Native locks this with `expo-screen-orientation`. The web build cannot force
+it on iOS, so booth mode detects portrait and asks the user to rotate before
+it will start. On a tripod this is a one-time setup step.
+
+Revised bandwidth: ~540 KB per shot, so **about 2 MB per session** including
+the montage, not the 1 MB estimated earlier. Forty sessions is ~80 MB —
+still comfortably within a phone hotspot.
+
+Caveat: tested in Chrome on iOS, which is WKWebView, so the camera result
+carries over to Safari unchanged. Add to Home Screen and standalone mode are
+Safari-only on iOS, so the kiosk setup still needs confirming there.
+
 ### The montage is composed server-side
 
 Cloud Run composes the canonical print file with `sharp`. It has the CPU, the
