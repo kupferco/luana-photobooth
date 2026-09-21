@@ -86,6 +86,12 @@ export const api = {
       `/sessions/${encodeURIComponent(code)}?token=${encodeURIComponent(token)}`,
     ),
 
+  confirm: (code: string, token: string) =>
+    call<{ confirmed: true }>(
+      `/sessions/${encodeURIComponent(code)}/confirm?token=${encodeURIComponent(token)}`,
+      { method: 'POST' },
+    ),
+
   forget: (code: string, token: string) =>
     call<void>(
       `/sessions/${encodeURIComponent(code)}?token=${encodeURIComponent(token)}`,

@@ -307,6 +307,30 @@ export const sessions = pgTable(
      */
     guestTokenHash: text('guest_token_hash').notNull(),
     status: sessionStatus('status').notNull().default('queued'),
+
+    /**
+     * Where this session sits in the queue.
+     *
+     * Separate from createdAt because it moves: a guest who misses their turn
+     * is bumped one place rather than dropped, so the person behind them is
+     * served at once and the distracted one is asked again next time round.
+     */
+    queuedAt: timestamp('queued_at', { withTimezone: true }).notNull().defaultNow(),
+
+    /** When they reached the front and were asked to confirm. */
+    calledAt: timestamp('called_at', { withTimezone: true }),
+
+    /**
+     * When they said they were ready. The booth will not start without this,
+     * so it never photographs an empty room waiting for someone who left.
+     * Sessions started at the booth itself are confirmed on creation -- the
+     * person is already standing there.
+     */
+    confirmedAt: timestamp('confirmed_at', { withTimezone: true }),
+
+    /** Three misses and they are out; they can always scan again. */
+    confirmMisses: smallint('confirm_misses').notNull().default(0),
+
     shotsExpected: smallint('shots_expected').notNull(),
     shotsTaken: smallint('shots_taken').notNull().default(0),
     /** Composed by the API with sharp; the Pi only ever prints this file. */
@@ -319,6 +343,7 @@ export const sessions = pgTable(
   (t) => [
     uniqueIndex('sessions_code_key').on(t.code),
     index('sessions_event_idx').on(t.eventId, t.createdAt),
+    index('sessions_queue_idx').on(t.eventId, t.status, t.queuedAt),
     index('sessions_tenant_idx').on(t.tenantId),
   ],
 )

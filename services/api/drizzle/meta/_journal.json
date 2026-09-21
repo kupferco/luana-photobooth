@@ -15,6 +15,13 @@
       "when": 1789985286804,
       "tag": "0001_own_auth",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790017542091,
+      "tag": "0002_queue_confirmation",
+      "breakpoints": true
     }
   ]
 }

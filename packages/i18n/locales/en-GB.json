@@ -133,7 +133,15 @@
     "save": "Save photo",
     "again": "Take another",
     "boothOffline": "The booth is not running",
-    "boothOfflineHint": "Nobody has the booth switched on right now. Ask whoever is hosting."
+    "boothOfflineHint": "Nobody has the booth switched on right now. Ask whoever is hosting.",
+    "yourTurn": "You are up!",
+    "yourTurnHint": "Stand in front of the booth and tap when you are ready.",
+    "imReady": "I am ready",
+    "secondsLeft": {
+      "one": "{count} second left",
+      "other": "{count} seconds left"
+    },
+    "missedTurn": "You missed your turn, but you are still in the queue."
   },
   "common": {
     "back": "Back",

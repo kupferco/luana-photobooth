@@ -9,7 +9,6 @@ import { Router } from 'express'
 import { z } from 'zod'
 import {
   createSession,
-  eventQueue,
   getEvent,
   getLiveEventByJoinCode,
   getSessionByCode,
@@ -19,6 +18,12 @@ import {
   updateSession,
 } from '../db/repo'
 import { guestToken, isWellFormedCode, normaliseCode, sessionCode } from '../lib/codes'
+import {
+  advanceQueue,
+  confirmTurn,
+  MAX_CONFIRM_MISSES,
+  MAX_QUEUE_DEPTH,
+} from '../queue'
 import { createReadUrl } from '../storage/gcs'
 
 export const sessionRoutes: Router = Router()
@@ -70,7 +75,11 @@ sessionRoutes.get('/join/:joinCode', async (req, res, next) => {
       ? await getTemplate(event.tenantId, event.templateId)
       : null
 
-    const queue = await eventQueue(event.tenantId, event.id)
+    const state = await advanceQueue(
+      event.tenantId,
+      event.id,
+      await isBoothOnline(event.tenantId, event.id),
+    )
 
     return res.json({
       event: {
@@ -83,7 +92,7 @@ sessionRoutes.get('/join/:joinCode', async (req, res, next) => {
         retentionNoticeFull: retentionNoticeFull(event.retentionUntil),
       },
       shotsExpected: template ? shotCount(toTemplate(template)) : 3,
-      queueDepth: queue.length,
+      queueDepth: state.queue.length,
       boothOnline: await isBoothOnline(event.tenantId, event.id),
     })
   } catch (e) {
@@ -112,12 +121,15 @@ sessionRoutes.post('/join/:joinCode/sessions', async (req, res, next) => {
       })
     }
 
-    const queue = await eventQueue(event.tenantId, event.id)
+    const state = await advanceQueue(
+      event.tenantId,
+      event.id,
+      await isBoothOnline(event.tenantId, event.id),
+    )
 
-    // One booth, one camera, one person in front of it. A queue depth beyond
-    // a handful means something is stuck, not that ten people are patiently
-    // waiting, so refuse rather than pile up.
-    if (queue.length >= 5) {
+    // One booth, one camera, one person in front of it. A deeper queue means
+    // something is stuck, not that people are patiently waiting.
+    if (state.queue.length >= MAX_QUEUE_DEPTH) {
       return res.status(429).json({
         error: {
           code: 'queue_full',
@@ -142,7 +154,7 @@ sessionRoutes.post('/join/:joinCode/sessions', async (req, res, next) => {
     return res.status(201).json({
       code: session.code,
       token,
-      queuePosition: queue.length,
+      queuePosition: state.queue.length,
       shotsExpected,
       retentionUntil: event.retentionUntil.toISOString(),
     })
@@ -184,8 +196,10 @@ sessionRoutes.get('/sessions/:code', async (req, res, next) => {
       return res.status(404).json({ error: { code: 'not_found', message: 'Not found' } })
     }
 
-    const queue = await eventQueue(session.tenantId, session.eventId)
-    const position = queue.findIndex((s) => s.id === session.id)
+    const boothOnline = await isBoothOnline(session.tenantId, session.eventId)
+    const state = await advanceQueue(session.tenantId, session.eventId, boothOnline)
+    const position = state.queue.findIndex((s) => s.id === session.id)
+    const isHead = state.head?.id === session.id
 
     const view: SessionView = {
       code: session.code,
@@ -197,12 +211,52 @@ sessionRoutes.get('/sessions/:code', async (req, res, next) => {
       shotCount: session.shotsExpected,
       shotsTaken: session.shotsTaken,
       print: null,
-      boothOnline: await isBoothOnline(session.tenantId, session.eventId),
+      boothOnline,
+      yourTurn:
+        isHead && state.awaitingConfirmation
+          ? {
+              msLeft: state.confirmMsLeft ?? 0,
+              missesLeft: Math.max(0, MAX_CONFIRM_MISSES - state.head!.confirmMisses),
+            }
+          : null,
       error: session.error,
       retentionUntil: event.retentionUntil.toISOString(),
     }
 
     return res.json(view)
+  } catch (e) {
+    return next(e)
+  }
+})
+
+/**
+ * The guest says they are ready.
+ *
+ * This is one tap and it is both the confirmation and the trigger: there is
+ * no separate "start" afterwards, because being ready and wanting to go are
+ * the same thing when you are standing in front of a booth.
+ */
+sessionRoutes.post('/sessions/:code/confirm', async (req, res, next) => {
+  try {
+    const query = TokenQuery.safeParse(req.query)
+    if (!query.success) {
+      return res.status(404).json({ error: { code: 'not_found', message: 'Not found' } })
+    }
+
+    const session = await getSessionByCode(normaliseCode(req.params.code ?? ''))
+    if (!session || session.guestTokenHash !== hashGuestToken(query.data.token)) {
+      return res.status(404).json({ error: { code: 'not_found', message: 'Not found' } })
+    }
+
+    const result = await confirmTurn(session.tenantId, session.eventId, session.id)
+
+    if (result === 'not_your_turn') {
+      return res.status(409).json({
+        error: { code: 'not_your_turn', message: 'It is not your turn yet.' },
+      })
+    }
+
+    return res.status(202).json({ confirmed: true })
   } catch (e) {
     return next(e)
   }

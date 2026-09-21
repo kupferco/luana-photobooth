@@ -3,7 +3,6 @@ import { Router } from 'express'
 import { z } from 'zod'
 import {
   createSession,
-  eventQueue,
   getEvent,
   getSession,
   getTemplate,
@@ -13,6 +12,7 @@ import {
   updateSession,
 } from '../db/repo'
 import { guestToken, sessionCode } from '../lib/codes'
+import { advanceQueue, markConfirmed } from '../queue'
 import { requireDevice } from '../middleware/device'
 import { composeMontage } from '../montage/compose'
 import { hashGuestToken } from '../sessions/routes'
@@ -52,8 +52,13 @@ boothRoutes.get('/poll', async (req, res, next) => {
       return res.status(404).json({ error: { code: 'not_found', message: 'Not found' } })
     }
 
-    const queue = await eventQueue(tenantId, eventId)
-    const next_ = queue[0] ?? null
+    // The booth is asking, so by definition it is online.
+    const state = await advanceQueue(tenantId, eventId, true)
+
+    // Only a confirmed session is offered. Otherwise the booth would start
+    // counting down at an empty room while its guest is still walking over --
+    // or has left entirely.
+    const next_ = state.head?.confirmedAt ? state.head : null
 
     // The booth needs the layout to draw its own preview while the server
     // composes the print file, so it comes down with the poll rather than
@@ -71,14 +76,19 @@ boothRoutes.get('/poll', async (req, res, next) => {
         retentionUntil: event.retentionUntil.toISOString(),
       },
       template: templateRow ? toTemplate(templateRow) : null,
-      queueDepth: queue.length,
+      queueDepth: state.queue.length,
       next: next_
         ? {
             id: next_.id,
             code: next_.code,
-            status: next_.status,
+            status: 'queued' as const,
             shotsExpected: next_.shotsExpected,
           }
+        : null,
+      // Shown on the booth so the room can see it is waiting on someone
+      // rather than broken.
+      waitingFor: state.awaitingConfirmation
+        ? { code: state.head!.code, msLeft: state.confirmMsLeft }
         : null,
     })
   } catch (e) {
@@ -107,6 +117,10 @@ boothRoutes.post('/sessions', async (req, res, next) => {
       guestTokenHash: hashGuestToken(token),
       shotsExpected,
     })
+
+    // Nobody to confirm with: whoever tapped is standing at the booth, and
+    // the tap is the confirmation.
+    await markConfirmed(session.id)
 
     return res.status(201).json({
       id: session.id,

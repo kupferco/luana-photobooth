@@ -113,6 +113,19 @@ export function App() {
     setView(null)
   }, [session, joinCode])
 
+  const confirm = useCallback(async () => {
+    if (!session) return
+    setError(null)
+    try {
+      await api.confirm(session.code, session.token)
+      // Optimistic: the booth starts within a poll or two, and leaving the
+      // button sitting there looks like the tap did nothing.
+      setView((v) => (v ? { ...v, yourTurn: null } : v))
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e))
+    }
+  }, [session])
+
   const again = useCallback(() => {
     forgetLocal(joinCode)
     setSession(null)
@@ -181,7 +194,20 @@ export function App() {
           {/* A queue behind a booth that is switched off is not a queue, and
               saying "1 person ahead of you" when nothing is running is worse
               than saying nothing. */}
-          {view.boothOnline ? (
+          {view.yourTurn ? (
+            <>
+              {/* Asked rather than assumed: a booth counting down at an empty
+                  room while someone fetches a drink wastes everyone's turn. */}
+              <p className="big-status">{t('guest.yourTurn')}</p>
+              <p className="muted">{t('guest.yourTurnHint')}</p>
+              <button className="primary big" onClick={confirm}>
+                {t('guest.imReady')}
+              </button>
+              <p className="fine">
+                {t.plural('guest.secondsLeft', Math.ceil(view.yourTurn.msLeft / 1000))}
+              </p>
+            </>
+          ) : view.boothOnline ? (
             <>
               <p className="big-status">{t('guest.queued')}</p>
               <p className="muted">

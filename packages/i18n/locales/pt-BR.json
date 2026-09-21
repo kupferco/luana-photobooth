@@ -133,7 +133,15 @@
     "save": "Salvar foto",
     "again": "Tirar outra",
     "boothOffline": "A cabine não está ligada",
-    "boothOfflineHint": "Ninguém está com a cabine ligada agora. Peça para alguém da festa ligá-la."
+    "boothOfflineHint": "Ninguém está com a cabine ligada agora. Peça para alguém da festa ligá-la.",
+    "yourTurn": "É a sua vez!",
+    "yourTurnHint": "Fique na frente da cabine e toque quando estiver pronto.",
+    "imReady": "Estou pronto",
+    "secondsLeft": {
+      "one": "{count} segundo restante",
+      "other": "{count} segundos restantes"
+    },
+    "missedTurn": "Você perdeu a vez, mas continua na fila."
   },
   "common": {
     "back": "Voltar",

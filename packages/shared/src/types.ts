@@ -76,6 +76,19 @@ export const SessionViewSchema = z.object({
    * is having their photo taken" and "there is nothing at the other end".
    */
   boothOnline: z.boolean(),
+  /**
+   * Set when it is this guest's turn and the booth is waiting on them.
+   *
+   * They are asked rather than assumed to be there, because a booth counting
+   * down at an empty room while someone fetches a drink wastes everyone's
+   * turn. Missing it costs them one place, not their place.
+   */
+  yourTurn: z
+    .object({
+      msLeft: z.number().int().nonnegative(),
+      missesLeft: z.number().int().nonnegative(),
+    })
+    .nullable(),
   error: z.string().nullable(),
   /** When this session's photos are deleted. Shown to the guest verbatim. */
   retentionUntil: z.string().datetime(),
@@ -88,6 +101,19 @@ export const EventLiveSchema = z.object({
   name: z.string(),
   status: EventStatus,
   boothOnline: z.boolean(),
+  /**
+   * Set when it is this guest's turn and the booth is waiting on them.
+   *
+   * They are asked rather than assumed to be there, because a booth counting
+   * down at an empty room while someone fetches a drink wastes everyone's
+   * turn. Missing it costs them one place, not their place.
+   */
+  yourTurn: z
+    .object({
+      msLeft: z.number().int().nonnegative(),
+      missesLeft: z.number().int().nonnegative(),
+    })
+    .nullable(),
   agentOnline: z.boolean(),
   /** From `lpstat` on the Pi. Null when no agent has ever reported. */
   printer: z
