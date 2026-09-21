@@ -188,9 +188,9 @@ Revised bandwidth: ~540 KB per shot, so **about 2 MB per session** including
 the montage, not the 1 MB estimated earlier. Forty sessions is ~80 MB —
 still comfortably within a phone hotspot.
 
-Caveat: tested in Chrome on iOS, which is WKWebView, so the camera result
-carries over to Safari unchanged. Add to Home Screen and standalone mode are
-Safari-only on iOS, so the kiosk setup still needs confirming there.
+Tested in Chrome on iOS, which is WKWebView, so the result carries over to
+Safari unchanged. Add to Home Screen works from third-party browsers too
+since iOS 16.4, so either browser can run the booth kiosk.
 
 ### The montage is composed server-side
 
