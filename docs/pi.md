@@ -186,7 +186,20 @@ anything, so this sits on top of (1) rather than replacing it.
 
 ### More than one printer at an event
 
-Supported, and the queue is safe for it. A job is claimed in a single
+**Decided:** a booth is paired to a printer, and always prints to that one.
+The photo comes out where you posed, which is the whole point of a second
+station.
+
+No fallback when a printer runs out of paper. It would mean booth A's photos
+coming out at booth B, across the room from whoever is waiting for them --
+confusing in exchange for saving someone a walk. Somebody refills printer A.
+Out of scope; revisit if an unattended kit ever needs it.
+
+Nothing to build yet either: with one printer, affinity is a no-op, and the
+link between a booth device and an agent device is a schema change best made
+when there is a second printer to test it against.
+
+The queue is already safe for it. A job is claimed in a single
 statement with `FOR UPDATE SKIP LOCKED`, so two agents polling the same
 instant cannot take the same job -- the second steps past the locked row to
 the next one, and two printers drain the queue in parallel rather than
