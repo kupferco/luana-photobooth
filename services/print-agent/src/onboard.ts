@@ -213,6 +213,24 @@ async function main(): Promise<void> {
     return
   }
 
+  /*
+   * Being online is enough to stay out of the way.
+   *
+   * The hotspot exists for a Pi that cannot be reached at all. A Pi that is
+   * on a network but not yet paired is perfectly reachable -- over SSH, or
+   * by the app -- so taking the radio to advertise a setup network would
+   * disconnect a working machine to solve a problem it does not have. That
+   * is exactly what would happen on the next reboot of a Pi that is online
+   * and simply has not been paired yet.
+   *
+   * --force is for testing the hotspot deliberately.
+   */
+  if (online && !force) {
+    log('online but not paired — leaving the network alone')
+    log('pair over SSH, or from the app once the agent is running')
+    return
+  }
+
   log(`starting — online: ${online}, paired: ${paired}`)
 
   // Before the hotspot takes the radio.
