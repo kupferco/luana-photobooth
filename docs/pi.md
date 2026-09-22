@@ -144,6 +144,11 @@ in a box has two problems, and only one of them is pairing:
 
 **1. Wifi provisioning, with pairing folded in.** Required.
 
+The hotspot must name which box it is: `PhotoLu-Setup-A7F3`, the suffix
+taken from the Pi's CPU serial and printed on the case. Two Pis in one room
+both broadcasting `PhotoLu-Setup` would be indistinguishable. It is a label,
+not a credential -- the pairing code is still what authorises anything.
+
 A fresh Pi has no credentials, so it is on no network, so it can be reached
 at no address. The way out is the one every headless device uses:
 
@@ -160,6 +165,16 @@ at no address. The way out is the one every headless device uses:
 phones. Days of work, and the thing to build first when this becomes a kit
 someone else sets up.
 
+**Do not rely on the portal popping up by itself.** Phones detect captive
+portals by fetching a known URL and the behaviour varies: iOS opens a
+restricted webview that closes unpredictably and is poor at JavaScript,
+Android may warn about no internet and offer to leave, and some phones drop
+back to mobile data on a network that cannot reach anything. Implement the
+detection endpoints so it appears when it can, keep the page plain HTML with
+no clever scripting, and print **"join PhotoLu-Setup-XXXX, then open
+192.168.4.1"** on the box. The typed address is the path that always works;
+the popup is a convenience.
+
 **2. The Pi prints its own claim code.** A nicety.
 
 It has a printer attached, so on first boot it can print a card with a code
@@ -168,6 +183,18 @@ out of *that* printer is a lovely proof and needs no screen.
 
 But it only solves pairing. The Pi still has to be on a network to talk to
 anything, so this sits on top of (1) rather than replacing it.
+
+### More than one printer at an event
+
+Supported, and the queue is safe for it. A job is claimed in a single
+statement with `FOR UPDATE SKIP LOCKED`, so two agents polling the same
+instant cannot take the same job -- the second steps past the locked row to
+the next one, and two printers drain the queue in parallel rather than
+queueing behind each other.
+
+Before that it was a select followed by an update, which would have printed
+the same photo twice on two printers. Verified with two agents polling
+simultaneously: four jobs, two printers, two each, no duplicates.
 
 ## Still unknown
 

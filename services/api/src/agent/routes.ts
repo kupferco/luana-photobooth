@@ -1,9 +1,9 @@
-import { and, asc, eq, inArray } from 'drizzle-orm'
+import { and, eq, sql } from 'drizzle-orm'
 import { Router } from 'express'
 import { z } from 'zod'
 import { db } from '../db/client'
 import { getSession, touchDevice } from '../db/repo'
-import { printJobs, sessions } from '../db/schema'
+import { printJobs } from '../db/schema'
 import { requireDevice } from '../middleware/device'
 import { createReadUrl } from '../storage/gcs'
 
@@ -61,49 +61,65 @@ agentRoutes.get('/jobs/next', async (req, res, next) => {
       })
     }
 
-    // Anything already sent and not yet resolved blocks the next one, so a
-    // crashed agent does not leave the queue stalled forever -- the job's own
-    // timeout resolves it and the next poll picks up work again.
-    const [row] = await db
-      .select({
-        id: printJobs.id,
-        sessionId: printJobs.sessionId,
-        status: printJobs.status,
-        sessionCode: sessions.code,
-        montagePath: sessions.montagePath,
-      })
-      .from(printJobs)
-      .innerJoin(sessions, eq(sessions.id, printJobs.sessionId))
-      .where(
-        and(
-          eq(printJobs.tenantId, tenantId),
-          eq(sessions.eventId, eventId),
-          inArray(printJobs.status, ['queued']),
-        ),
-      )
-      .orderBy(asc(printJobs.createdAt))
-      .limit(1)
+    /*
+     * Claimed in one statement, not selected and then updated.
+     *
+     * An event can have more than one printer -- a big party with two booths,
+     * or a spare kept running. Two agents polling the same instant would both
+     * see the same queued row and both print it: two sheets for one photo,
+     * and the guest none the wiser about which is theirs.
+     *
+     * FOR UPDATE SKIP LOCKED makes the claim atomic and, better, lets the
+     * second agent step straight past the locked row to the next job rather
+     * than waiting behind it. Two printers then drain the queue in parallel,
+     * which is the point of having two.
+     */
+    const claimed = await db.execute(sql`
+      UPDATE print_jobs
+         SET status = 'sent',
+             device_id = ${req.device!.deviceId},
+             updated_at = now()
+       WHERE id = (
+             SELECT pj.id
+               FROM print_jobs pj
+               JOIN sessions s ON s.id = pj.session_id
+              WHERE pj.tenant_id = ${tenantId}
+                AND s.event_id = ${eventId}
+                AND pj.status = 'queued'
+                AND s.deleted_at IS NULL
+              ORDER BY pj.created_at ASC
+              LIMIT 1
+              FOR UPDATE OF pj SKIP LOCKED
+             )
+   RETURNING id, session_id
+    `)
 
-    if (!row || !row.montagePath) {
+    const job = (claimed as unknown as { id: string; session_id: string }[])[0]
+    if (!job) return res.json({ job: null })
+
+    const session = await getSession(tenantId, job.session_id)
+    if (!session?.montagePath) {
+      // The montage went away between queueing and claiming -- a guest
+      // deleting their photos, most likely. Resolve the job rather than
+      // handing the agent something it cannot print.
+      await db
+        .update(printJobs)
+        .set({
+          status: 'failed',
+          error: 'The photo was no longer available.',
+          updatedAt: new Date(),
+        })
+        .where(eq(printJobs.id, job.id))
       return res.json({ job: null })
     }
 
-    await db
-      .update(printJobs)
-      .set({
-        status: 'sent',
-        deviceId: req.device!.deviceId,
-        updatedAt: new Date(),
-      })
-      .where(eq(printJobs.id, row.id))
-
     return res.json({
       job: {
-        id: row.id,
-        code: row.sessionCode,
+        id: job.id,
+        code: session.code,
         // Signed for the agent to fetch directly. The bytes never pass
         // through this API.
-        url: await createReadUrl(row.montagePath, tenantId),
+        url: await createReadUrl(session.montagePath, tenantId),
       },
     })
   } catch (e) {
