@@ -35,7 +35,7 @@
     "deploy:back:both": "bash infra/deploy.sh back both",
     "pi:setup": "bash infra/pi-setup.sh",
     "pi:deploy": "bash infra/pi-deploy.sh",
-    "pi:logs": "ssh ${PI_HOST:-photobooth@photobooth.local} journalctl -u photobooth-agent -f",
+    "pi:logs": "ssh ${PI_HOST:-photolu@photolu.local} journalctl -u photobooth-agent -f",
     "agent": "npm run dev --workspace @photobooth/print-agent",
     "secrets:push": "bash infra/push-secrets.sh",
     "logs:staging": "gcloud run services logs tail photolu-api-staging --project photolu --region europe-west2",

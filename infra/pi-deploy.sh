@@ -4,7 +4,7 @@
 #
 #   infra/pi-deploy.sh [user@host]
 #
-# Defaults to $PI_HOST, or photobooth@photobooth.local.
+# Defaults to $PI_HOST, or photolu@photolu.local.
 #
 # Sends built output, not source: the Pi runs one bundled file and needs no
 # toolchain, no npm install and no workspace. A deploy is a copy and a
@@ -13,14 +13,19 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-TARGET="${1:-${PI_HOST:-photobooth@photobooth.local}}"
+TARGET="${1:-${PI_HOST:-photolu@photolu.local}}"
 REMOTE_DIR="/opt/photobooth"
 
 echo "==> Building the agent"
 npm run build --workspace @photobooth/print-agent
 
 echo "==> Copying to $TARGET:$REMOTE_DIR"
-ssh "$TARGET" "sudo mkdir -p $REMOTE_DIR && sudo chown \$(whoami) $REMOTE_DIR"
+# No sudo: pi-setup.sh made this directory and gave it to the login user,
+# so a deploy is a plain copy.
+ssh "$TARGET" "mkdir -p $REMOTE_DIR/dist" || {
+  echo "  $REMOTE_DIR is missing or not writable — run infra/pi-setup.sh first." >&2
+  exit 1
+}
 rsync -az --delete "$ROOT/services/print-agent/dist/" "$TARGET:$REMOTE_DIR/dist/"
 
 # The env file is deployed only if the Pi has none: it holds the printer name

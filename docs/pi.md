@@ -53,7 +53,7 @@ npm run pi:logs      # journalctl -f
 and needs no toolchain, no `npm install` and no workspace, so a deploy is a
 copy and a restart. That is what makes iterating on it bearable.
 
-Set `PI_HOST` if it is not `photobooth@photobooth.local`:
+Set `PI_HOST` if the Pi is not `photolu@photolu.local`:
 
 ```bash
 export PI_HOST=pi@192.168.1.50
@@ -64,18 +64,18 @@ export PI_HOST=pi@192.168.1.50
 Nothing here is guessed — but it is written against a Pi I have not seen, so
 expect one or two surprises.
 
-1. **Flash Raspberry Pi OS Lite (64-bit).** Set the hostname to `photobooth`,
+1. **Flash Raspberry Pi OS Lite (64-bit).** Set the hostname to `photolu`,
    enable SSH and enter the wifi details in Imager, so it comes up on the
    network with no screen.
 
-2. **Check you can reach it:** `ssh photobooth@photobooth.local`
+2. **Check you can reach it:** `ssh photolu@photolu.local`
 
 3. **`npm run pi:setup`** — installs Node 22, CUPS and the systemd unit, and
    prints what it found first.
 
 4. **Plug in the SELPHY and confirm CUPS sees it:**
    ```bash
-   ssh photobooth@photobooth.local 'lpstat -p'
+   ssh photolu@photolu.local 'lpstat -p'
    ```
    If it is missing, add it through CUPS: `sudo lpadmin -p Canon_SELPHY_CP1500
    -E -v usb://Canon/CP1500 -m everywhere`. The exact URI comes from
@@ -86,7 +86,7 @@ expect one or two surprises.
 
 6. **Pair it.** Create an event in the app, generate a pairing code, then:
    ```bash
-   ssh photobooth@photobooth.local \
+   ssh photolu@photolu.local \
      'cd /opt/photobooth && node --env-file=.env dist/pair.js ABC123'
    ```
    The token lands in `~/.photobooth/device-token`, outside the deploy
