@@ -70,7 +70,31 @@ StandardError=journal
 WantedBy=multi-user.target
 REMOTE
 
-ssh -t "$TARGET" "sudo systemctl daemon-reload && sudo systemctl enable photobooth-agent"
+# Onboarding runs before the agent and exits at once when there is nothing
+# to do. It needs root: it changes network configuration and binds port 80.
+ssh -t "$TARGET" "cat | sudo tee /etc/systemd/system/photobooth-onboarding.service >/dev/null" <<REMOTE
+[Unit]
+Description=Photo Booth first-run onboarding
+After=NetworkManager.service
+Wants=NetworkManager.service
+Before=photobooth-agent.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=$REMOTE_DIR
+EnvironmentFile=-$REMOTE_DIR/.env
+ExecStart=/usr/bin/node $REMOTE_DIR/dist/onboard.js
+# Exits immediately when already set up, so a restart loop would be pointless.
+Restart=no
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+REMOTE
+
+ssh -t "$TARGET" "sudo systemctl daemon-reload && sudo systemctl enable photobooth-agent photobooth-onboarding"
 
 # Narrow passwordless sudo: restarting this one unit, nothing else. Deploys
 # then never prompt, without handing the login user blanket root.
@@ -83,5 +107,5 @@ echo "Set up. Next:"
 echo "  1. Plug in the printer and check it appears:  ssh $TARGET 'lpstat -p'"
 echo "  2. Deploy the agent:                          infra/pi-deploy.sh $TARGET"
 echo "  3. Edit the settings:                         ssh $TARGET 'nano $REMOTE_DIR/.env'"
-echo "  4. Pair it with an event:"
+echo "  4. Pair it with an event (or let onboarding do it from a phone):"
 echo "       ssh $TARGET 'cd $REMOTE_DIR && node --env-file=.env dist/pair.js <CODE>'"

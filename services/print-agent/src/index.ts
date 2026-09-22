@@ -115,13 +115,21 @@ async function heartbeat(): Promise<void> {
 }
 
 async function main(): Promise<void> {
+  /*
+   * Wait to be paired rather than exiting.
+   *
+   * Onboarding may be running right now, collecting a wifi password and a
+   * pairing code from someone's phone. Exiting would have systemd restart
+   * this every few seconds until they finished -- a busy loop that fills the
+   * log and races the token being written. Waiting means the moment
+   * onboarding saves a token, the agent simply carries on.
+   */
   if (!(await hasToken())) {
-    console.error(
-      'This printer is not paired.\n\n' +
-        '  Get a pairing code from the event in the app, then run:\n' +
-        '    npm run pair -- <CODE>\n',
-    )
-    process.exit(1)
+    log('not paired yet — waiting (onboarding collects the code)')
+    while (!(await hasToken())) {
+      await new Promise((r) => setTimeout(r, 5000))
+    }
+    log('paired')
   }
 
   log(`agent starting — printer ${PRINTER}`)

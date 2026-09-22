@@ -142,7 +142,7 @@ nobody who was actually trying.
 Pairing over SSH is fine for us and impossible for a customer. A kit arriving
 in a box has two problems, and only one of them is pairing:
 
-**1. Wifi provisioning, with pairing folded in.** Required.
+**1. Wifi provisioning, with pairing folded in.** Built -- see below.
 
 The hotspot must name which box it is: `PhotoLu-Setup-A7F3`, the suffix
 taken from the Pi's CPU serial and printed on the case. Two Pis in one room
@@ -161,9 +161,21 @@ at no address. The way out is the one every headless device uses:
 4. The Pi saves both, drops the hotspot, joins the real network, and claims
    the event.
 
-`hostapd` plus `dnsmasq` plus a captive portal, and fiddly to test across
-phones. Days of work, and the thing to build first when this becomes a kit
-someone else sets up.
+Built with NetworkManager rather than `hostapd` and `dnsmasq`. Raspberry Pi
+OS 13 runs NetworkManager, and `nmcli device wifi hotspot` brings up the
+access point and its address server in one command -- which removed most of
+what made this look like days of work.
+
+### Testing it without bricking the Pi
+
+Starting the hotspot takes the radio, so **SSH drops the moment it comes
+up**. That is expected, and it is also the danger: a Pi with no wifi, no
+hotspot and no screen is only recoverable by pulling the card.
+
+So onboarding arms a timer when it starts. If nothing has been configured
+after fifteen minutes -- `ONBOARD_REVERT_MS` to change it -- it tears the
+hotspot down and brings the previous network back up, and the Pi returns to
+being reachable. Testing cannot leave it stranded.
 
 **Do not rely on the portal popping up by itself.** Phones detect captive
 portals by fetching a known URL and the behaviour varies: iOS opens a

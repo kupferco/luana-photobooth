@@ -9,10 +9,11 @@ import { defineConfig } from 'tsup'
  * dependencies external by default, which would have quietly broken that.
  *
  * pair.js is its own entry because pairing is a thing a person runs once, by
- * hand, over SSH.
+ * hand, over SSH. onboard.js is a third because it runs before there is any
+ * network at all, and must not depend on the agent having started.
  */
 export default defineConfig({
-  entry: ['src/index.ts', 'src/pair.ts'],
+  entry: ['src/index.ts', 'src/pair.ts', 'src/onboard.ts'],
   format: ['esm'],
   target: 'node20',
   outDir: 'dist',
