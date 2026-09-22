@@ -118,6 +118,57 @@ kind.
 `--env-file`, so the dependency only added a CommonJS `require()` to an ESM
 bundle. The agent is 16 KB with no `node_modules` at all.
 
+## Pairing, and why there is no list of Pis
+
+A Pi is claimed by **possession**: the owner generates a code in their own
+event, and someone types it into that Pi. Pairing therefore requires standing
+next to the hardware.
+
+It is tempting to invert this -- give every Pi a printed serial, and let the
+owner pick theirs from a list in the app. That is worse. A visible identifier
+is something anyone can read, photograph or guess, and the moment a Pi can be
+claimed by naming it, possession stops being the proof. With several tenants
+running events at once, the current direction is what keeps one venue's
+printer out of another venue's event.
+
+**Do not add a same-network check.** It reads like a second factor and is
+not one: venue wifi is shared by everyone in the building, guest networks
+NAT differently, and a Pi on a 4G hotspot is on a different network from the
+owner standing beside it. It would reject legitimate setups while stopping
+nobody who was actually trying.
+
+### The gap: someone who did not build this
+
+Pairing over SSH is fine for us and impossible for a customer. A kit arriving
+in a box has two problems, and only one of them is pairing:
+
+**1. Wifi provisioning, with pairing folded in.** Required.
+
+A fresh Pi has no credentials, so it is on no network, so it can be reached
+at no address. The way out is the one every headless device uses:
+
+1. No wifi saved, so the Pi starts its own access point -- `PhotoLu-Setup`.
+2. The owner joins it from their phone. A captive portal opens, or they
+   visit `192.168.4.1` -- not `photolu.local`, which needs a network that
+   does not exist yet.
+3. One form: choose your wifi and enter its password, and paste the pairing
+   code from the app.
+4. The Pi saves both, drops the hotspot, joins the real network, and claims
+   the event.
+
+`hostapd` plus `dnsmasq` plus a captive portal, and fiddly to test across
+phones. Days of work, and the thing to build first when this becomes a kit
+someone else sets up.
+
+**2. The Pi prints its own claim code.** A nicety.
+
+It has a printer attached, so on first boot it can print a card with a code
+for the owner to type into the app. Possession of a piece of paper that came
+out of *that* printer is a lovely proof and needs no screen.
+
+But it only solves pairing. The Pi still has to be on a network to talk to
+anything, so this sits on top of (1) rather than replacing it.
+
 ## Still unknown
 
 - **Which Pi, and its OS.** `pi:setup` prints what it finds before changing
