@@ -100,7 +100,14 @@ ssh -t "$TARGET" "sudo systemctl daemon-reload && sudo systemctl enable photoboo
 # then never prompt, without handing the login user blanket root.
 echo
 echo "==> Allowing passwordless restart of the agent, so deploys do not prompt"
-ssh -t "$TARGET" "echo \"\$(whoami) ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart photobooth-agent, /usr/bin/systemctl status photobooth-agent, /usr/bin/systemctl stop photobooth-agent, /usr/bin/systemctl start photobooth-agent\" | sudo tee /etc/sudoers.d/020_photobooth-agent >/dev/null && sudo chmod 440 /etc/sudoers.d/020_photobooth-agent"
+# Both units, and journalctl to read their logs. Scoped to these services --
+# not blanket root -- so deploying and testing never prompt but nothing else
+# is handed over.
+ssh -t "$TARGET" 'cat | sudo tee /etc/sudoers.d/020_photobooth >/dev/null && sudo chmod 440 /etc/sudoers.d/020_photobooth' <<SUDOERS
+$(ssh "$TARGET" whoami) ALL=(ALL) NOPASSWD: /usr/bin/systemctl start photobooth-agent, /usr/bin/systemctl stop photobooth-agent, /usr/bin/systemctl restart photobooth-agent, /usr/bin/systemctl status photobooth-agent
+$(ssh "$TARGET" whoami) ALL=(ALL) NOPASSWD: /usr/bin/systemctl start photobooth-onboarding, /usr/bin/systemctl stop photobooth-onboarding, /usr/bin/systemctl restart photobooth-onboarding, /usr/bin/systemctl status photobooth-onboarding
+$(ssh "$TARGET" whoami) ALL=(ALL) NOPASSWD: /usr/bin/journalctl -u photobooth-agent *, /usr/bin/journalctl -u photobooth-onboarding *
+SUDOERS
 
 echo
 echo "Set up. Next:"
