@@ -260,6 +260,16 @@ function armRevert(previous: string[]): void {
 
     await stopHotspot()
     await rejoin(previous[0]!).catch(() => {})
+
+    /*
+     * And stop, for the same reason as every other ending: the hotspot is
+     * down, so this page is reachable from nowhere, and staying up holds
+     * port 80 and the unit name against the next attempt.
+     *
+     * Missed the first time because this path restores the network and felt
+     * finished, which it is -- it just never said so.
+     */
+    exitSoon('nobody completed setup')
   }, REVERT_AFTER_MS)
 }
 
