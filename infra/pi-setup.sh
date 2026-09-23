@@ -33,6 +33,12 @@ ssh "$TARGET" "
 "
 
 # Everything needing root goes in one script, so sudo asks once and caches.
+#
+# The heredoc below is deliberately unquoted: $REMOTE_USER and $REMOTE_DIR
+# must expand here, on this machine, before the script is copied. The cost is
+# that backticks and $(...) inside it also run here -- a comment mentioning
+# `systemctl status` had the Mac trying to run systemctl and quietly emptied
+# the comment. Backticks in this block are therefore escaped.
 STAGE="$(mktemp)"
 trap 'rm -f "$STAGE"' EXIT
 
@@ -151,12 +157,12 @@ echo
 echo "==> Granting passwordless sudo for these two services only"
 # Scoped to starting and stopping these two units, and nothing else.
 #
-# Reading is deliberately absent. `systemctl status` needs no privilege, and
-# the login user is in `adm`, which already grants the journal -- so granting
+# Reading is deliberately absent. \`systemctl status\` needs no privilege, and
+# the login user is in \`adm\`, which already grants the journal -- so granting
 # them here would widen the rule for no gain.
 #
 # Every entry is an exact command with no wildcard, which is the whole point:
-# sudoers matches the argument list literally, so `systemctl start *` would
+# sudoers matches the argument list literally, so \`systemctl start *\` would
 # hand over the right to start any unit on the box. The cost of being exact
 # is that extra flags do not match and sudo falls through to asking for a
 # password -- so callers pass none. That is why the helpers below read state
