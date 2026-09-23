@@ -61,6 +61,22 @@ export function setupPage(opts: {
       Choose your wifi and paste the pairing code from the app.
     </p>
 
+    <!--
+      This warning is here because of what a phone does, not what this page
+      does. On iOS the page is shown in the Captive Network Assistant, and
+      leaving it -- to fetch a wifi password from a password manager, say --
+      backgrounds it. The network has no internet, so iOS drops it for a
+      known-good one and the sheet closes, losing whatever was typed.
+
+      There is no way to stop that from inside the page, so the only honest
+      thing is to say so before someone loses their work to it.
+    -->
+    <p class="warn">
+      Have your wifi password ready before you start. Leaving this screen —
+      even to open a password manager — disconnects the photo booth network
+      and you will have to begin again.
+    </p>
+
     ${error ? `<p class="error">${escape(error)}</p>` : ''}
 
     <form method="POST" action="/setup">
@@ -112,6 +128,12 @@ function page(body: string): string {
     background: #2a1215; color: #ff8b8b;
     border-left: 3px solid #ef4444;
     padding: 12px 14px; border-radius: 6px; margin: 0 0 16px;
+  }
+  .warn {
+    background: #2a2412; color: #f5c518;
+    border-left: 3px solid #f5c518;
+    padding: 12px 14px; border-radius: 6px; margin: 0 0 20px;
+    font-size: 14px; line-height: 1.45;
   }
   label { display: block; font-size: 13px; color: #9a9a9f;
           text-transform: uppercase; letter-spacing: .6px; margin: 16px 0 6px; }

@@ -158,6 +158,31 @@ keep the rule exact.
 `--env-file`, so the dependency only added a CommonJS `require()` to an ESM
 bundle. The agent is 16 KB with no `node_modules` at all.
 
+## Setting one up from a phone, and its one sharp edge
+
+The captive portal works: join the setup network and the page opens by
+itself, because dnsmasq answers every hostname with the Pi's own address and
+the probe each platform makes therefore lands on us.
+
+What it cannot do is survive being left. On iOS the page is shown in the
+Captive Network Assistant, not Safari, and backgrounding it -- to fetch a
+wifi password from a password manager, for instance -- makes iOS drop a
+network it has already decided has no internet. The sheet closes and the
+form is gone.
+
+Nothing in the page can prevent that, so it warns instead. Two things make
+it a non-issue in practice:
+
+- **Have the wifi password to hand before starting.** Most of the time it is
+  the only thing anyone needs to go and look up.
+- **A laptop does not have this problem.** Joining the setup network on a Mac
+  keeps the page in a normal browser tab, and switching to a password manager
+  does not drop the network. For your own setup this is the easier route; the
+  phone flow matters for handing a Pi to someone else.
+
+Ethernet sidesteps the whole question where a venue offers it -- a Pi 3 has a
+socket, and onboarding is skipped entirely when it is already online.
+
 ## Pairing, and why there is no list of Pis
 
 A Pi is claimed by **possession**: the owner generates a code in their own
