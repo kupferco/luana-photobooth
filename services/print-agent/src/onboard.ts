@@ -34,7 +34,6 @@ import {
  */
 
 const PORT = Number(process.env.ONBOARD_PORT ?? 80)
-const HOTSPOT_PASSWORD = process.env.HOTSPOT_PASSWORD ?? 'photobooth'
 
 /**
  * How long to wait before deciding onboarding has failed and putting the
@@ -88,7 +87,7 @@ async function apply(ssid: string, password: string, code: string): Promise<stri
     log(`join failed: ${joined.reason}`)
     // Back to the hotspot so the owner can try again, rather than leaving a
     // Pi on no network at all.
-    await startHotspot(HOTSPOT_PASSWORD)
+    await startHotspot()
     return joined.reason === 'bad_password'
       ? 'That password was not accepted. Try again.'
       : joined.reason === 'not_found'
@@ -252,7 +251,7 @@ async function main(): Promise<void> {
 
   let ssid: string
   try {
-    ssid = await startHotspot(HOTSPOT_PASSWORD)
+    ssid = await startHotspot()
   } catch (e) {
     log('could not start the setup network:', e instanceof Error ? e.message : e)
     // No reason to make anyone wait out the revert timer for a failure we
@@ -265,7 +264,7 @@ async function main(): Promise<void> {
     return
   }
 
-  log(`hotspot up: ${ssid} (password: ${HOTSPOT_PASSWORD})`)
+  log(`hotspot up: ${ssid} (open network — see startHotspot for why)`)
   log(`setup page at http://${HOTSPOT_ADDRESS}/`)
 
   createServer((req, res) => {

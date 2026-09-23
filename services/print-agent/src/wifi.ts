@@ -144,25 +144,35 @@ export async function scan(): Promise<Network[]> {
 /**
  * Brings up the setup access point. Takes the radio, so scanning stops.
  *
- * Built field by field rather than with `nmcli device wifi hotspot`, which
- * would be one line. The convenience command gives no way to turn PMF
- * (802.11w) off, and NetworkManager enables it by default -- it configures
- * `key_mgmt` as `WPA-PSK WPA-PSK-SHA256`. The BCM43430 in a Raspberry Pi 3
- * does not support PMF in AP mode, so the driver rejects the key setup:
+ * The network is **open**. That is a deliberate decision, not an oversight,
+ * and it was forced by the hardware.
  *
- *   wpa_supplicant: nl80211: kernel reports: key setting validation failed
- *   wpa_supplicant: Failed to initialize AP interface
+ * NetworkManager always configures an AP's key_mgmt as
+ * "WPA-PSK WPA-PSK-SHA256". The SHA256 variant is PMF (802.11w), and the
+ * BCM43430 in a Raspberry Pi 3 cannot do it in AP mode. Setting
+ * `802-11-wireless-security.pmf disable` does not remove it -- verified on
+ * the hardware, the flag is accepted and the AKM is offered anyway. The
+ * result is an access point that beacons perfectly and that nothing can
+ * associate with: the 4-way handshake fails, and every client reports that
+ * as a wrong password. macOS times out, iOS says "incorrect password", and
+ * neither says anything about ciphers.
  *
- * NetworkManager then waits and reports it as "Connection activation failed:
- * 802.1X supplicant took too long to authenticate", which names neither PMF
- * nor the driver and sends you looking at authentication, or at whether the
- * radio was busy. It is neither.
+ * Measured: with WPA2, zero associations across repeated attempts from two
+ * clients. Open, on the same hardware and channel, a Mac associated, took a
+ * DHCP lease and routed to the setup page immediately.
  *
- * Measured on the hardware: with PMF on, two attempts failed after 25
- * seconds each. With it off and nothing else changed, the AP was up in two
- * seconds and dnsmasq was serving DHCP a second later.
+ * The security cost is real and worth naming: the venue's wifi password is
+ * typed into a page served over plain HTTP on an open network, so anyone in
+ * range while setup is happening could read it. Three things bound that:
+ * the network exists only while the Pi is unconfigured, it is taken down the
+ * moment onboarding completes, and pairing still requires a single-use code
+ * from the owner's own event -- being on this network grants nothing.
+ *
+ * Note also that the alternative was never much better: the WPA2 password
+ * was a hard-coded constant that appears in this repository and in the setup
+ * instructions, so it encrypted the link against precisely nobody.
  */
-export async function startHotspot(password: string): Promise<string> {
+export async function startHotspot(): Promise<string> {
   const ssid = await hotspotSsid()
 
   // A half-made profile from a failed attempt would collide with this one.
@@ -178,18 +188,11 @@ export async function startHotspot(password: string): Promise<string> {
     'ssid', ssid,
     '802-11-wireless.mode', 'ap',
     // 2.4GHz only on this chip; leaving the band to chance invites a channel
-    // it cannot use.
+    // it cannot use, which is what made the first attempts fail to start.
     '802-11-wireless.band', 'bg',
     '802-11-wireless.channel', '6',
     'ipv4.method', 'shared',
     'ipv4.addresses', `${HOTSPOT_ADDRESS}/24`,
-    '802-11-wireless-security.key-mgmt', 'wpa-psk',
-    '802-11-wireless-security.proto', 'rsn',
-    '802-11-wireless-security.pairwise', 'ccmp',
-    '802-11-wireless-security.group', 'ccmp',
-    // The line this whole comment is about.
-    '802-11-wireless-security.pmf', 'disable',
-    '802-11-wireless-security.psk', password,
   ])
 
   await run('nmcli', ['connection', 'up', HOTSPOT_CONNECTION])

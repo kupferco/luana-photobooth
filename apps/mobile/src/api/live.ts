@@ -73,6 +73,60 @@ async function send(path: string, init: RequestInit): Promise<Response> {
   }
 }
 
+/**
+ * One refresh at a time, shared by everyone who needs it.
+ *
+ * Refresh tokens rotate, and the server treats a token spent twice as stolen:
+ * it revokes the whole family and signs the user out. That is the right call
+ * against a thief, and it was firing constantly against this client, because
+ * three separate places refreshed independently with no coordination.
+ *
+ * On every cold start `me()` traded the stored token for a new pair while the
+ * screens' first requests 401'd and traded the *same* stored token again. One
+ * won; the other replayed a spent token; the server concluded correctly that
+ * it had been stolen and revoked everything. Which is why staying signed in
+ * never worked, no matter how long the token lasted -- the sixty-day window
+ * was never the problem.
+ *
+ * Holding one in-flight promise means concurrent callers all await the same
+ * rotation and all see its result. Cleared when it settles, so the next
+ * expiry starts a fresh one.
+ */
+let refreshing: Promise<boolean> | null = null
+
+function refreshOnce(): Promise<boolean> {
+  refreshing ??= (async () => {
+    try {
+      if (!refreshToken) return false
+
+      const response = await send('/auth/refresh', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ refreshToken }),
+      })
+
+      if (!response.ok) {
+        // Only an explicit rejection clears the stored token. A transport
+        // failure throws out of send() instead, so bad wifi cannot sign
+        // anyone out.
+        await setTokens(null, null)
+        return false
+      }
+
+      const tokens = (await response.json()) as {
+        accessToken: string
+        refreshToken: string
+      }
+      await setTokens(tokens.accessToken, tokens.refreshToken)
+      return true
+    } finally {
+      refreshing = null
+    }
+  })()
+
+  return refreshing
+}
+
 async function request<T>(
   method: string,
   path: string,
@@ -91,22 +145,7 @@ async function request<T>(
   // One transparent refresh, then give up. Looping would turn a revoked
   // session into an infinite retry against the server.
   if (response.status === 401 && retryOn401 && refreshToken) {
-    const refreshed = await send('/auth/refresh', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ refreshToken }),
-    })
-    if (refreshed.ok) {
-      const tokens = (await refreshed.json()) as {
-        accessToken: string
-        refreshToken: string
-      }
-      await setTokens(tokens.accessToken, tokens.refreshToken)
-      return request<T>(method, path, body, false)
-    }
-    // Refusing to refresh is terminal: the token is expired, revoked, or was
-    // replayed. Clearing it stops every later request retrying a dead session.
-    await setTokens(null, null)
+    if (await refreshOnce()) return request<T>(method, path, body, false)
   }
 
   if (response.status === 204) return undefined as T
@@ -138,20 +177,7 @@ async function requestBlob(path: string, retryOn401 = true): Promise<Blob> {
   })
 
   if (response.status === 401 && retryOn401 && refreshToken) {
-    const refreshed = await send('/auth/refresh', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ refreshToken }),
-    })
-    if (refreshed.ok) {
-      const tokens = (await refreshed.json()) as {
-        accessToken: string
-        refreshToken: string
-      }
-      await setTokens(tokens.accessToken, tokens.refreshToken)
-      return requestBlob(path, false)
-    }
-    await setTokens(null, null)
+    if (await refreshOnce()) return requestBlob(path, false)
   }
 
   if (!response.ok) {
@@ -188,27 +214,11 @@ export const liveApi: PhotoboothApi = {
     await restore()
 
     // After a cold start there is a stored refresh token but no access token.
-    // Trading it for one here is what makes the session survive a restart.
+    // Trading it for one here is what makes the session survive a restart --
+    // through refreshOnce, so a screen's first request racing this one does
+    // not spend the same token twice and get the whole family revoked.
     if (!accessToken && refreshToken) {
-      const refreshed = await send('/auth/refresh', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ refreshToken }),
-      })
-
-      if (!refreshed.ok) {
-        // Only an explicit rejection clears the stored token. A NetworkError
-        // never reaches here -- send() throws it, and the caller decides --
-        // so an unreachable server can no longer sign someone out.
-        await setTokens(null, null)
-        return null
-      }
-
-      const tokens = (await refreshed.json()) as {
-        accessToken: string
-        refreshToken: string
-      }
-      await setTokens(tokens.accessToken, tokens.refreshToken)
+      if (!(await refreshOnce())) return null
     }
 
     if (!accessToken) return null
