@@ -59,6 +59,23 @@ sudo mkdir -p "$REMOTE_DIR"
 sudo chown "$REMOTE_USER" "$REMOTE_DIR"
 
 echo
+echo "==> Creating the token directory"
+# Outside \$REMOTE_DIR so rsync --delete cannot unpair the Pi, and owned by
+# the login user because onboarding writes it as root but the agent reads it
+# as this user. Both need to agree on one path, and on who owns it.
+sudo install -d -o "$REMOTE_USER" -g "$REMOTE_USER" -m 700 /var/lib/photobooth
+
+# Anything paired before this used ~/.photobooth, which for a root-run
+# onboarding meant /root. Move it rather than making someone pair again.
+for old in /root/.photobooth/device-token "\$HOME/.photobooth/device-token"; do
+  if [ -f "\$old" ] && [ ! -f /var/lib/photobooth/device-token ]; then
+    sudo mv "\$old" /var/lib/photobooth/device-token
+    sudo chown "$REMOTE_USER:$REMOTE_USER" /var/lib/photobooth/device-token
+    echo "    migrated an existing pairing from \$old"
+  fi
+done
+
+echo
 echo "==> Installing the services"
 
 sudo tee /etc/systemd/system/photobooth-agent.service >/dev/null <<'UNIT'

@@ -1,5 +1,4 @@
-import { readFile, writeFile, mkdir } from 'node:fs/promises'
-import { homedir } from 'node:os'
+import { chown, mkdir, readFile, stat, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import type { PrinterStatus } from './printer'
 
@@ -29,10 +28,21 @@ const log = (...args: unknown[]) =>
   console.log(new Date().toISOString().slice(11, 19), '[client]', ...args)
 
 /**
- * Kept outside the checked-out code, so redeploying by rsync cannot wipe the
- * pairing and leave the Pi needing a person and a screen.
+ * Where the device token lives.
+ *
+ * An absolute path, deliberately not one relative to the home directory.
+ * Onboarding has to run as root -- it reconfigures the network and binds
+ * port 80 -- while the agent runs as the login user, so `homedir()` meant
+ * `/root/.photobooth` for the writer and `/home/photolu/.photobooth` for the
+ * reader. Pairing then succeeded in every visible way, the dashboard showed
+ * the printer as connected, and the agent sat saying "not paired yet" with
+ * the token forty lines away in another user's home, mode 0600.
+ *
+ * Still outside the deploy directory, so `rsync --delete` cannot unpair the
+ * Pi.
  */
-const TOKEN_PATH = join(homedir(), '.photobooth', 'device-token')
+const TOKEN_PATH =
+  process.env.PHOTOBOOTH_TOKEN_PATH ?? '/var/lib/photobooth/device-token'
 
 let cached: string | null = null
 
@@ -51,9 +61,33 @@ async function token(): Promise<string | null> {
 }
 
 export async function saveToken(value: string): Promise<void> {
-  await mkdir(dirname(TOKEN_PATH), { recursive: true })
-  // Readable only by this user: it is the credential for the whole event.
+  const dir = dirname(TOKEN_PATH)
+  await mkdir(dir, { recursive: true })
+  // Readable only by its owner: it is the credential for the whole event.
   await writeFile(TOKEN_PATH, value, { mode: 0o600 })
+
+  /*
+   * Onboarding writes this as root; the agent reads it as the login user. A
+   * root-owned 0600 file would be as useless to the agent as no file at all,
+   * so hand it to whoever owns the directory -- which pi-setup.sh creates as
+   * the agent's user. Deriving the owner from the directory keeps this
+   * working without another setting to get wrong.
+   */
+  if (process.getuid?.() === 0) {
+    try {
+      const owner = await stat(dir)
+      if (owner.uid !== 0) {
+        await chown(TOKEN_PATH, owner.uid, owner.gid)
+        log(`token written to ${TOKEN_PATH} for uid ${owner.uid}`)
+      } else {
+        log(`WARNING: ${dir} is owned by root, so the agent cannot read the`)
+        log('token. Run infra/pi-setup.sh to create it with the right owner.')
+      }
+    } catch (e) {
+      log('could not hand the token to the agent user:', e)
+    }
+  }
+
   cached = value
 }
 
