@@ -61,9 +61,25 @@ export async function hotspotSsid(): Promise<string> {
   return `PhotoLu-Setup-${await deviceSuffix()}`
 }
 
-/** True when the Pi is actually on a network, not merely configured for one. */
+/**
+ * True when the Pi is actually on a network, not merely configured for one.
+ *
+ * Hosting the setup access point does not count, however cheerfully
+ * NetworkManager reports "connected (local)" while it does. That distinction
+ * is not academic: this function guards the self-repair timer, so counting
+ * the hotspot as "online" meant the timer fired, saw "online", and returned
+ * without doing anything -- every time. A Pi that failed to be onboarded sat
+ * advertising a setup network indefinitely, with no SSH, no screen and no way
+ * back in short of pulling the power. Which is exactly what happened.
+ */
 export async function isOnline(): Promise<boolean> {
   try {
+    const active = await run('nmcli', ['-t', '-f', 'NAME', 'connection', 'show', '--active'])
+    const hosting = active.stdout
+      .split('\n')
+      .some((name) => name.trim() === HOTSPOT_CONNECTION)
+    if (hosting) return false
+
     const { stdout } = await run('nmcli', ['-t', '-f', 'STATE', 'general'])
     return stdout.trim().startsWith('connected')
   } catch {
