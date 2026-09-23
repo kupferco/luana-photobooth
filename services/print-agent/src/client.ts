@@ -12,6 +12,18 @@ import type { PrinterStatus } from './printer'
 
 const BASE = process.env.PHOTOBOOTH_API_URL ?? 'http://localhost:8080'
 
+/**
+ * Whether the API URL was configured or fell back to the default.
+ *
+ * Worth surfacing, because the fallback is a localhost address and the
+ * failure it produces is ECONNREFUSED against a public HTTPS endpoint --
+ * which reads as a network fault and is nothing of the kind. Running the
+ * agent without its EnvironmentFile cost an hour of chasing DNS and wifi
+ * timing that were never wrong.
+ */
+export const apiBase = BASE
+export const apiBaseIsDefault = !process.env.PHOTOBOOTH_API_URL
+
 /** Matches the other modules' format, so one journal reads as one story. */
 const log = (...args: unknown[]) =>
   console.log(new Date().toISOString().slice(11, 19), '[client]', ...args)

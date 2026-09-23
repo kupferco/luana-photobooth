@@ -1,5 +1,5 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
-import { hasToken, pair, saveToken, waitForApi } from './client'
+import { apiBase, apiBaseIsDefault, hasToken, pair, saveToken, waitForApi } from './client'
 import { setupPage } from './setup-page'
 import {
   currentSsid,
@@ -269,6 +269,12 @@ async function main(): Promise<void> {
   }
 
   log(`starting — online: ${online}, paired: ${paired}`)
+  log(`api: ${apiBase}`)
+  if (apiBaseIsDefault) {
+    log('WARNING: PHOTOBOOTH_API_URL is not set, so this is the localhost')
+    log('default and pairing cannot work. Run this with the service, or pass')
+    log('--property=EnvironmentFile=/opt/photobooth/.env to systemd-run.')
+  }
 
   // Before the hotspot takes the radio.
   const previous = await savedNetworks()
