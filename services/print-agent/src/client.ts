@@ -12,6 +12,10 @@ import type { PrinterStatus } from './printer'
 
 const BASE = process.env.PHOTOBOOTH_API_URL ?? 'http://localhost:8080'
 
+/** Matches the other modules' format, so one journal reads as one story. */
+const log = (...args: unknown[]) =>
+  console.log(new Date().toISOString().slice(11, 19), '[client]', ...args)
+
 /**
  * Kept outside the checked-out code, so redeploying by rsync cannot wipe the
  * pairing and leave the Pi needing a person and a screen.
@@ -104,21 +108,38 @@ export const api = {
 export async function waitForApi(timeoutMs = 45_000): Promise<boolean> {
   const deadline = Date.now() + timeoutMs
   let attempt = 0
+  let lastError = 'none'
 
   while (Date.now() < deadline) {
     try {
       const response = await fetch(`${BASE}/health`, {
         signal: AbortSignal.timeout(5_000),
       })
-      if (response.ok) return true
-    } catch {
-      // Not up yet. DNS failures land here too, which is the common case.
+      if (response.ok) {
+        if (attempt > 0) log(`API reachable after ${attempt} attempt(s)`)
+        return true
+      }
+      lastError = `HTTP ${response.status}`
+    } catch (e) {
+      // Why it failed matters: a DNS error after a network change is a very
+      // different problem from a refused connection, and swallowing the
+      // reason cost an afternoon of guessing.
+      const err = e as { name?: string; message?: string; cause?: { code?: string } }
+      lastError = `${err.name ?? 'Error'}: ${err.message ?? ''} ${err.cause?.code ?? ''}`.trim()
     }
+
+    // Logged on the first failure and then sparingly, so a slow network does
+    // not bury the journal while a persistent fault is still visible.
+    if (attempt === 0 || attempt % 4 === 0) {
+      log(`API not reachable yet (attempt ${attempt + 1}): ${lastError}`)
+    }
+
     // Quick at first -- it is usually ready within a couple of seconds --
     // then backing off rather than hammering.
     await new Promise((r) => setTimeout(r, Math.min(1_000 * 2 ** attempt++, 5_000)))
   }
 
+  log(`giving up on the API after ${Math.round(timeoutMs / 1000)}s; last error: ${lastError}`)
   return false
 }
 
