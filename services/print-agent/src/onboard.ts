@@ -3,9 +3,11 @@ import { hasToken, pair, saveToken } from './client'
 import { setupPage } from './setup-page'
 import {
   currentSsid,
+  HOTSPOT_ADDRESS,
   hotspotSsid,
   isOnline,
   join,
+  rejoin,
   savedNetworks,
   scan,
   startHotspot,
@@ -131,7 +133,7 @@ async function handler(req: IncomingMessage, res: ServerResponse): Promise<void>
     url.pathname === '/connecttest.txt' ||
     url.pathname.startsWith('/redirect')
   ) {
-    res.writeHead(302, { location: `http://${req.headers.host ?? '192.168.4.1'}/` })
+    res.writeHead(302, { location: `http://${req.headers.host ?? HOTSPOT_ADDRESS}/` })
     res.end()
     return
   }
@@ -196,9 +198,7 @@ function armRevert(previous: string[]): void {
     log(`restoring ${previous[0]} so this Pi stays reachable`)
 
     await stopHotspot()
-    const { execFile } = await import('node:child_process')
-    const { promisify } = await import('node:util')
-    await promisify(execFile)('nmcli', ['connection', 'up', previous[0]!]).catch(() => {})
+    await rejoin(previous[0]!).catch(() => {})
   }, REVERT_AFTER_MS)
 }
 
@@ -239,11 +239,34 @@ async function main(): Promise<void> {
   networks = await scan()
   log(`found ${networks.length}`)
 
-  const ssid = await startHotspot(HOTSPOT_PASSWORD)
-  log(`hotspot up: ${ssid} (password: ${HOTSPOT_PASSWORD})`)
-  log('setup page at http://192.168.4.1/')
-
+  /*
+   * Armed before the attempt, not after it.
+   *
+   * The first run on real hardware failed inside startHotspot, and because
+   * the timer was armed afterwards there was nothing scheduled to put the
+   * wifi back. It survived only because the AP never managed to take the
+   * radio; failing a moment later would have left the Pi with no network,
+   * no SSH and no screen.
+   */
   armRevert(previous)
+
+  let ssid: string
+  try {
+    ssid = await startHotspot(HOTSPOT_PASSWORD)
+  } catch (e) {
+    log('could not start the setup network:', e instanceof Error ? e.message : e)
+    // No reason to make anyone wait out the revert timer for a failure we
+    // already know about.
+    await stopHotspot()
+    if (previous[0]) {
+      log(`putting ${previous[0]} back`)
+      await rejoin(previous[0]).catch(() => {})
+    }
+    return
+  }
+
+  log(`hotspot up: ${ssid} (password: ${HOTSPOT_PASSWORD})`)
+  log(`setup page at http://${HOTSPOT_ADDRESS}/`)
 
   createServer((req, res) => {
     handler(req, res).catch((e) => {

@@ -23,6 +23,16 @@ const IFACE = process.env.WIFI_INTERFACE ?? 'wlan0'
 /** The connection NetworkManager creates for our hotspot. */
 export const HOTSPOT_CONNECTION = 'photolu-setup'
 
+/**
+ * The address the setup page is served on.
+ *
+ * Pinned rather than left to NetworkManager, which picks 10.42.0.1 for a
+ * shared connection. The page, the printed instructions and the captive
+ * redirect all say 192.168.4.1, and an address that is only true by accident
+ * is one that stops being true.
+ */
+export const HOTSPOT_ADDRESS = '192.168.4.1'
+
 export interface Network {
   ssid: string
   signal: number
@@ -115,34 +125,65 @@ export async function scan(): Promise<Network[]> {
   return [...seen.values()].sort((a, b) => b.signal - a.signal)
 }
 
-/** Brings up the setup access point. Takes the radio, so scanning stops. */
+/**
+ * Brings up the setup access point. Takes the radio, so scanning stops.
+ *
+ * Built field by field rather than with `nmcli device wifi hotspot`, which
+ * would be one line. The convenience command gives no way to turn PMF
+ * (802.11w) off, and NetworkManager enables it by default -- it configures
+ * `key_mgmt` as `WPA-PSK WPA-PSK-SHA256`. The BCM43430 in a Raspberry Pi 3
+ * does not support PMF in AP mode, so the driver rejects the key setup:
+ *
+ *   wpa_supplicant: nl80211: kernel reports: key setting validation failed
+ *   wpa_supplicant: Failed to initialize AP interface
+ *
+ * NetworkManager then waits and reports it as "Connection activation failed:
+ * 802.1X supplicant took too long to authenticate", which names neither PMF
+ * nor the driver and sends you looking at authentication, or at whether the
+ * radio was busy. It is neither.
+ *
+ * Measured on the hardware: with PMF on, two attempts failed after 25
+ * seconds each. With it off and nothing else changed, the AP was up in two
+ * seconds and dnsmasq was serving DHCP a second later.
+ */
 export async function startHotspot(password: string): Promise<string> {
   const ssid = await hotspotSsid()
 
+  // A half-made profile from a failed attempt would collide with this one.
+  await run('nmcli', ['connection', 'delete', HOTSPOT_CONNECTION]).catch(() => {})
+
   await run('nmcli', [
-    'device',
-    'wifi',
-    'hotspot',
-    'ifname',
-    IFACE,
-    'con-name',
-    HOTSPOT_CONNECTION,
-    'ssid',
-    ssid,
-    'password',
-    password,
+    'connection', 'add',
+    'type', 'wifi',
+    'ifname', IFACE,
+    'con-name', HOTSPOT_CONNECTION,
+    // Never let the setup network win at boot over a real one.
+    'autoconnect', 'no',
+    'ssid', ssid,
+    '802-11-wireless.mode', 'ap',
+    // 2.4GHz only on this chip; leaving the band to chance invites a channel
+    // it cannot use.
+    '802-11-wireless.band', 'bg',
+    '802-11-wireless.channel', '6',
+    'ipv4.method', 'shared',
+    'ipv4.addresses', `${HOTSPOT_ADDRESS}/24`,
+    '802-11-wireless-security.key-mgmt', 'wpa-psk',
+    '802-11-wireless-security.proto', 'rsn',
+    '802-11-wireless-security.pairwise', 'ccmp',
+    '802-11-wireless-security.group', 'ccmp',
+    // The line this whole comment is about.
+    '802-11-wireless-security.pmf', 'disable',
+    '802-11-wireless-security.psk', password,
   ])
 
-  // Never let the setup network win at boot over a real one.
-  await run('nmcli', [
-    'connection',
-    'modify',
-    HOTSPOT_CONNECTION,
-    'connection.autoconnect',
-    'no',
-  ]).catch(() => {})
+  await run('nmcli', ['connection', 'up', HOTSPOT_CONNECTION])
 
   return ssid
+}
+
+/** Brings a previously saved network back up, by profile name. */
+export async function rejoin(connectionName: string): Promise<void> {
+  await run('nmcli', ['connection', 'up', connectionName])
 }
 
 export async function stopHotspot(): Promise<void> {
