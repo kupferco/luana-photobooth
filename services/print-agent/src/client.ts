@@ -88,6 +88,40 @@ export const api = {
 }
 
 /** Pairing is unauthenticated: the short code is the credential. */
+/**
+ * Waits until the API is actually reachable.
+ *
+ * `nmcli device wifi connect` returns as soon as the radio has associated,
+ * which is well before the network is usable: the DHCP lease, the routes and
+ * above all /etc/resolv.conf land a moment later. Pairing immediately after
+ * joining therefore failed with a bare "fetch failed", zero seconds after
+ * the join reported success -- on a Pi that was, a second later, perfectly
+ * online.
+ *
+ * Polling a cheap endpoint is the honest test: not "does NetworkManager say
+ * connected" but "can this box reach the thing it needs to talk to".
+ */
+export async function waitForApi(timeoutMs = 45_000): Promise<boolean> {
+  const deadline = Date.now() + timeoutMs
+  let attempt = 0
+
+  while (Date.now() < deadline) {
+    try {
+      const response = await fetch(`${BASE}/health`, {
+        signal: AbortSignal.timeout(5_000),
+      })
+      if (response.ok) return true
+    } catch {
+      // Not up yet. DNS failures land here too, which is the common case.
+    }
+    // Quick at first -- it is usually ready within a couple of seconds --
+    // then backing off rather than hammering.
+    await new Promise((r) => setTimeout(r, Math.min(1_000 * 2 ** attempt++, 5_000)))
+  }
+
+  return false
+}
+
 export async function pair(code: string): Promise<{ token: string; eventId: string | null }> {
   const response = await fetch(`${BASE}/devices/pair`, {
     method: 'POST',

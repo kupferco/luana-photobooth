@@ -1,5 +1,5 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
-import { hasToken, pair, saveToken } from './client'
+import { hasToken, pair, saveToken, waitForApi } from './client'
 import { setupPage } from './setup-page'
 import {
   currentSsid,
@@ -95,7 +95,22 @@ async function apply(ssid: string, password: string, code: string): Promise<stri
         : 'Could not join that network. Try again.'
   }
 
-  log('joined; pairing')
+  log('joined; waiting for the network to be usable')
+
+  /*
+   * The join is not the same thing as being online. Pairing straight after
+   * it failed with "fetch failed" in the same second, because DNS had not
+   * caught up with the radio yet.
+   */
+  if (!(await waitForApi())) {
+    log('joined the network but the API is not reachable')
+    return (
+      `Connected to ${ssid}, but the photo booth service could not be reached. ` +
+      'Check the network has internet, then try the code again.'
+    )
+  }
+
+  log('pairing')
 
   try {
     const { token } = await pair(code.trim())

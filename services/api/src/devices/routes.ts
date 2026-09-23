@@ -3,6 +3,7 @@ import { Router } from 'express'
 import { z } from 'zod'
 import {
   claimDeviceByPairingCode,
+  clearUnclaimedPairings,
   completePairing,
   createDevice,
   getEvent,
@@ -116,6 +117,15 @@ deviceRoutes.post('/pairing-code', async (req, res, next) => {
       if (!event) {
         return res.status(404).json({ error: { code: 'not_found', message: 'Not found' } })
       }
+    }
+
+    /*
+     * One outstanding code per event. Asking for another replaces the last,
+     * rather than leaving a dead row behind that says "waiting for the
+     * pairing code" and never stops saying it.
+     */
+    if (body.data.eventId) {
+      await clearUnclaimedPairings(body.data.tenantId, body.data.eventId)
     }
 
     const code = pairingCode()

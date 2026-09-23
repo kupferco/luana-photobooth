@@ -263,6 +263,35 @@ export async function touchDevice(
 }
 
 /**
+ * Clears out pairing codes for an event that were never spent.
+ *
+ * Each request for a code used to add a row, so asking twice left a dead
+ * "waiting for the pairing code" entry behind for ever. Four clicks, four
+ * ghosts, none of them a printer. Since a code is single use and short
+ * lived, an unspent one has no value worth keeping.
+ *
+ * Only ever removes devices that were never claimed -- a paired printer has
+ * a token hash and is left alone.
+ */
+export async function clearUnclaimedPairings(
+  tenantId: string,
+  eventId: string,
+): Promise<number> {
+  const removed = await db
+    .delete(devices)
+    .where(
+      and(
+        eq(devices.tenantId, tenantId),
+        eq(devices.eventId, eventId),
+        eq(devices.kind, 'agent'),
+        isNull(devices.tokenHash),
+      ),
+    )
+    .returning()
+  return removed.length
+}
+
+/**
  * Revokes a device by deleting it.
  *
  * This is how a booth is stopped and how a printer is unpaired. There is no
