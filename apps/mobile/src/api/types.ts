@@ -97,6 +97,17 @@ export interface PhotoboothApi {
    */
   downloadAll(tenantId: string, eventId: string): Promise<Blob>
 
+  /**
+   * A short-lived code for a printer to claim itself with.
+   *
+   * The Pi has no human to sign in, so the code is the credential: fifteen
+   * minutes, single use, burned when spent.
+   */
+  createPairingCode(
+    tenantId: string,
+    eventId: string,
+  ): Promise<{ code: string; expiresAt: string }>
+
   /** Booths and printers attached to this event. */
   listDevices(tenantId: string, eventId: string): Promise<Device[]>
 

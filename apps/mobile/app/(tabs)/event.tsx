@@ -49,6 +49,8 @@ export default function EventTab() {
   /** Which device is mid-confirmation, and which is being removed. */
   const [confirming, setConfirming] = useState<string | null>(null)
   const [removing, setRemoving] = useState<string | null>(null)
+  const [pairing, setPairing] = useState<{ code: string; expiresAt: string } | null>(null)
+  const [pairingBusy, setPairingBusy] = useState(false)
   const [downloading, setDownloading] = useState(false)
   const [downloadNote, setDownloadNote] = useState<string | null>(null)
 
@@ -244,6 +246,44 @@ export default function EventTab() {
           {devices.some((d) => d.kind === 'booth') ? (
             <Body muted>{t('dashboard.devicesHint')}</Body>
           ) : null}
+
+          {/* The code is what a headless Pi authenticates with, so there has
+              to be a way to mint one without an SSH session. */}
+          {pairing ? (
+            <View style={{ gap: 4, paddingTop: 8 }}>
+              <Label>{t('dashboard.pairingCode')}</Label>
+              <Text
+                selectable
+                style={{
+                  color: theme.color.text.primary,
+                  fontSize: theme.fontSize['3xl'],
+                  fontWeight: '700',
+                  letterSpacing: 6,
+                  textAlign: 'center',
+                }}
+              >
+                {pairing.code}
+              </Text>
+              <Body muted>{t('dashboard.pairingCodeHint')}</Body>
+            </View>
+          ) : null}
+
+          <Button
+            label={t('dashboard.connectPrinter')}
+            variant="secondary"
+            busy={pairingBusy}
+            onPress={async () => {
+              setPairingBusy(true)
+              try {
+                setPairing(await api.createPairingCode(tenantId!, event.id))
+                await load()
+              } catch (err) {
+                setLoadError(err instanceof Error ? err.message : String(err))
+              } finally {
+                setPairingBusy(false)
+              }
+            }}
+          />
         </Card>
       ) : null}
 

@@ -90,7 +90,11 @@
     "downloading": "Preparing your photos…",
     "downloadOnWeb": "Downloading everything works in the browser. Open this event on a computer.",
     "downloadEmpty": "There are no photos to download yet.",
-    "downloadFailed": "The download did not finish. Try again."
+    "downloadFailed": "The download did not finish. Try again.",
+    "connectPrinter": "Connect a printer",
+    "pairingCode": "Pairing code",
+    "pairingCodeHint": "Enter this on the printer setup page. It lasts 15 minutes and works once.",
+    "pairingCodeExpired": "That code has expired. Make a new one."
   },
   "retention": {
     "guest": "Your photos are saved until {date}.",

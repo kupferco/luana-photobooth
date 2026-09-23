@@ -266,6 +266,14 @@ export const liveApi: PhotoboothApi = {
     })
   },
 
+  async createPairingCode(tenantId, eventId) {
+    return request<{ code: string; expiresAt: string }>(
+      'POST',
+      '/devices/pairing-code',
+      { tenantId, eventId, label: 'Printer' },
+    )
+  },
+
   async listDevices(tenantId, eventId) {
     const result = await request<{ devices: Device[] }>(
       'GET',

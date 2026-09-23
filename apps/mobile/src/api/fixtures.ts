@@ -249,6 +249,14 @@ export const fixtureApi: PhotoboothApi = {
     return event
   },
 
+  async createPairingCode() {
+    await delay()
+    return {
+      code: 'H4T2QP',
+      expiresAt: new Date(Date.now() + 15 * 60_000).toISOString(),
+    }
+  },
+
   async downloadAll() {
     await delay()
     // A real zip would mean shipping a fixture archive; the button's states
