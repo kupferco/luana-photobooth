@@ -68,6 +68,10 @@ export default function EventTab() {
       setDevices((previous) =>
         JSON.stringify(previous) === JSON.stringify(connected) ? previous : connected,
       )
+
+      // A code that has been spent, replaced or expired is worse than
+      // useless on screen: it invites someone to type it and be told no.
+      if (!connected.some((d) => d.pairingPending)) setPairing(null)
       setSessions((previous) =>
         previous && JSON.stringify(previous) === JSON.stringify(list)
           ? previous
@@ -171,9 +175,15 @@ export default function EventTab() {
             okText={t('dashboard.connected')}
             badText={t('dashboard.notConnected')}
           />
+          {/* Ready means ready to print, which 'unknown' is not: a Pi that is
+              online with no printer attached was reporting "Ready" and would
+              have been believed right up until someone pressed Print. */}
           <Health
             label={t('dashboard.printer')}
-            ok={stats.agentOnline && stats.printer?.state !== 'stopped'}
+            ok={
+              stats.agentOnline &&
+              (stats.printer?.state === 'idle' || stats.printer?.state === 'printing')
+            }
             okText={stats.printer?.state === 'printing' ? t('dashboard.printing') : t('dashboard.ready')}
             badText={stats.printer?.message ?? t('dashboard.notConnected')}
           />
@@ -378,31 +388,39 @@ function DeviceRow({
   const isBooth = device.kind === 'booth'
   const name = device.label ?? (isBooth ? t('dashboard.booth') : t('dashboard.printer'))
 
-  // What this device is doing, in one line. The printer's own report wins
-  // when there is one: "Out of paper" is more use than "Active just now".
-  const detail = device.pairingPending
-    ? t('dashboard.waitingToPair')
-    : device.printerState && device.printerState.state === 'stopped'
-      ? (device.printerState.message ?? t('dashboard.notConnected'))
-      : lastSeen(t, device.lastSeenAt)
-
   /*
-   * A device that has stopped calling in is not healthy, however recently it
-   * was. The booth polls every 2 seconds and the print agent heartbeats every
-   * 10, so a minute of silence already means it is gone -- but a phone on
-   * venue wifi drops a beat now and then, and a dot that flickers red gets
-   * ignored. Two minutes is well past any blip and still fast enough to
-   * notice mid-party.
+   * Two different questions, which were being answered with one dot.
    *
-   * Without this a booth last seen 36 hours ago showed green, which is the
-   * exact opposite of what this dot is for.
+   * Is the device talking to us, and is the thing it drives healthy? A Pi
+   * that is online and reporting "no printer attached" is not a failure --
+   * it is a Pi doing its job. Showing that in the same red as a device that
+   * has vanished told the owner their pairing had broken when it had not.
+   */
+  /*
+   * Two minutes of silence means gone. The booth polls every 2 seconds and
+   * the agent heartbeats every 10, so a minute is already conclusive -- but
+   * a phone on venue wifi drops a beat now and then, and a dot that flickers
+   * red is a dot people learn to ignore.
    */
   const silentFor = device.lastSeenAt ? Date.now() - new Date(device.lastSeenAt).getTime() : null
-  const stale =
-    device.pairingPending ||
-    device.printerState?.state === 'stopped' ||
-    silentFor === null ||
-    silentFor > 2 * 60_000
+  const silent = device.pairingPending || silentFor === null || silentFor > 2 * 60_000
+
+  const printer = device.printerState
+  const tone: 'good' | 'warn' | 'bad' = silent
+    ? 'bad'
+    : printer?.state === 'stopped'
+      ? 'bad'
+      : printer?.state === 'unknown'
+        ? 'warn'
+        : 'good'
+
+  // The printer's own words win over "active just now" whenever it has
+  // something to say -- "Out of paper" is the more useful sentence.
+  const detail = device.pairingPending
+    ? t('dashboard.waitingToPair')
+    : silent
+      ? lastSeen(t, device.lastSeenAt)
+      : (printer?.message ?? lastSeen(t, device.lastSeenAt))
 
   if (confirming) {
     return (
@@ -438,7 +456,12 @@ function DeviceRow({
           width: 8,
           height: 8,
           borderRadius: 4,
-          backgroundColor: stale ? theme.color.status.bad : theme.color.status.good,
+          backgroundColor:
+            tone === 'bad'
+              ? theme.color.status.bad
+              : tone === 'warn'
+                ? theme.color.status.poor
+                : theme.color.status.good,
         }}
       />
       <View style={{ flex: 1, gap: 2 }}>
@@ -450,7 +473,12 @@ function DeviceRow({
         </Text>
         <Text
           style={{
-            color: stale ? theme.color.status.bad : theme.color.text.secondary,
+            color:
+              tone === 'bad'
+                ? theme.color.status.bad
+                : tone === 'warn'
+                  ? theme.color.status.poor
+                  : theme.color.text.secondary,
             fontSize: theme.fontSize.xs,
           }}
           numberOfLines={1}

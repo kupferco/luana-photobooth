@@ -86,13 +86,32 @@ export async function status(printer: string): Promise<PrinterStatus> {
       return { state: 'stopped', message: reason || 'The printer has stopped' }
     }
 
+    // `lpstat` answers successfully and says the queue does not exist, which
+    // is not a printer fault -- it is a Pi that has not had a printer set up
+    // on it yet, and the owner should be told that and not a shell error.
+    if (/Invalid destination name|Unknown printer|No destinations added/i.test(text)) {
+      return { state: 'unknown', message: 'No printer set up on this box yet' }
+    }
+
     return { state: 'unknown', message: text.split('\n')[0] ?? null }
   } catch (e) {
-    // No CUPS, no such queue, or the printer is unplugged.
-    return {
-      state: 'stopped',
-      message: e instanceof Error ? e.message.split('\n')[0]! : 'Printer not found',
+    /*
+     * Whatever went wrong, the owner is standing at a party and cannot act
+     * on "Command failed: lpstat -p Canon_SELPHY_CP1500". That string was
+     * being shown in the dashboard verbatim, in red, next to a device that
+     * was working perfectly -- it reads as a broken printer when it means
+     * there is not one.
+     */
+    const raw = e instanceof Error ? e.message : String(e)
+
+    if (/Invalid destination name|Unknown printer|No destinations added/i.test(raw)) {
+      return { state: 'unknown', message: 'No printer set up on this box yet' }
     }
+    if (/not found|No such file|ENOENT/i.test(raw)) {
+      return { state: 'unknown', message: 'Printing is not set up on this box yet' }
+    }
+
+    return { state: 'stopped', message: 'The printer is not responding' }
   }
 }
 
