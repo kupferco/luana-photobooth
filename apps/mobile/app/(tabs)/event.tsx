@@ -12,6 +12,7 @@ import {
 import { useLocale, useT } from '../../src/locale'
 import { useActiveEvent } from '../../src/event-context'
 import { useSession } from '../../src/session'
+import { saveZip } from '../../src/download'
 import { shareLink } from '../../src/share'
 import { useTheme } from '../../src/theme'
 import {
@@ -48,6 +49,8 @@ export default function EventTab() {
   /** Which device is mid-confirmation, and which is being removed. */
   const [confirming, setConfirming] = useState<string | null>(null)
   const [removing, setRemoving] = useState<string | null>(null)
+  const [downloading, setDownloading] = useState(false)
+  const [downloadNote, setDownloadNote] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     if (!tenantId || !id) return
@@ -189,11 +192,29 @@ export default function EventTab() {
                 })}
           </Notice>
           <Button
-            label={t('dashboard.downloadAll', { count: ready.length })}
-            onPress={() => {
-              /* wired with the zip endpoint */
+            label={downloading ? t('dashboard.downloading') : t('dashboard.downloadAll', { count: ready.length })}
+            busy={downloading}
+            disabled={ready.length === 0}
+            onPress={async () => {
+              setDownloading(true)
+              setDownloadNote(null)
+              try {
+                const blob = await api.downloadAll(tenantId!, event.id)
+                const outcome = await saveZip(blob, `${zipName(event.name)}.zip`)
+                if (outcome === 'unsupported') {
+                  setDownloadNote(t('dashboard.downloadOnWeb'))
+                }
+              } catch (err) {
+                setDownloadNote(
+                  err instanceof Error ? err.message : t('dashboard.downloadFailed'),
+                )
+              } finally {
+                setDownloading(false)
+              }
             }}
           />
+          {ready.length === 0 ? <Body muted>{t('dashboard.downloadEmpty')}</Body> : null}
+          {downloadNote ? <Notice tone="warn">{downloadNote}</Notice> : null}
         </Card>
       ) : null}
 
@@ -407,6 +428,24 @@ function lastSeen(t: ReturnType<typeof useT>, iso: string | null): string {
   if (minutes < 2) return t('dashboard.lastSeenJustNow')
   if (minutes < 60) return t('dashboard.lastSeenMinutes', { count: minutes })
   return t('dashboard.lastSeenHours', { count: Math.floor(minutes / 60) })
+}
+
+/**
+ * The event name, made safe for a filename.
+ *
+ * The server sends the same name in Content-Disposition, but a web download
+ * started from an object URL takes its name from the anchor instead, so the
+ * sanitising has to happen on both sides.
+ */
+function zipName(name: string): string {
+  return (
+    name
+      .normalize('NFKD')
+      .replace(/[^\w\s.-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/^[.\-]+/, '')
+      .slice(0, 60) || 'photos'
+  )
 }
 
 function Stat({ label, value }: { label: string; value: string }) {

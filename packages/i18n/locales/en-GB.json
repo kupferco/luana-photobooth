@@ -86,7 +86,11 @@
     "lastSeenMinutes": "Last seen {count}m ago",
     "lastSeenHours": "Last seen {count}h ago",
     "neverSeen": "Never connected",
-    "waitingToPair": "Waiting for the pairing code to be used"
+    "waitingToPair": "Waiting for the pairing code to be used",
+    "downloading": "Preparing your photos…",
+    "downloadOnWeb": "Downloading everything works in the browser. Open this event on a computer.",
+    "downloadEmpty": "There are no photos to download yet.",
+    "downloadFailed": "The download did not finish. Try again."
   },
   "retention": {
     "guest": "Your photos are saved until {date}.",

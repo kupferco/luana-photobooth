@@ -186,6 +186,19 @@ export async function download(path: string, tenantId: string): Promise<Buffer> 
   return buffer
 }
 
+/**
+ * Server-side read as a stream, for the download-everything zip.
+ *
+ * Deliberately not `download()`: buffering a whole party's montages to build
+ * one archive is how a container gets killed for memory. This lets the bytes
+ * pass through the zip and out to the client without ever being held.
+ */
+export async function readStream(path: string, tenantId: string) {
+  assertWithinTenant(path, tenantId)
+  const bucket = await getBucket()
+  return bucket.file(path).createReadStream()
+}
+
 /** Server-side write, for the composed montage. */
 export async function upload(
   path: string,

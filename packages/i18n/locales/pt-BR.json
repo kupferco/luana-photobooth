@@ -86,7 +86,11 @@
     "lastSeenMinutes": "Visto há {count}min",
     "lastSeenHours": "Visto há {count}h",
     "neverSeen": "Nunca conectou",
-    "waitingToPair": "Esperando o código de pareamento ser usado"
+    "waitingToPair": "Esperando o código de pareamento ser usado",
+    "downloading": "Preparando suas fotos…",
+    "downloadOnWeb": "Baixar tudo funciona no navegador. Abra este evento em um computador.",
+    "downloadEmpty": "Ainda não há fotos para baixar.",
+    "downloadFailed": "O download não terminou. Tente de novo."
   },
   "retention": {
     "guest": "Suas fotos ficam guardadas até {date}.",

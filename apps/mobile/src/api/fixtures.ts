@@ -249,6 +249,13 @@ export const fixtureApi: PhotoboothApi = {
     return event
   },
 
+  async downloadAll() {
+    await delay()
+    // A real zip would mean shipping a fixture archive; the button's states
+    // are what this mode is for.
+    return new Blob(['fixture'], { type: 'application/zip' })
+  },
+
   /**
    * A booth and a printer, so the devices card can be designed without a
    * tripod phone and a Raspberry Pi on the desk. One is healthy and one is

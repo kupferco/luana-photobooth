@@ -89,6 +89,14 @@ export interface PhotoboothApi {
   /** Binds this phone to an event as the booth, returning its device token. */
   claimBooth(tenantId: string, eventId: string): Promise<{ token: string }>
 
+  /**
+   * Every montage from the event, as one zip.
+   *
+   * Returns the bytes rather than a URL because the endpoint needs the
+   * bearer token, and a browser navigating to a link cannot send one.
+   */
+  downloadAll(tenantId: string, eventId: string): Promise<Blob>
+
   /** Booths and printers attached to this event. */
   listDevices(tenantId: string, eventId: string): Promise<Device[]>
 

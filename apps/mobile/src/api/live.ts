@@ -125,6 +125,50 @@ async function request<T>(
   return payload as T
 }
 
+/**
+ * A raw response, for the one endpoint whose body is not JSON.
+ *
+ * Shares the refresh dance with `request` but stops short of parsing: the
+ * download is a zip, and a party's worth of photographs must not be turned
+ * into a string on the way past.
+ */
+async function requestBlob(path: string, retryOn401 = true): Promise<Blob> {
+  const response = await send(path, {
+    headers: accessToken ? { authorization: `Bearer ${accessToken}` } : {},
+  })
+
+  if (response.status === 401 && retryOn401 && refreshToken) {
+    const refreshed = await send('/auth/refresh', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ refreshToken }),
+    })
+    if (refreshed.ok) {
+      const tokens = (await refreshed.json()) as {
+        accessToken: string
+        refreshToken: string
+      }
+      await setTokens(tokens.accessToken, tokens.refreshToken)
+      return requestBlob(path, false)
+    }
+    await setTokens(null, null)
+  }
+
+  if (!response.ok) {
+    // The failures here are still JSON -- nothing has streamed yet.
+    const payload = (await response.json().catch(() => null)) as {
+      error?: { code?: string; message?: string }
+    } | null
+    throw new ApiError(
+      payload?.error?.message ?? 'Something went wrong.',
+      payload?.error?.code ?? 'unknown',
+      response.status,
+    )
+  }
+
+  return response.blob()
+}
+
 export const liveApi: PhotoboothApi = {
   async requestCode(email) {
     return request('POST', '/auth/code', { email })
@@ -234,6 +278,12 @@ export const liveApi: PhotoboothApi = {
     await request<void>(
       'DELETE',
       `/devices/${deviceId}?tenantId=${encodeURIComponent(tenantId)}`,
+    )
+  },
+
+  async downloadAll(tenantId, eventId) {
+    return requestBlob(
+      `/events/${eventId}/download?tenantId=${encodeURIComponent(tenantId)}`,
     )
   },
 

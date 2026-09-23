@@ -18,6 +18,7 @@ import { eventJoinCode } from '../lib/codes'
 import { requireAuth, requireTenant } from '../middleware/auth'
 import { queueEmail } from '../email/queue'
 import { createReadUrl, MAX_SIGNED_URL_MS } from '../storage/gcs'
+import { downloadEventZip } from './download'
 
 export const eventRoutes: Router = Router()
 
@@ -366,6 +367,30 @@ eventRoutes.patch('/:eventId', async (req, res, next) => {
     }
     return res.json({ event: present(event) })
   } catch (e) {
+    return next(e)
+  }
+})
+
+/**
+ * Every photo from the party, as one zip.
+ *
+ * Defined before the generic routes below it only for readability; Express
+ * matches on the full path, so ordering does not matter here.
+ */
+eventRoutes.get('/:eventId/download', async (req, res, next) => {
+  try {
+    const query = TenantQuery.safeParse(req.query)
+    if (!query.success) {
+      return res.status(400).json({
+        error: { code: 'invalid_request', message: 'tenantId is required.' },
+      })
+    }
+    requireTenant(req, query.data.tenantId)
+
+    return await downloadEventZip(res, query.data.tenantId, req.params.eventId!)
+  } catch (e) {
+    // Only reachable before the first byte is written; once the zip is
+    // streaming, download.ts owns the failure.
     return next(e)
   }
 })
