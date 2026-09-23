@@ -104,6 +104,7 @@ async function apply(ssid: string, password: string, code: string): Promise<stri
    */
   if (!(await waitForApi())) {
     log('joined the network but the API is not reachable')
+    exitSoon('wifi joined but the API is unreachable')
     return (
       `Connected to ${ssid}, but the photo booth service could not be reached. ` +
       'Check the network has internet, then try the code again.'
@@ -117,14 +118,36 @@ async function apply(ssid: string, password: string, code: string): Promise<stri
     await saveToken(token)
     log('paired')
     finished = true
+    exitSoon('paired')
     return null
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e)
     log(`pairing failed: ${message}`)
-    // The wifi is good, so leave it: the owner can retry the code from
-    // anywhere on the network rather than rejoining the hotspot.
+    // The wifi is good, so leave it: the owner can retry the code over SSH,
+    // or run onboarding again -- which needs this process gone.
+    exitSoon('wifi joined but pairing failed')
     return `Connected to ${ssid}, but the pairing code was not accepted. ${message}`
   }
+}
+
+/**
+ * Stops onboarding a short while after it has nothing left to do.
+ *
+ * Once the wifi has joined, the hotspot is down and this page is reachable
+ * from nowhere -- so staying up serves no one, and it holds port 80, which
+ * stops onboarding ever being run again. Observed on the Pi: a failed
+ * pairing left the process listening for 38 minutes, and the retry could not
+ * start because the unit name was still taken.
+ *
+ * The delay is so the phone still on the old network gets its response
+ * before the process goes.
+ */
+function exitSoon(reason: string, ms = 20_000): void {
+  log(`${reason} — stopping onboarding in ${Math.round(ms / 1000)}s`)
+  setTimeout(() => {
+    log('onboarding done')
+    process.exit(0)
+  }, ms)
 }
 
 async function handler(req: IncomingMessage, res: ServerResponse): Promise<void> {
