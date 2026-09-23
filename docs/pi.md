@@ -46,8 +46,14 @@ Against the Pi:
 ```bash
 npm run pi:setup     # once per Pi: Node, CUPS, systemd unit
 npm run pi:deploy    # build, rsync, restart — a few seconds
+npm run pi:status    # power, wifi, agent, printer, last 15 log lines
 npm run pi:logs      # journalctl -f
 ```
+
+`pi:status` is the one to run first when something is wrong. It leads with
+the power supply, because under-voltage on a Pi presents as software going
+wrong -- slow, restarting, USB dropping out -- and that is hours lost if you
+start by reading the agent's code.
 
 `pi:deploy` sends **built output, not source**. The Pi runs one bundled file
 and needs no toolchain, no `npm install` and no workspace, so a deploy is a
@@ -113,6 +119,23 @@ place anybody will find out, and a silent failure at a party is the worst
 kind.
 
 **`Restart=always`.** Six hours, nobody watching.
+
+**Passwordless sudo covers starting and stopping, nothing else.** Reading is
+not in the rule because it does not need to be: `systemctl status` is
+unprivileged, and the login user is in `adm`, which already grants the
+journal.
+
+Every entry is an exact command with no wildcard, and sudoers matches the
+argument list *literally*. That has a sharp edge worth knowing before it
+costs you an hour: `sudo systemctl status photobooth-agent` matches, and
+`sudo systemctl status photobooth-agent --no-pager` does **not** -- it falls
+through to the generic rule and asks for a password, on a connection with no
+terminal to type one into. The error says "a terminal is required", which
+points at ssh rather than at the extra flag that actually caused it.
+
+The fix is not a wildcard. `systemctl start photobooth-agent *` would hand
+over the right to start any unit on the box. Read state without sudo, and
+keep the rule exact.
 
 **No dotenv.** systemd reads the env file itself, and Node reads one with
 `--env-file`, so the dependency only added a CommonJS `require()` to an ESM

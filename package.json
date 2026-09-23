@@ -35,6 +35,7 @@
     "deploy:back:both": "bash infra/deploy.sh back both",
     "pi:setup": "bash infra/pi-setup.sh",
     "pi:deploy": "bash infra/pi-deploy.sh",
+    "pi:status": "bash infra/pi-status.sh",
     "pi:logs": "ssh ${PI_HOST:-photolu@photolu.local} journalctl -u photobooth-agent -f",
     "agent": "npm run dev --workspace @photobooth/print-agent",
     "secrets:push": "bash infra/push-secrets.sh",

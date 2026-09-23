@@ -11,7 +11,7 @@
 # Debian 13 does not get the passwordless sudo that Raspberry Pi OS used to
 # give the `pi` user, so sudo has to ask -- and this asks once, here. Deploys
 # and service restarts afterwards never prompt, because the last step grants
-# passwordless sudo for exactly these two services and their logs.
+# passwordless sudo for starting and stopping exactly these two services.
 #
 # The script is copied to the Pi and run there rather than piped over stdin:
 # piping leaves no terminal for sudo to read a password from, which is
@@ -113,12 +113,21 @@ sudo systemctl enable photobooth-agent photobooth-onboarding
 
 echo
 echo "==> Granting passwordless sudo for these two services only"
-# Scoped to these units and their logs rather than blanket root, so deploying
-# and testing never prompt while nothing else is handed over.
+# Scoped to starting and stopping these two units, and nothing else.
+#
+# Reading is deliberately absent. `systemctl status` needs no privilege, and
+# the login user is in `adm`, which already grants the journal -- so granting
+# them here would widen the rule for no gain.
+#
+# Every entry is an exact command with no wildcard, which is the whole point:
+# sudoers matches the argument list literally, so `systemctl start *` would
+# hand over the right to start any unit on the box. The cost of being exact
+# is that extra flags do not match and sudo falls through to asking for a
+# password -- so callers pass none. That is why the helpers below read state
+# without sudo at all.
 sudo tee /etc/sudoers.d/020_photobooth >/dev/null <<'SUDOERS'
-$REMOTE_USER ALL=(ALL) NOPASSWD: /usr/bin/systemctl start photobooth-agent, /usr/bin/systemctl stop photobooth-agent, /usr/bin/systemctl restart photobooth-agent, /usr/bin/systemctl status photobooth-agent
-$REMOTE_USER ALL=(ALL) NOPASSWD: /usr/bin/systemctl start photobooth-onboarding, /usr/bin/systemctl stop photobooth-onboarding, /usr/bin/systemctl restart photobooth-onboarding, /usr/bin/systemctl status photobooth-onboarding
-$REMOTE_USER ALL=(ALL) NOPASSWD: /usr/bin/journalctl -u photobooth-agent *, /usr/bin/journalctl -u photobooth-onboarding *
+$REMOTE_USER ALL=(ALL) NOPASSWD: /usr/bin/systemctl start photobooth-agent, /usr/bin/systemctl stop photobooth-agent, /usr/bin/systemctl restart photobooth-agent
+$REMOTE_USER ALL=(ALL) NOPASSWD: /usr/bin/systemctl start photobooth-onboarding, /usr/bin/systemctl stop photobooth-onboarding, /usr/bin/systemctl restart photobooth-onboarding
 SUDOERS
 sudo chmod 440 /etc/sudoers.d/020_photobooth
 # A malformed sudoers file locks out sudo entirely, so check it and remove it
