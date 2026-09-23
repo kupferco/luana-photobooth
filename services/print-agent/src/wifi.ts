@@ -160,8 +160,42 @@ export type JoinResult =
  * nmcli blocks until it succeeds or gives up, so the result here is the real
  * outcome rather than an optimistic "applied".
  */
+/**
+ * Removes every saved profile for an SSID, whatever the profile is called.
+ *
+ * Deleting by name is not enough. A Pi set up with Raspberry Pi Imager gets a
+ * profile named after the interface, not the network -- `netplan-wlan0-MYWIFI`
+ * for SSID `MYWIFI` -- so a delete by SSID silently matches nothing and the
+ * old profile survives. NetworkManager then holds two profiles for one
+ * network, and which one wins at boot is not something to discover at a
+ * party.
+ *
+ * Matching on the ssid property instead catches it however it was named.
+ */
+async function forgetSsid(ssid: string): Promise<void> {
+  const { stdout } = await run('nmcli', ['-t', '-f', 'NAME,TYPE', 'connection', 'show'])
+
+  const wireless = stdout
+    .split('\n')
+    .filter(Boolean)
+    // nmcli escapes colons inside fields with a backslash.
+    .map((line) => line.split(/(?<!\\):/).map((p) => p.replace(/\\:/g, ':')))
+    .filter(([, type]) => type === '802-11-wireless')
+    .map(([name]) => name!)
+
+  for (const name of wireless) {
+    const saved = await run('nmcli', ['-g', '802-11-wireless.ssid', 'connection', 'show', name])
+      .then((r) => r.stdout.trim())
+      .catch(() => '')
+
+    if (saved === ssid || name === ssid) {
+      await run('nmcli', ['connection', 'delete', name]).catch(() => {})
+    }
+  }
+}
+
 export async function join(ssid: string, password: string): Promise<JoinResult> {
-  await run('nmcli', ['connection', 'delete', ssid]).catch(() => {})
+  await forgetSsid(ssid)
 
   const args = ['device', 'wifi', 'connect', ssid, 'ifname', IFACE]
   if (password) args.push('password', password)
