@@ -1,5 +1,12 @@
 import { clearToken, readToken, writeToken } from './storage'
-import type { Event, EventLiveStats, GallerySession, PhotoboothApi, User } from './types'
+import type {
+  Device,
+  Event,
+  EventLiveStats,
+  GallerySession,
+  PhotoboothApi,
+  User,
+} from './types'
 import { ApiError } from './types'
 
 /**
@@ -213,6 +220,21 @@ export const liveApi: PhotoboothApi = {
       tenantId,
       eventId,
     })
+  },
+
+  async listDevices(tenantId, eventId) {
+    const result = await request<{ devices: Device[] }>(
+      'GET',
+      `/devices?tenantId=${encodeURIComponent(tenantId)}&eventId=${encodeURIComponent(eventId)}`,
+    )
+    return result.devices
+  },
+
+  async removeDevice(tenantId, deviceId) {
+    await request<void>(
+      'DELETE',
+      `/devices/${deviceId}?tenantId=${encodeURIComponent(tenantId)}`,
+    )
   },
 
   async eventStats(tenantId, eventId) {

@@ -12,6 +12,7 @@ import {
   useWindowDimensions,
 } from 'react-native'
 import { api, usingFixtures } from '../src/api'
+import { ApiError } from '../src/api/types'
 import { booth, isPaired, savePairing, uploadShot, type BoothPoll } from '../src/booth/client'
 import { MontagePreview } from '../src/booth/MontagePreview'
 import { CameraView, type CameraRef, type CapturedShot } from '../src/camera'
@@ -80,6 +81,14 @@ export default function Booth() {
   )
   const [printState, setPrintState] = useState<'idle' | 'sending' | 'sent'>('idle')
   const [confirmExit, setConfirmExit] = useState(false)
+  /**
+   * Set when the owner stopped this booth from their phone.
+   *
+   * Distinguished from "never set up" because the two need different words:
+   * a booth that was switched off deliberately should say so, or whoever is
+   * standing at the tripod will think it broke.
+   */
+  const [stopped, setStopped] = useState(false)
 
   // A run in progress must not be interrupted by the poll loop starting
   // another, and the tap handler must not start a second sequence.
@@ -118,6 +127,7 @@ export default function Booth() {
       return
     }
     setPairing(true)
+    setStopped(false)
     try {
       const result = await api.claimBooth(tenantId, active.id)
       await savePairing(result.token)
@@ -148,12 +158,33 @@ export default function Booth() {
           void run(result.next.id, result.next.shotsExpected, result.next.code)
         }
       } catch (e) {
-        if (!cancelled) {
-          setPhase({
-            kind: 'error',
-            message: e instanceof Error ? e.message : String(e),
-          })
+        if (cancelled) return
+
+        /*
+         * A 401 here means the device is gone, not that the network blipped.
+         * The owner pressed "stop photo booth", or ended and rebuilt the
+         * event. The client has already dropped the token, so every later
+         * call would fail the same way -- staying on this screen would show
+         * a booth that can never recover.
+         *
+         * Dropping back to the setup screen makes it recoverable: whoever is
+         * at the tripod can start it again, or hand the phone back.
+         */
+        if (e instanceof ApiError && (e.status === 401 || e.code === 'unpaired')) {
+          // A capture interrupted half way leaves this latched, which would
+          // block every future run after re-pairing.
+          running.current = false
+          setStopped(true)
+          setPaired(false)
+          setPoll(null)
+          setPhase({ kind: 'setup' })
+          return
         }
+
+        setPhase({
+          kind: 'error',
+          message: e instanceof Error ? e.message : String(e),
+        })
       }
     }
 
@@ -296,6 +327,8 @@ export default function Booth() {
           <Body>{active ? active.name : t('event.none')}</Body>
           <Body muted>{active ? t('booth.pairHint') : t('event.noneHint')}</Body>
         </Card>
+
+        {stopped ? <Notice tone="warn">{t('booth.stoppedByOwner')}</Notice> : null}
 
         {eventsError ? <Notice tone="bad">{eventsError}</Notice> : null}
         {!tenantId && !loadingEvents ? (

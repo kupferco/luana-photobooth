@@ -262,6 +262,29 @@ export async function touchDevice(
     .where(eq(devices.id, deviceId))
 }
 
+/**
+ * Revokes a device by deleting it.
+ *
+ * This is how a booth is stopped and how a printer is unpaired. There is no
+ * "disabled" flag, because a flag would have to be honoured by every code
+ * path that authenticates a device and one of them would eventually forget.
+ * The row is the credential: remove it and the next request fails the token
+ * lookup, wherever that phone is and whether or not it is listening.
+ *
+ * Tenant-scoped, and returns what it removed so the caller can answer 404
+ * rather than pretending to have deleted someone else's device.
+ *
+ * Print jobs reference devices with ON DELETE SET NULL, so the history of
+ * what was printed survives unpairing the printer that printed it.
+ */
+export async function revokeDevice(tenantId: string, deviceId: string) {
+  const [row] = await db
+    .delete(devices)
+    .where(and(eq(devices.tenantId, tenantId), eq(devices.id, deviceId)))
+    .returning()
+  return row ?? null
+}
+
 // ---------------------------------------------------------------------------
 // Sessions
 // ---------------------------------------------------------------------------

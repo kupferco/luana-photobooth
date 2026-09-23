@@ -7,6 +7,7 @@ import {
   createDevice,
   getEvent,
   listDevices,
+  revokeDevice,
 } from '../db/repo'
 import { deviceToken, isWellFormedCode, normaliseCode, pairingCode } from '../lib/codes'
 import { requireAuth, requireTenant } from '../middleware/auth'
@@ -204,6 +205,41 @@ deviceRoutes.get('/', async (req, res, next) => {
         printerState: d.printerState,
       })),
     })
+  } catch (e) {
+    return next(e)
+  }
+})
+
+/**
+ * Stop a booth, or unpair a printer.
+ *
+ * The owner needs this for a reason that has nothing to do with ending the
+ * event: the phone on the tripod is running out of battery, or it is someone
+ * else's phone and they want it back. Ending the event to free the phone
+ * would close the party; this frees the phone and leaves the party running.
+ *
+ * Deleting the row is the revocation -- see revokeDevice. The booth phone
+ * finds out on its next poll, gets a 401, and shows the owner's normal
+ * screens again rather than a dead booth.
+ */
+deviceRoutes.delete('/:deviceId', async (req, res, next) => {
+  try {
+    const query = TenantQuery.safeParse(req.query)
+    if (!query.success) {
+      return res.status(400).json({
+        error: { code: 'invalid_request', message: 'tenantId is required.' },
+      })
+    }
+    requireTenant(req, query.data.tenantId)
+
+    const device = await revokeDevice(query.data.tenantId, req.params.deviceId!)
+    if (!device) {
+      // 404 rather than 403 for another tenant's device: the answer is the
+      // same whether it does not exist or is simply not theirs.
+      return res.status(404).json({ error: { code: 'not_found', message: 'Not found' } })
+    }
+
+    return res.status(204).end()
   } catch (e) {
     return next(e)
   }

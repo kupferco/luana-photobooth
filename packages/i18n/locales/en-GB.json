@@ -72,7 +72,21 @@
     "shared": "Shared",
     "linkCopied": "Link copied",
     "shareUnsupported": "Could not share on this device.",
-    "shareText": "Your photo from {name}"
+    "shareText": "Your photo from {name}",
+    "devices": "Booth and printer",
+    "devicesHint": "Stopping a booth frees that phone without ending the party.",
+    "noDevices": "Nothing connected yet.",
+    "stopBooth": "Stop photo booth",
+    "stopBoothConfirm": "Stop the booth on this phone?",
+    "stopBoothHint": "The party keeps running. Any phone can take over as the booth.",
+    "unpairPrinter": "Unpair printer",
+    "unpairPrinterConfirm": "Unpair this printer?",
+    "unpairPrinterHint": "Photos already printed are kept. Pair it again with a new code.",
+    "lastSeenJustNow": "Active just now",
+    "lastSeenMinutes": "Last seen {count}m ago",
+    "lastSeenHours": "Last seen {count}h ago",
+    "neverSeen": "Never connected",
+    "waitingToPair": "Waiting for the pairing code to be used"
   },
   "retention": {
     "guest": "Your photos are saved until {date}.",
@@ -110,7 +124,8 @@
     "eventEnded": "This event has ended.",
     "scanToTrigger": "Scan to start from your own phone",
     "orEnterCode": "or use code {code}",
-    "printSent": "Sent to the printer"
+    "printSent": "Sent to the printer",
+    "stoppedByOwner": "This booth was stopped from the event. Start it again to carry on."
   },
   "guest": {
     "welcome": "You are at {name}",

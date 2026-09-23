@@ -1,9 +1,10 @@
 import { daysRemaining } from '@photobooth/shared'
 import { router } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
-import { Text, View } from 'react-native'
+import { Pressable, Text, View } from 'react-native'
 import {
   api,
+  type Device,
   type Event,
   type EventLiveStats,
   type GallerySession,
@@ -42,18 +43,26 @@ export default function EventTab() {
   const [event, setEvent] = useState<Event | null>(null)
   const [stats, setStats] = useState<EventLiveStats | null>(null)
   const [sessions, setSessions] = useState<GallerySession[] | null>(null)
+  const [devices, setDevices] = useState<Device[]>([])
   const [loadError, setLoadError] = useState<string | null>(null)
+  /** Which device is mid-confirmation, and which is being removed. */
+  const [confirming, setConfirming] = useState<string | null>(null)
+  const [removing, setRemoving] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     if (!tenantId || !id) return
     try {
-      const [e, s, list] = await Promise.all([
+      const [e, s, list, connected] = await Promise.all([
         api.getEvent(tenantId, id),
         api.eventStats(tenantId, id),
         api.listSessions(tenantId, id),
+        api.listDevices(tenantId, id),
       ])
       setEvent(e)
       setStats(s)
+      setDevices((previous) =>
+        JSON.stringify(previous) === JSON.stringify(connected) ? previous : connected,
+      )
       setSessions((previous) =>
         previous && JSON.stringify(previous) === JSON.stringify(list)
           ? previous
@@ -66,6 +75,31 @@ export default function EventTab() {
       setLoadError(err instanceof Error ? err.message : String(err))
     }
   }, [tenantId, id])
+
+  /**
+   * Stops a booth, or unpairs a printer.
+   *
+   * The row goes at once rather than on the next poll: the owner pressed the
+   * button, and a list that still shows the booth for five seconds reads as
+   * a button that did nothing.
+   */
+  const removeDevice = useCallback(
+    async (deviceId: string) => {
+      if (!tenantId) return
+      setRemoving(deviceId)
+      try {
+        await api.removeDevice(tenantId, deviceId)
+        setConfirming(null)
+        setDevices((current) => current.filter((d) => d.id !== deviceId))
+        await load()
+      } catch (err) {
+        setLoadError(err instanceof Error ? err.message : String(err))
+      } finally {
+        setRemoving(null)
+      }
+    },
+    [tenantId, load],
+  )
 
   useEffect(() => {
     void load()
@@ -163,6 +197,35 @@ export default function EventTab() {
         </Card>
       ) : null}
 
+      {/* Hardware the owner can act on, which is different from the health
+          readout above: that says whether it is working, this says whose
+          phone it is and lets them have it back. */}
+      {event.status !== 'ended' ? (
+        <Card>
+          <Label>{t('dashboard.devices')}</Label>
+
+          {devices.length === 0 ? (
+            <Body muted>{t('dashboard.noDevices')}</Body>
+          ) : (
+            devices.map((device) => (
+              <DeviceRow
+                key={device.id}
+                device={device}
+                confirming={confirming === device.id}
+                busy={removing === device.id}
+                onAsk={() => setConfirming(device.id)}
+                onCancel={() => setConfirming(null)}
+                onConfirm={() => void removeDevice(device.id)}
+              />
+            ))
+          )}
+
+          {devices.some((d) => d.kind === 'booth') ? (
+            <Body muted>{t('dashboard.devicesHint')}</Body>
+          ) : null}
+        </Card>
+      ) : null}
+
       <Card>
         <Label>{t('dashboard.qrTitle')}</Label>
         <Text
@@ -224,6 +287,126 @@ export default function EventTab() {
       ))}
     </Screen>
   )
+}
+
+/**
+ * One booth or printer, with the button that removes it.
+ *
+ * The confirmation is inline rather than an Alert because this screen runs on
+ * the web too, where React Native's Alert does nothing at all -- an ignored
+ * tap on "stop the booth" is the worst possible way to find that out.
+ */
+function DeviceRow({
+  device,
+  confirming,
+  busy,
+  onAsk,
+  onCancel,
+  onConfirm,
+}: {
+  device: Device
+  confirming: boolean
+  busy: boolean
+  onAsk: () => void
+  onCancel: () => void
+  onConfirm: () => void
+}) {
+  const theme = useTheme()
+  const t = useT()
+
+  const isBooth = device.kind === 'booth'
+  const name = device.label ?? (isBooth ? t('dashboard.booth') : t('dashboard.printer'))
+
+  // What this device is doing, in one line. The printer's own report wins
+  // when there is one: "Out of paper" is more use than "Active just now".
+  const detail = device.pairingPending
+    ? t('dashboard.waitingToPair')
+    : device.printerState && device.printerState.state === 'stopped'
+      ? (device.printerState.message ?? t('dashboard.notConnected'))
+      : lastSeen(t, device.lastSeenAt)
+
+  const stale =
+    device.pairingPending ||
+    device.printerState?.state === 'stopped' ||
+    !device.lastSeenAt
+
+  if (confirming) {
+    return (
+      <View style={{ gap: 8, paddingVertical: 8 }}>
+        <Text style={{ color: theme.color.text.primary, fontSize: theme.fontSize.sm, fontWeight: '600' }}>
+          {t(isBooth ? 'dashboard.stopBoothConfirm' : 'dashboard.unpairPrinterConfirm')}
+        </Text>
+        <Body muted>
+          {t(isBooth ? 'dashboard.stopBoothHint' : 'dashboard.unpairPrinterHint')}
+        </Body>
+        <Button
+          label={t(isBooth ? 'dashboard.stopBooth' : 'dashboard.unpairPrinter')}
+          variant="danger"
+          busy={busy}
+          onPress={onConfirm}
+        />
+        <Button label={t('common.cancel')} variant="secondary" onPress={onCancel} />
+      </View>
+    )
+  }
+
+  return (
+    <View
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        paddingVertical: 8,
+      }}
+    >
+      <View
+        style={{
+          width: 8,
+          height: 8,
+          borderRadius: 4,
+          backgroundColor: stale ? theme.color.status.bad : theme.color.status.good,
+        }}
+      />
+      <View style={{ flex: 1, gap: 2 }}>
+        <Text
+          style={{ color: theme.color.text.primary, fontSize: theme.fontSize.sm, fontWeight: '600' }}
+          numberOfLines={1}
+        >
+          {name}
+        </Text>
+        <Text
+          style={{
+            color: stale ? theme.color.status.bad : theme.color.text.secondary,
+            fontSize: theme.fontSize.xs,
+          }}
+          numberOfLines={1}
+        >
+          {detail}
+        </Text>
+      </View>
+      <Pressable onPress={onAsk} hitSlop={8}>
+        <Text style={{ color: theme.color.status.bad, fontSize: theme.fontSize.sm, fontWeight: '600' }}>
+          {t(isBooth ? 'dashboard.stopBooth' : 'dashboard.unpairPrinter')}
+        </Text>
+      </Pressable>
+    </View>
+  )
+}
+
+/**
+ * How long ago a device last called in.
+ *
+ * Rounded and relative, because the exact timestamp answers a question
+ * nobody asks: during a party the only thing worth knowing is whether it is
+ * still there.
+ */
+function lastSeen(t: ReturnType<typeof useT>, iso: string | null): string {
+  if (!iso) return t('dashboard.neverSeen')
+
+  const minutes = Math.floor((Date.now() - new Date(iso).getTime()) / 60_000)
+  if (minutes < 2) return t('dashboard.lastSeenJustNow')
+  if (minutes < 60) return t('dashboard.lastSeenMinutes', { count: minutes })
+  return t('dashboard.lastSeenHours', { count: Math.floor(minutes / 60) })
 }
 
 function Stat({ label, value }: { label: string; value: string }) {

@@ -1,6 +1,7 @@
 import { DEFAULT_MONTAGE_RETENTION_DAYS, retentionUntil } from '@photobooth/shared'
 import { clearToken, readToken, writeToken } from './storage'
 import type {
+  Device,
   Event,
   EventLiveStats,
   GallerySession,
@@ -100,6 +101,34 @@ const STATS: Record<string, EventLiveStats> = {
     printer: null,
   },
 }
+
+const fixtureDevices: Device[] = [
+  {
+    id: 'dev-booth',
+    kind: 'booth',
+    label: "Ana's iPhone",
+    eventId: 'evt-live',
+    paired: true,
+    pairingPending: false,
+    lastSeenAt: iso(0),
+    printerState: null,
+  },
+  {
+    id: 'dev-printer',
+    kind: 'agent',
+    label: 'SELPHY by the bar',
+    eventId: 'evt-live',
+    paired: true,
+    pairingPending: false,
+    lastSeenAt: iso(0),
+    // Matches the stats fixture above: out of paper is the state worth
+    // designing against.
+    printerState: { state: 'stopped', message: 'Out of paper' },
+  },
+]
+
+/** Reset on reload, which is all a fixture needs to demonstrate stopping one. */
+const removedDevices = new Set<string>()
 
 /** A placeholder montage, so the gallery has something with real proportions. */
 const MONTAGE =
@@ -218,6 +247,21 @@ export const fixtureApi: PhotoboothApi = {
     event.status = status
     event.endedAt = status === 'ended' ? new Date().toISOString() : null
     return event
+  },
+
+  /**
+   * A booth and a printer, so the devices card can be designed without a
+   * tripod phone and a Raspberry Pi on the desk. One is healthy and one is
+   * out of paper, because the interesting layout is the unhappy one.
+   */
+  async listDevices() {
+    await delay()
+    return fixtureDevices.filter((d) => !removedDevices.has(d.id))
+  },
+
+  async removeDevice(_tenantId, deviceId) {
+    await delay()
+    removedDevices.add(deviceId)
   },
 
   async claimBooth() {

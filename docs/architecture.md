@@ -136,6 +136,26 @@ Booth mode must be hard to leave by accident: full-screen, exit requires a
 deliberate long-press plus confirm, and no nav or settings visible while in
 it.
 
+### Devices are revoked by deletion, not a flag
+
+Stopping a booth or unpairing a printer deletes the `devices` row. There is
+no `disabled` column.
+
+A flag would have to be honoured by every path that authenticates a device,
+and one of them would eventually forget -- which is the kind of bug that
+shows up as a phone still taking photographs into a party it was removed
+from. The row *is* the credential: `requireDevice` looks the token hash up on
+every request, so removing the row revokes it on the next call, wherever that
+phone is and whether or not it is listening.
+
+Print jobs reference devices with `ON DELETE SET NULL`, so unpairing a
+printer does not erase the record of what it printed.
+
+This is deliberately separate from ending the event. The reasons an owner
+stops a booth are mundane -- the phone is running out of battery, or it was
+lent by someone who wants it back -- and none of them should close the party.
+Ending the event stops *everything*; stopping a booth frees *one phone*.
+
 ### Expo for the app, Vite for the guest page
 
 Expo for owner and booth: real camera control (focus and exposure lock,

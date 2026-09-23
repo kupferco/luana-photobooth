@@ -72,7 +72,21 @@
     "shared": "Compartilhado",
     "linkCopied": "Link copiado",
     "shareUnsupported": "Não foi possível compartilhar neste dispositivo.",
-    "shareText": "Sua foto de {name}"
+    "shareText": "Sua foto de {name}",
+    "devices": "Cabine e impressora",
+    "devicesHint": "Encerrar a cabine libera o celular sem encerrar a festa.",
+    "noDevices": "Nada conectado ainda.",
+    "stopBooth": "Encerrar cabine",
+    "stopBoothConfirm": "Encerrar a cabine neste celular?",
+    "stopBoothHint": "A festa continua. Qualquer celular pode assumir como cabine.",
+    "unpairPrinter": "Desconectar impressora",
+    "unpairPrinterConfirm": "Desconectar esta impressora?",
+    "unpairPrinterHint": "As fotos já impressas continuam salvas. Conecte de novo com um código novo.",
+    "lastSeenJustNow": "Ativo agora",
+    "lastSeenMinutes": "Visto há {count}min",
+    "lastSeenHours": "Visto há {count}h",
+    "neverSeen": "Nunca conectou",
+    "waitingToPair": "Esperando o código de pareamento ser usado"
   },
   "retention": {
     "guest": "Suas fotos ficam guardadas até {date}.",
@@ -110,7 +124,8 @@
     "eventEnded": "Este evento foi encerrado.",
     "scanToTrigger": "Escaneie para tirar a foto pelo seu celular",
     "orEnterCode": "ou use o código {code}",
-    "printSent": "Enviado para a impressora"
+    "printSent": "Enviado para a impressora",
+    "stoppedByOwner": "Esta cabine foi encerrada pelo evento. Inicie de novo para continuar."
   },
   "guest": {
     "welcome": "Você está em {name}",
