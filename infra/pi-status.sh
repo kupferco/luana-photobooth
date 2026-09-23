@@ -71,8 +71,13 @@ systemctl is-active --quiet photobooth-agent \
   && echo "  running since $(systemctl show photobooth-agent -p ActiveEnterTimestamp --value)" \
   || echo "  NOT RUNNING"
 
-if [ -f "$HOME/.photobooth/device-token" ]; then
-  echo "  paired: yes"
+# The shared path, not a home directory: onboarding writes this as root and
+# the agent reads it as the login user, so it cannot live under either home.
+TOKEN="${PHOTOBOOTH_TOKEN_PATH:-/var/lib/photobooth/device-token}"
+if [ -f "$TOKEN" ]; then
+  echo "  paired: yes ($(stat -c %y "$TOKEN" | cut -d. -f1))"
+elif [ -f "$HOME/.photobooth/device-token" ] || sudo -n test -f /root/.photobooth/device-token 2>/dev/null; then
+  echo "  paired: token is in an OLD location — run npm run pi:setup to migrate it"
 else
   echo "  paired: no — run onboarding, or pair over SSH with a code from the app"
 fi
