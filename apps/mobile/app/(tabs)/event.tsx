@@ -386,10 +386,23 @@ function DeviceRow({
       ? (device.printerState.message ?? t('dashboard.notConnected'))
       : lastSeen(t, device.lastSeenAt)
 
+  /*
+   * A device that has stopped calling in is not healthy, however recently it
+   * was. The booth polls every 2 seconds and the print agent heartbeats every
+   * 10, so a minute of silence already means it is gone -- but a phone on
+   * venue wifi drops a beat now and then, and a dot that flickers red gets
+   * ignored. Two minutes is well past any blip and still fast enough to
+   * notice mid-party.
+   *
+   * Without this a booth last seen 36 hours ago showed green, which is the
+   * exact opposite of what this dot is for.
+   */
+  const silentFor = device.lastSeenAt ? Date.now() - new Date(device.lastSeenAt).getTime() : null
   const stale =
     device.pairingPending ||
     device.printerState?.state === 'stopped' ||
-    !device.lastSeenAt
+    silentFor === null ||
+    silentFor > 2 * 60_000
 
   if (confirming) {
     return (
