@@ -76,6 +76,25 @@ for old in /root/.photobooth/device-token "\$HOME/.photobooth/device-token"; do
 done
 
 echo
+echo "==> Making the setup network open its own page"
+# Without this the captive portal never appears. A phone tests for internet
+# by fetching a known URL, and on the setup network that name does not
+# resolve at all -- so the test fails, the phone decides there is no
+# internet, and says nothing. Answering every name with our own address is
+# what turns that silent failure into the "Sign in to network" sheet.
+#
+# NetworkManager reads this directory for the dnsmasq it runs behind a
+# shared connection, so it applies to our hotspot and to nothing else.
+sudo mkdir -p /etc/NetworkManager/dnsmasq-shared.d
+sudo tee /etc/NetworkManager/dnsmasq-shared.d/photolu-captive.conf >/dev/null <<'DNSMASQ'
+# Every lookup resolves to the Pi while the setup network is up.
+address=/#/192.168.4.1
+# There is no upstream to ask, and waiting for one to time out is what makes
+# a captive portal feel broken.
+no-resolv
+DNSMASQ
+
+echo
 echo "==> Installing the services"
 
 sudo tee /etc/systemd/system/photobooth-agent.service >/dev/null <<'UNIT'

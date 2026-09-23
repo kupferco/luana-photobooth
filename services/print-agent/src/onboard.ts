@@ -156,21 +156,45 @@ async function handler(req: IncomingMessage, res: ServerResponse): Promise<void>
   /*
    * Captive-portal probes.
    *
-   * Phones decide whether a network has internet by fetching a known URL and
-   * checking the answer. Redirecting these is what makes the setup page open
-   * by itself. It is unreliable across platforms -- iOS uses a restricted
-   * webview, Android may offer to leave the network -- so the printed
-   * instruction to visit the address directly is the path that always works.
+   * A phone decides whether a network has internet by fetching a known URL
+   * over plain HTTP and checking the answer is exactly what it expects.
+   * Getting the wrong answer is precisely what makes the "Sign in to
+   * network" sheet appear, so being wrong here is the whole feature.
+   *
+   *   iOS/macOS  http://captive.apple.com/hotspot-detect.html
+   *              wants a body of exactly "<HTML>...Success...</HTML>"
+   *   Android    http://connectivitycheck.gstatic.com/generate_204
+   *              wants 204 with an empty body
+   *   Windows    http://www.msftconnecttest.com/connecttest.txt
+   *              wants the body "Microsoft Connect Test"
+   *
+   * Two things must both be true. The request has to reach us at all, which
+   * needs dnsmasq answering every name with our own address -- pi-setup.sh
+   * installs that, and without it these handlers never run, because the
+   * lookup simply fails and the phone concludes there is no internet and
+   * says nothing.
+   *
+   * And the answer has to be wrong in the way each platform recognises. iOS
+   * gets the setup page itself, because its Captive Network Assistant shows
+   * whatever came back -- a redirect works less reliably there. Android and
+   * Windows get a redirect, because they want a specific status and then
+   * open the location they are handed.
    */
+  const probe = url.pathname.toLowerCase()
+
+  if (probe === '/hotspot-detect.html' || probe === '/library/test/success.html') {
+    send(res, 200, setupPage({ networks, error: lastError }))
+    return
+  }
+
   if (
-    url.pathname === '/generate_204' ||
-    url.pathname === '/gen_204' ||
-    url.pathname === '/hotspot-detect.html' ||
-    url.pathname === '/ncsi.txt' ||
-    url.pathname === '/connecttest.txt' ||
-    url.pathname.startsWith('/redirect')
+    probe === '/generate_204' ||
+    probe === '/gen_204' ||
+    probe === '/ncsi.txt' ||
+    probe === '/connecttest.txt' ||
+    probe.startsWith('/redirect')
   ) {
-    res.writeHead(302, { location: `http://${req.headers.host ?? HOTSPOT_ADDRESS}/` })
+    res.writeHead(302, { location: `http://${HOTSPOT_ADDRESS}/` })
     res.end()
     return
   }
