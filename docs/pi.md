@@ -46,6 +46,7 @@ Against the Pi:
 ```bash
 npm run pi:setup     # once per Pi: Node, CUPS, systemd unit
 npm run pi:deploy    # build, rsync, restart — a few seconds
+npm run pi:printer   # SELPHY driver + CUPS queue (run once, then again with it plugged in)
 npm run pi:status    # power, wifi, agent, printer, last 15 log lines
 npm run pi:logs      # journalctl -f
 ```
@@ -119,6 +120,22 @@ place anybody will find out, and a silent failure at a party is the worst
 kind.
 
 **`Restart=always`.** Six hours, nobody watching.
+
+**The packaged Gutenprint cannot drive a CP1500.** Debian 13 ships 5.3.4 built
+from a 2022-06-24 snapshot, and the newest SELPHY in it is the CP910 from
+2014 -- CP1500 support landed upstream on 2022-10-10, four months later.
+There is no trixie backport. Debian testing's 2026-02-01 build does know it
+and its dependencies are already satisfied on trixie, so `pi:printer` fetches
+three .debs rather than compiling anything on a Pi 3. It verifies the package
+mentions the CP1500 *before* installing it.
+
+**ipp-usb has to be masked.** It is installed and udev-activated, so it claims
+the printer's USB interface the moment it appears and Gutenprint can never
+reach it. The symptom is a printer that is visibly present and completely
+unreachable. We are not using the driverless AirPrint-over-USB path it exists
+for: the packaged ipp-usb is 0.9.23 and the CP1500 wants 0.9.24+, and that
+route reportedly depends on the printer's own wifi -- one more thing to fail
+at a party.
 
 **Passwordless sudo covers starting and stopping, nothing else.** Reading is
 not in the rule because it does not need to be: `systemctl status` is
