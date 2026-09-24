@@ -29,6 +29,14 @@ import {
 import { SessionCard } from '../../src/ui/SessionCard'
 
 /**
+ * Where a guest link points. Baked in per environment at build time, exactly
+ * as the booth's QR code is, so a staging dashboard cannot hand out links to
+ * production.
+ */
+const GUEST_BASE = process.env.EXPO_PUBLIC_GUEST_URL ?? 'http://localhost:5173'
+const guestUrl = (joinCode: string) => `${GUEST_BASE}/${joinCode}`
+
+/**
  * The owner's view during a party: is it working, what has it made, and the
  * two things they will actually reach for -- reprint, and download everything
  * before it expires.
@@ -51,6 +59,18 @@ export default function EventTab() {
   const [removing, setRemoving] = useState<string | null>(null)
   const [pairing, setPairing] = useState<{ code: string; expiresAt: string } | null>(null)
   const [pairingBusy, setPairingBusy] = useState(false)
+  /**
+   * Setup is collapsed once there is anything set up.
+   *
+   * Pairing a printer and choosing a booth phone happen once, before the
+   * party. Leaving that open for the next six hours repeats information that
+   * has stopped being the point -- during an event the only things that
+   * matter are the two dots above it.
+   *
+   * Open by default when nothing is paired, because then it *is* the point.
+   */
+  const [setupOpen, setSetupOpen] = useState<boolean | null>(null)
+  const [sharedLink, setSharedLink] = useState(false)
   const [downloading, setDownloading] = useState(false)
   const [downloadNote, setDownloadNote] = useState<string | null>(null)
 
@@ -154,6 +174,7 @@ export default function EventTab() {
   }
 
   const ready = sessions.filter((s) => s.status === 'ready')
+  const open = setupOpen ?? devices.length === 0
   const expiring = daysRemaining(new Date(event.retentionUntil))
 
   return (
@@ -169,12 +190,7 @@ export default function EventTab() {
             <Stat label={t('dashboard.inQueue')} value={String(stats.queueDepth)} />
             <Stat label={t('dashboard.photosTaken')} value={String(stats.sessionsToday)} />
           </Row>
-          <Health
-            label={t('dashboard.booth')}
-            ok={stats.boothOnline}
-            okText={t('dashboard.connected')}
-            badText={t('dashboard.notConnected')}
-          />
+          <Health label={t('dashboard.booth')} ok={stats.boothOnline} />
           {/* Ready means ready to print, which 'unknown' is not: a Pi that is
               online with no printer attached was reporting "Ready" and would
               have been believed right up until someone pressed Print. */}
@@ -184,8 +200,13 @@ export default function EventTab() {
               stats.agentOnline &&
               (stats.printer?.state === 'idle' || stats.printer?.state === 'printing')
             }
-            okText={stats.printer?.state === 'printing' ? t('dashboard.printing') : t('dashboard.ready')}
-            badText={stats.printer?.message ?? t('dashboard.notConnected')}
+            detail={
+              stats.printer?.state === 'printing'
+                ? t('dashboard.printing')
+                : stats.agentOnline
+                  ? (stats.printer?.message ?? null)
+                  : null
+            }
           />
         </Card>
       ) : null}
@@ -235,9 +256,18 @@ export default function EventTab() {
           phone it is and lets them have it back. */}
       {event.status !== 'ended' ? (
         <Card>
-          <Label>{t('dashboard.devices')}</Label>
+          <Pressable
+            onPress={() => setSetupOpen((open) => !(open ?? devices.length === 0))}
+            style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
+            hitSlop={8}
+          >
+            <Label>{t('dashboard.setup')}</Label>
+            <Text style={{ color: theme.color.text.secondary, fontSize: theme.fontSize.sm }}>
+              {open ? t('dashboard.hideSetup') : t('dashboard.showSetup')}
+            </Text>
+          </Pressable>
 
-          {devices.length === 0 ? (
+          {!open ? null : devices.length === 0 ? (
             <Body muted>{t('dashboard.noDevices')}</Body>
           ) : (
             devices.map((device) => (
@@ -253,13 +283,13 @@ export default function EventTab() {
             ))
           )}
 
-          {devices.some((d) => d.kind === 'booth') ? (
+          {open && devices.some((d) => d.kind === 'booth') ? (
             <Body muted>{t('dashboard.devicesHint')}</Body>
           ) : null}
 
           {/* The code is what a headless Pi authenticates with, so there has
               to be a way to mint one without an SSH session. */}
-          {pairing ? (
+          {open && pairing ? (
             <View style={{ gap: 4, paddingTop: 8 }}>
               <Label>{t('dashboard.pairingCode')}</Label>
               <Text
@@ -278,6 +308,7 @@ export default function EventTab() {
             </View>
           ) : null}
 
+          {open ? (
           <Button
             label={t('dashboard.connectPrinter')}
             variant="secondary"
@@ -294,23 +325,62 @@ export default function EventTab() {
               }
             }}
           />
+          ) : null}
         </Card>
       ) : null}
 
       <Card>
-        <Label>{t('dashboard.qrTitle')}</Label>
+        {/*
+          * The link, not the code.
+          *
+          * This used to show the join code in 34pt with nothing to do with
+          * it -- no link, no QR, despite being labelled "Guest QR code". A
+          * code alone asks someone to write six characters down and then
+          * work out where to type them, which is a puzzle, not an
+          * invitation. What people actually want is something they can send.
+          *
+          * The code stays, small, because it is the fallback when a camera
+          * will not scan and the one thing that can be read aloud across a
+          * room.
+          */}
+        <Label>{t('dashboard.guestLink')}</Label>
         <Text
+          selectable
           style={{
             color: theme.color.text.primary,
-            fontSize: theme.fontSize['3xl'],
-            fontWeight: '700',
-            letterSpacing: 6,
+            fontSize: theme.fontSize.md,
+            fontWeight: '600',
+          }}
+          numberOfLines={1}
+        >
+          {guestUrl(event.joinCode)}
+        </Text>
+        <Body muted>{t('dashboard.guestLinkHint')}</Body>
+        <Button
+          label={sharedLink ? t('dashboard.linkShared') : t('dashboard.share')}
+          variant="secondary"
+          onPress={async () => {
+            const outcome = await shareLink(
+              guestUrl(event.joinCode),
+              event.name,
+              t('dashboard.guestLinkHint'),
+            )
+            if (outcome !== 'dismissed') {
+              setSharedLink(true)
+              setTimeout(() => setSharedLink(false), 2000)
+            }
+          }}
+        />
+        <Text
+          selectable
+          style={{
+            color: theme.color.text.secondary,
+            fontSize: theme.fontSize.xs,
             textAlign: 'center',
           }}
         >
-          {event.joinCode}
+          {t('dashboard.orCode', { code: event.joinCode })}
         </Text>
-<Body muted>{t('dashboard.qrHint')}</Body>
       </Card>
 
       {event.status === 'draft' ? (
@@ -541,16 +611,25 @@ function Stat({ label, value }: { label: string; value: string }) {
   )
 }
 
+/**
+ * One piece of hardware, at a glance.
+ *
+ * The dot carries the state and the label says what it is. No "Connected"
+ * beside a green dot and no "Not connected" beside a red one: that is the
+ * same fact stated twice, and a screen of red words reads as alarm when most
+ * of it is only information.
+ *
+ * `detail` is for what a dot cannot say. "Out of paper" earns the room;
+ * "Ready" does not.
+ */
 function Health({
   label,
   ok,
-  okText,
-  badText,
+  detail,
 }: {
   label: string
   ok: boolean
-  okText: string
-  badText: string
+  detail?: string | null
 }) {
   const theme = useTheme()
   return (
@@ -563,18 +642,17 @@ function Health({
           backgroundColor: ok ? theme.color.status.good : theme.color.status.bad,
         }}
       />
-      <Text style={{ color: theme.color.text.secondary, fontSize: theme.fontSize.sm, width: 70 }}>
+      <Text style={{ color: theme.color.text.primary, fontSize: theme.fontSize.sm }}>
         {label}
       </Text>
-      <Text
-        style={{
-          color: ok ? theme.color.text.primary : theme.color.status.bad,
-          fontSize: theme.fontSize.sm,
-          fontWeight: ok ? '400' : '600',
-        }}
-      >
-        {ok ? okText : badText}
-      </Text>
+      {detail ? (
+        <Text
+          style={{ color: theme.color.text.secondary, fontSize: theme.fontSize.sm, flex: 1 }}
+          numberOfLines={1}
+        >
+          {detail}
+        </Text>
+      ) : null}
     </Row>
   )
 }
