@@ -106,9 +106,27 @@ async function handle(job: { id: string; code: string; url: string }): Promise<v
   }
 }
 
+/**
+ * Last state reported, so changes can be logged and repeats cannot.
+ *
+ * The state was only ever logged at startup, so the journal for a six-hour
+ * party said what the printer was doing at 3pm and nothing after. "Out of
+ * paper at 21:34" is exactly the line you want when working out why prints
+ * stopped, and logging every beat would bury it under 2,000 identical ones.
+ */
+let lastReported: string | null = null
+
 async function heartbeat(): Promise<void> {
   try {
-    await api.heartbeat(await status(PRINTER))
+    const current = await status(PRINTER)
+    const summary = JSON.stringify(current)
+
+    if (summary !== lastReported) {
+      log(`printer reports: ${summary}`)
+      lastReported = summary
+    }
+
+    await api.heartbeat(current)
   } catch {
     // Offline. The next one will get through; nothing here depends on it.
   }
@@ -133,7 +151,6 @@ async function main(): Promise<void> {
   }
 
   log(`agent starting — printer ${PRINTER}`)
-  log(`printer reports: ${JSON.stringify(await status(PRINTER))}`)
 
   // Anything left over from a previous run belongs to a party that has
   // finished; printing it now would waste paper on yesterday's photos.

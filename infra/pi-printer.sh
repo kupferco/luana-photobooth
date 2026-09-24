@@ -122,7 +122,7 @@ if ! lsusb | grep -qi canon; then
 fi
 lsusb | grep -i canon | sed 's/^/    /'
 
-# `|| true` on both: a grep that matches nothing must reach the diagnostic
+# \`|| true\` on both: a grep that matches nothing must reach the diagnostic
 # below, not kill the script through pipefail before it can report anything.
 URI=\$(lpinfo -v 2>&1 | grep -i 'selphy\|canon' | grep -i usb | head -1 | awk '{print \$2}' || true)
 MODEL=\$(lpinfo -m 2>&1 | grep -i 'CP1500' | head -1 | awk '{print \$1}' || true)
