@@ -102,6 +102,19 @@ else
 fi
 
 echo
+echo "==> Installing a JPEG decoder"
+# CUPS' own imagetoraster links libjpeg and still cannot decode a JPEG on
+# this build -- it reports "The print file could not be opened", exits 0 and
+# emits nothing, so Gutenprint renders zero bytes and the backend cancels the
+# job. PNG and PNM go through the same filter perfectly. djpeg converts the
+# montage before it is submitted; see decodeForCups in the agent.
+if command -v djpeg >/dev/null; then
+  echo "    djpeg already installed"
+else
+  sudo apt-get install -y libjpeg-turbo-progs
+fi
+
+echo
 echo "==> Getting ipp-usb out of the way"
 # Masked, not removed: reversible with 'systemctl unmask', and removing it
 # would drag cups-daemon's recommendations around.
