@@ -74,6 +74,31 @@ agentRoutes.get('/jobs/next', async (req, res, next) => {
      * than waiting behind it. Two printers then drain the queue in parallel,
      * which is the point of having two.
      */
+    /*
+     * Resolve prints whose photos have since been deleted.
+     *
+     * The claim below excludes them, correctly -- a guest who asked for their
+     * photos to be removed must not have one appear from a printer days
+     * later. But excluding them left the job 'queued' for ever, looking to
+     * anyone reading the table like a print that never happened rather than
+     * one that was deliberately abandoned.
+     *
+     * Cheap, and it runs here because this is the only place that looks at
+     * the queue often enough to keep it tidy.
+     */
+    await db.execute(sql`
+      UPDATE print_jobs pj
+         SET status = 'failed',
+             error = 'The photos were deleted before this could print.',
+             updated_at = now()
+        FROM sessions s
+       WHERE s.id = pj.session_id
+         AND pj.tenant_id = ${tenantId}
+         AND s.event_id = ${eventId}
+         AND pj.status = 'queued'
+         AND s.deleted_at IS NOT NULL
+    `)
+
     const claimed = await db.execute(sql`
       UPDATE print_jobs
          SET status = 'sent',
