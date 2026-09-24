@@ -82,7 +82,7 @@
     "stopBoothHint": "The party keeps running. Any phone can take over as the booth.",
     "unpairPrinter": "Unpair printer",
     "unpairPrinterConfirm": "Unpair this printer?",
-    "unpairPrinterHint": "Photos already printed are kept. Pair it again with a new code.",
+    "unpairPrinterHint": "It will leave your wifi and offer its “PhotoLu-Setup” network again, so you will need to set it up from scratch. Photos already printed are kept. To use it at a different party, go back and add it there instead.",
     "lastSeenJustNow": "Active just now",
     "lastSeenMinutes": "Last seen {count}m ago",
     "lastSeenHours": "Last seen {count}h ago",

@@ -82,7 +82,7 @@
     "stopBoothHint": "A festa continua. Qualquer celular pode assumir como cabine.",
     "unpairPrinter": "Desconectar impressora",
     "unpairPrinterConfirm": "Desconectar esta impressora?",
-    "unpairPrinterHint": "As fotos já impressas continuam salvas. Conecte de novo com um código novo.",
+    "unpairPrinterHint": "Ela vai sair do seu wifi e voltar a oferecer a rede “PhotoLu-Setup”, então você terá de configurá-la do zero. As fotos já impressas são mantidas. Para usá-la em outra festa, volte e adicione-a por lá.",
     "lastSeenJustNow": "Ativo agora",
     "lastSeenMinutes": "Visto há {count}min",
     "lastSeenHours": "Visto há {count}h",
