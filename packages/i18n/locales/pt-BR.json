@@ -105,7 +105,9 @@
     "guestLink": "Link para convidados",
     "guestLinkHint": "Envie para seus convidados. Eles também podem escanear o QR code na tela da cabine.",
     "orCode": "ou código {code}",
-    "linkShared": "Compartilhado"
+    "linkShared": "Compartilhado",
+    "viewPhoto": "Ver foto",
+    "tapToClose": "Toque em qualquer lugar para fechar"
   },
   "retention": {
     "guest": "Suas fotos ficam guardadas até {date}.",

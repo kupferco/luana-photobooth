@@ -1,5 +1,6 @@
 import { Tabs } from 'expo-router'
-import { Platform, Text, View, type ColorValue } from 'react-native'
+import { Platform, Text, View } from 'react-native'
+import { CameraIcon, HomeIcon, PersonIcon } from '../../src/ui/icons'
 import { useT } from '../../src/locale'
 import { useTheme } from '../../src/theme'
 
@@ -10,6 +11,10 @@ import { useTheme } from '../../src/theme'
  * Event sits in the middle and is drawn larger because it is the only tab
  * someone touches during a party, often at arm's length while holding
  * something else. The other two are for before and after.
+ *
+ * The icons are drawn with react-native-svg, which is already here for the
+ * QR code. Plain dots were used first and read as decoration rather than
+ * navigation -- nobody could tell what either one led to.
  *
  * Booth mode deliberately lives outside this layout: it needs the whole
  * screen with no chrome, and a tab bar underneath it would be something to
@@ -39,7 +44,7 @@ export default function TabsLayout() {
         name="index"
         options={{
           title: t('nav.home'),
-          tabBarIcon: ({ color }) => <Dot color={color} />,
+          tabBarIcon: ({ color }) => <HomeIcon color={color} />,
         }}
       />
       <Tabs.Screen
@@ -54,18 +59,10 @@ export default function TabsLayout() {
         name="profile"
         options={{
           title: t('nav.profile'),
-          tabBarIcon: ({ color }) => <Dot color={color} />,
+          tabBarIcon: ({ color }) => <PersonIcon color={color} />,
         }}
       />
     </Tabs>
-  )
-}
-
-function Dot({ color }: { color: ColorValue }) {
-  return (
-    <View
-      style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: color }}
-    />
   )
 }
 
@@ -90,11 +87,16 @@ function EventButton({ focused }: { focused: boolean }) {
         borderColor: theme.color.surface.raised,
       }}
     >
+      <CameraIcon
+        color={focused ? theme.color.action.fg : theme.color.text.primary}
+        size={26}
+      />
       <Text
         style={{
           color: focused ? theme.color.action.fg : theme.color.text.primary,
-          fontSize: theme.fontSize.xs,
+          fontSize: 10,
           fontWeight: '700',
+          marginTop: 1,
         }}
       >
         {t('nav.event')}

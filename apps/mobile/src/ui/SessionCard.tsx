@@ -1,5 +1,5 @@
 import { memo, useState } from 'react'
-import { Image, Text, TextInput, View } from 'react-native'
+import { Image, Modal, Pressable, Text, TextInput, useWindowDimensions, View } from 'react-native'
 import type { GallerySession } from '../api'
 import { useLocale, useT } from '../locale'
 import { useTheme } from '../theme'
@@ -72,6 +72,8 @@ export const SessionCard = memo(function SessionCard({
     }
   })()
 
+  const [zoomed, setZoomed] = useState(false)
+  const { width: screenW, height: screenH } = useWindowDimensions()
   const [busy, setBusy] = useState<'print' | 'email' | 'share' | null>(null)
   const [emailing, setEmailing] = useState(false)
   const [to, setTo] = useState('')
@@ -119,19 +121,69 @@ export const SessionCard = memo(function SessionCard({
     }
   }
 
+  /*
+   * The montage is 3:2 landscape. Rather than telling anyone to rotate their
+   * phone, the image is simply fitted to whatever shape the screen is now --
+   * turning it is something people do without being asked, and the layout
+   * follows because useWindowDimensions re-renders on rotation.
+   */
+  const viewW = Math.min(screenW - 32, (screenH - 140) * 1.5)
+
   return (
     <Card>
+      <Modal
+        visible={zoomed}
+        transparent
+        animationType="fade"
+        supportedOrientations={['portrait', 'landscape']}
+        onRequestClose={() => setZoomed(false)}
+      >
+        {/* The whole backdrop dismisses: a close button is one more thing to
+            aim at on a photo someone is holding up to show a friend. */}
+        <Pressable
+          onPress={() => setZoomed(false)}
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.92)',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 16,
+          }}
+        >
+          {session.montageUrl ? (
+            <Image
+              source={{ uri: session.montageUrl }}
+              resizeMode="contain"
+              style={{ width: viewW, height: viewW / 1.5, borderRadius: t.radius.sm }}
+            />
+          ) : null}
+          <Text
+            style={{
+              color: 'rgba(255,255,255,0.6)',
+              fontSize: t.fontSize.sm,
+              marginTop: 16,
+            }}
+          >
+            {tr('dashboard.tapToClose')}
+          </Text>
+        </Pressable>
+      </Modal>
+
       <Row>
         {session.montageUrl ? (
-          <Image
-            source={{ uri: session.montageUrl }}
-            style={{
-              width: 90,
-              height: 60,
-              borderRadius: t.radius.sm,
-              backgroundColor: t.color.surface.sunken,
-            }}
-          />
+          /* A 90x60 thumbnail is enough to recognise a photo and not enough
+             to look at one. Tapping opens it as large as the screen allows. */
+          <Pressable onPress={() => setZoomed(true)} accessibilityLabel={tr('dashboard.viewPhoto')}>
+            <Image
+              source={{ uri: session.montageUrl }}
+              style={{
+                width: 90,
+                height: 60,
+                borderRadius: t.radius.sm,
+                backgroundColor: t.color.surface.sunken,
+              }}
+            />
+          </Pressable>
         ) : (
           <View
             style={{

@@ -371,16 +371,15 @@ export default function EventTab() {
             }
           }}
         />
-        <Text
-          selectable
-          style={{
-            color: theme.color.text.secondary,
-            fontSize: theme.fontSize.xs,
-            textAlign: 'center',
-          }}
-        >
-          {t('dashboard.orCode', { code: event.joinCode })}
-        </Text>
+        {/*
+          * The join code is deliberately not here.
+          *
+          * It is shown on the booth screen, beside the QR, to the people who
+          * might need to type it. On the owner's dashboard it answered no
+          * question anyone was asking -- there was nowhere for *them* to use
+          * it -- and a six-character code with no destination reads as a
+          * puzzle. The link is the thing to hand out.
+          */}
       </Card>
 
       {event.status === 'draft' ? (
