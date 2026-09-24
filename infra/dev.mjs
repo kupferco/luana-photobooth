@@ -57,4 +57,19 @@ const env = {
  * phones to localhost.
  */
 
-spawn('npx', ['turbo', 'run', 'dev'], { stdio: 'inherit', env })
+/*
+ * The print agent is deliberately excluded.
+ *
+ * It belongs on the Pi, where systemd runs it with an env file describing
+ * which API and which printer. There is no such file on a laptop, so it
+ * exited immediately -- and because turbo treats any failing task as a
+ * failed run, it took the API, the guest page and the booth down with it.
+ * Three working services stopped by one that was never meant to be here.
+ *
+ * `npm run agent` still runs it locally when that is actually wanted.
+ */
+spawn(
+  'npx',
+  ['turbo', 'run', 'dev', '--filter=!@photobooth/print-agent'],
+  { stdio: 'inherit', env },
+)
