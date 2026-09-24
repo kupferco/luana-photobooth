@@ -289,6 +289,15 @@ export const fixtureApi: PhotoboothApi = {
     return fixtureDevices.filter((d) => !removedDevices.has(d.id))
   },
 
+  async listAllDevices() {
+    await delay()
+    return fixtureDevices.filter((d) => !removedDevices.has(d.id))
+  },
+
+  async moveDevice() {
+    await delay()
+  },
+
   async removeDevice(_tenantId, deviceId) {
     await delay()
     removedDevices.add(deviceId)

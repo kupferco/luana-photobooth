@@ -8,6 +8,7 @@ import {
   createDevice,
   getEvent,
   listDevices,
+  moveDevice,
   nextDeviceLabel,
   revokeDevice,
 } from '../db/repo'
@@ -220,6 +221,48 @@ deviceRoutes.get('/', async (req, res, next) => {
         printerState: d.printerState,
       })),
     })
+  } catch (e) {
+    return next(e)
+  }
+})
+
+const MoveBody = z.object({
+  tenantId: z.string().uuid(),
+  eventId: z.string().uuid(),
+})
+
+/**
+ * Point an existing printer at another event.
+ *
+ * The hotspot flow exists for a printer nobody can reach. One already on the
+ * network and paired to this tenant needs none of it -- no code, no setup
+ * page, no swapping wifi. It is the same box; only the party changed.
+ */
+deviceRoutes.patch('/:deviceId', async (req, res, next) => {
+  try {
+    const body = MoveBody.safeParse(req.body)
+    if (!body.success) {
+      return res.status(400).json({
+        error: { code: 'invalid_request', message: 'tenantId and eventId are required.' },
+      })
+    }
+    requireTenant(req, body.data.tenantId)
+
+    const event = await getEvent(body.data.tenantId, body.data.eventId)
+    if (!event) {
+      return res.status(404).json({ error: { code: 'not_found', message: 'Not found' } })
+    }
+
+    const device = await moveDevice(
+      body.data.tenantId,
+      req.params.deviceId!,
+      body.data.eventId,
+    )
+    if (!device) {
+      return res.status(404).json({ error: { code: 'not_found', message: 'Not found' } })
+    }
+
+    return res.status(204).end()
   } catch (e) {
     return next(e)
   }

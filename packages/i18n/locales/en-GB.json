@@ -115,7 +115,13 @@
     "pairStep1": "Plug the printer box in and turn the printer on.",
     "pairStep2": "On this phone, join the wifi network starting “PhotoLu-Setup”. It has no password.",
     "pairStep3": "A setup page opens by itself. If it does not, go to 192.168.4.1",
-    "pairStep4": "Choose your wifi, enter its password, and paste the code above."
+    "pairStep4": "Choose your wifi, enter its password, and paste the code above.",
+    "tapToCopy": "Tap to copy",
+    "codeCopied": "Copied",
+    "wifiWarning": "Have your wifi password to hand before you start. Once you join the printer’s network you will need to type it, and leaving to look it up closes the setup page.",
+    "movePrinter": "Use a printer from another event",
+    "movePrinterHint": "Already set up and on your wifi. No code needed — it just changes which party it prints for.",
+    "useHere": "Use here"
   },
   "retention": {
     "guest": "Your photos are saved until {date}.",

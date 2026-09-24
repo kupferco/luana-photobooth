@@ -292,6 +292,18 @@ export const liveApi: PhotoboothApi = {
     return result.devices
   },
 
+  async listAllDevices(tenantId) {
+    const result = await request<{ devices: Device[] }>(
+      'GET',
+      `/devices?tenantId=${encodeURIComponent(tenantId)}`,
+    )
+    return result.devices
+  },
+
+  async moveDevice(tenantId, deviceId, eventId) {
+    await request<void>('PATCH', `/devices/${deviceId}`, { tenantId, eventId })
+  },
+
   async removeDevice(tenantId, deviceId) {
     await request<void>(
       'DELETE',

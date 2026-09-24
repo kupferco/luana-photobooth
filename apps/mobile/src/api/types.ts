@@ -121,6 +121,17 @@ export interface PhotoboothApi {
   /** Booths and printers attached to this event. */
   listDevices(tenantId: string, eventId: string): Promise<Device[]>
 
+  /** Every device this tenant owns, whichever event it is attached to. */
+  listAllDevices(tenantId: string): Promise<Device[]>
+
+  /**
+   * Points an existing printer at another event.
+   *
+   * No pairing code: a printer already on the network and already paired to
+   * this tenant needs nothing re-authenticated. Only the party changes.
+   */
+  moveDevice(tenantId: string, deviceId: string, eventId: string): Promise<void>
+
   /**
    * Stops a booth, or unpairs a printer.
    *

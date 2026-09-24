@@ -323,6 +323,32 @@ export async function clearUnclaimedPairings(
 }
 
 /**
+ * Moves an already-paired device to another event.
+ *
+ * A printer that is on the network and paired does not broadcast a setup
+ * network -- correctly, since taking the radio would disconnect a working
+ * machine to solve a problem it does not have. But that left no way at all
+ * to use last week's printer at this week's party: the pairing instructions
+ * describe a hotspot that will never appear, and the only route was SSH.
+ *
+ * The device already exists and already belongs to this tenant, so there is
+ * nothing to authenticate again. Only the event it serves changes, and its
+ * token keeps working.
+ */
+export async function moveDevice(
+  tenantId: string,
+  deviceId: string,
+  eventId: string,
+) {
+  const [row] = await db
+    .update(devices)
+    .set({ eventId, updatedAt: new Date() })
+    .where(and(eq(devices.tenantId, tenantId), eq(devices.id, deviceId)))
+    .returning()
+  return row ?? null
+}
+
+/**
  * Revokes a device by deleting it.
  *
  * This is how a booth is stopped and how a printer is unpaired. There is no

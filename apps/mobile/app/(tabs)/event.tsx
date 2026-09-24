@@ -12,6 +12,7 @@ import {
 import { useLocale, useT } from '../../src/locale'
 import { useActiveEvent } from '../../src/event-context'
 import { useSession } from '../../src/session'
+import { copy } from '../../src/clipboard'
 import { saveZip } from '../../src/download'
 import { shareLink } from '../../src/share'
 import { useTheme } from '../../src/theme'
@@ -53,6 +54,8 @@ export default function EventTab() {
   const [stats, setStats] = useState<EventLiveStats | null>(null)
   const [sessions, setSessions] = useState<GallerySession[] | null>(null)
   const [devices, setDevices] = useState<Device[]>([])
+  const [elsewhere, setElsewhere] = useState<Device[]>([])
+  const [moving, setMoving] = useState<string | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   /** Which device is mid-confirmation, and which is being removed. */
   const [confirming, setConfirming] = useState<string | null>(null)
@@ -70,6 +73,7 @@ export default function EventTab() {
    * Open by default when nothing is paired, because then it *is* the point.
    */
   const [setupOpen, setSetupOpen] = useState<boolean | null>(null)
+  const [copied, setCopied] = useState(false)
   const [endingConfirm, setEndingConfirm] = useState(false)
   const [ending, setEnding] = useState(false)
   const [sharedLink, setSharedLink] = useState(false)
@@ -79,16 +83,24 @@ export default function EventTab() {
   const load = useCallback(async () => {
     if (!tenantId || !id) return
     try {
-      const [e, s, list, connected] = await Promise.all([
+      const [e, s, list, connected, all] = await Promise.all([
         api.getEvent(tenantId, id),
         api.eventStats(tenantId, id),
         api.listSessions(tenantId, id),
         api.listDevices(tenantId, id),
+        api.listAllDevices(tenantId),
       ])
       setEvent(e)
       setStats(s)
       setDevices((previous) =>
         JSON.stringify(previous) === JSON.stringify(connected) ? previous : connected,
+      )
+
+      // Paired printers belonging to some other party. Offering these is the
+      // only route to reusing a printer that is already on the wifi, because
+      // such a box never broadcasts a setup network.
+      setElsewhere(
+        all.filter((d) => d.kind === 'agent' && d.paired && d.eventId !== id),
       )
 
       // A code that has been spent, replaced or expired is worse than
@@ -305,18 +317,40 @@ export default function EventTab() {
             <View style={{ gap: 10, paddingTop: 12 }}>
               <Label>{t('dashboard.pairingCode')}</Label>
 
-              <Text
-                selectable
-                style={{
-                  color: theme.color.text.primary,
-                  fontSize: theme.fontSize['2xl'],
-                  fontWeight: '700',
-                  letterSpacing: 5,
-                  textAlign: 'center',
+              {/* Tapping copies it: the next thing anyone does with this code
+                  is paste it into a page on another network, and retyping six
+                  characters after switching wifi is where mistakes happen. */}
+              <Pressable
+                onPress={async () => {
+                  if (await copy(pairing.code)) {
+                    setCopied(true)
+                    setTimeout(() => setCopied(false), 1800)
+                  }
                 }}
               >
-                {pairing.code}
-              </Text>
+                <Text
+                  selectable
+                  style={{
+                    color: theme.color.text.primary,
+                    fontSize: theme.fontSize['2xl'],
+                    fontWeight: '700',
+                    letterSpacing: 5,
+                    textAlign: 'center',
+                  }}
+                >
+                  {pairing.code}
+                </Text>
+                <Text
+                  style={{
+                    color: copied ? theme.color.status.good : theme.color.text.secondary,
+                    fontSize: theme.fontSize.xs,
+                    textAlign: 'center',
+                    marginTop: 2,
+                  }}
+                >
+                  {copied ? t('dashboard.codeCopied') : t('dashboard.tapToCopy')}
+                </Text>
+              </Pressable>
 
               <View style={{ gap: 8 }}>
                 {[
@@ -351,6 +385,75 @@ export default function EventTab() {
               </View>
 
               <Body muted>{t('dashboard.pairingCodeHint')}</Body>
+            </View>
+          ) : null}
+
+          {/*
+            * Said before they start, not after they are stuck.
+            *
+            * Joining the printer's network means leaving their own, and the
+            * setup page asks for the venue's wifi password. Going to fetch it
+            * from a password manager closes the page -- so the moment to
+            * mention it is now. We cannot read it for them: neither iOS nor
+            * Android exposes saved wifi passwords to an app, deliberately.
+            */}
+          {open && !pairing ? <Notice tone="warn">{t('dashboard.wifiWarning')}</Notice> : null}
+
+          {open && elsewhere.length > 0 ? (
+            <View style={{ gap: 6, paddingTop: 8 }}>
+              <Label>{t('dashboard.movePrinter')}</Label>
+              <Body muted>{t('dashboard.movePrinterHint')}</Body>
+              {elsewhere.map((device) => (
+                <View
+                  key={device.id}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 10,
+                    paddingVertical: 8,
+                  }}
+                >
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Text
+                      style={{
+                        color: theme.color.text.primary,
+                        fontSize: theme.fontSize.sm,
+                        fontWeight: '600',
+                      }}
+                      numberOfLines={1}
+                    >
+                      {device.label ?? t('dashboard.printer')}
+                    </Text>
+                    <Text
+                      style={{
+                        color: theme.color.text.secondary,
+                        fontSize: theme.fontSize.xs,
+                      }}
+                      numberOfLines={1}
+                    >
+                      {lastSeen(t, device.lastSeenAt)}
+                    </Text>
+                  </View>
+                  <View style={{ width: 96 }}>
+                    <Button
+                      label={t('dashboard.useHere')}
+                      variant="secondary"
+                      busy={moving === device.id}
+                      onPress={async () => {
+                        setMoving(device.id)
+                        try {
+                          await api.moveDevice(tenantId!, device.id, event.id)
+                          await load()
+                        } catch (err) {
+                          setLoadError(err instanceof Error ? err.message : String(err))
+                        } finally {
+                          setMoving(null)
+                        }
+                      }}
+                    />
+                  </View>
+                </View>
+              ))}
             </View>
           ) : null}
 
