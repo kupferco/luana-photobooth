@@ -118,6 +118,17 @@ async function apply(ssid: string, password: string, code: string): Promise<stri
     await saveToken(token)
     log('paired')
     finished = true
+
+    /*
+     * Nudge the agent so the printer appears in the app immediately.
+     *
+     * It would get there anyway -- it re-reads its token when a request is
+     * refused -- but that means one failed poll first, and the owner is
+     * watching the dashboard right now waiting for the printer to show up.
+     * Best effort: if this fails the agent still recovers on its own.
+     */
+    await restartAgent()
+
     exitSoon('paired')
     return null
   } catch (e) {
@@ -127,6 +138,18 @@ async function apply(ssid: string, password: string, code: string): Promise<stri
     // or run onboarding again -- which needs this process gone.
     exitSoon('wifi joined but pairing failed')
     return `Connected to ${ssid}, but the pairing code was not accepted. ${message}`
+  }
+}
+
+/** Best effort: the agent recovers by itself if this does not work. */
+async function restartAgent(): Promise<void> {
+  try {
+    const { execFile } = await import('node:child_process')
+    const { promisify } = await import('node:util')
+    await promisify(execFile)('systemctl', ['restart', 'photobooth-agent'])
+    log('restarted the print agent so it picks the new token up at once')
+  } catch (e) {
+    log('could not restart the agent; it will pick the token up on its next poll')
   }
 }
 

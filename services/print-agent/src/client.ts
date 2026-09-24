@@ -91,7 +91,7 @@ export async function saveToken(value: string): Promise<void> {
   cached = value
 }
 
-async function call<T>(method: string, path: string, body?: unknown): Promise<T> {
+async function call<T>(method: string, path: string, body?: unknown, retry = true): Promise<T> {
   const auth = await token()
   if (!auth) throw new Error('This printer is not paired.')
 
@@ -103,6 +103,32 @@ async function call<T>(method: string, path: string, body?: unknown): Promise<T>
     },
     body: body === undefined ? undefined : JSON.stringify(body),
   })
+
+  if (response.status === 401 && retry) {
+    /*
+     * The token on disk may simply be newer than the one in memory.
+     *
+     * The agent runs for months and reads its token once at startup. Pairing
+     * the Pi again writes a new one, and onboarding cannot restart a service
+     * it does not own -- so the agent carried on presenting a revoked token
+     * and reported it as "no longer paired with an event", while the
+     * dashboard showed the device correctly paired to a live event. The two
+     * views disagreed and both were telling the truth about different
+     * tokens.
+     *
+     * Re-reading costs one file read on a request that has already failed,
+     * and only once: a second 401 with a freshly read token means it really
+     * has been revoked.
+     */
+    const stale = cached
+    cached = null
+    const fresh = await token()
+
+    if (fresh && fresh !== stale) {
+      log('token changed on disk — the Pi was paired again; using the new one')
+      return call<T>(method, path, body, false)
+    }
+  }
 
   if (response.status === 401) {
     throw new Error('This printer is no longer paired with an event.')
