@@ -13,7 +13,14 @@ import {
 } from 'react-native'
 import { api, usingFixtures } from '../src/api'
 import { ApiError } from '../src/api/types'
-import { booth, isPaired, savePairing, uploadShot, type BoothPoll } from '../src/booth/client'
+import {
+  booth,
+  forgetPairing,
+  isPaired,
+  savePairing,
+  uploadShot,
+  type BoothPoll,
+} from '../src/booth/client'
 import { MontagePreview } from '../src/booth/MontagePreview'
 import { CameraView, type CameraRef, type CapturedShot } from '../src/camera'
 import { useActiveEvent } from '../src/event-context'
@@ -89,6 +96,8 @@ export default function Booth() {
    * standing at the tripod will think it broke.
    */
   const [stopped, setStopped] = useState(false)
+  /** Set when the stored pairing turned out to belong to another event. */
+  const [wrongEvent, setWrongEvent] = useState<string | null>(null)
 
   // A run in progress must not be interrupted by the poll loop starting
   // another, and the tap handler must not start a second sequence.
@@ -128,7 +137,19 @@ export default function Booth() {
     }
     setPairing(true)
     setStopped(false)
+    setWrongEvent(null)
     try {
+      /*
+       * Drop any previous pairing first.
+       *
+       * This phone may still hold a token from a different event -- last
+       * week's party, or one that has since ended. Claiming on top of that
+       * left the old token in place, so the booth polled the old event and
+       * announced that it had finished, while the owner was looking at a
+       * brand new one. Tapping "use this phone as the booth" means this
+       * event, now.
+       */
+      await forgetPairing()
       const result = await api.claimBooth(tenantId, active.id)
       await savePairing(result.token)
       setPaired(true)
@@ -150,6 +171,26 @@ export default function Booth() {
       try {
         const result = await booth.poll()
         if (cancelled) return
+
+        /*
+         * The token can outlive the event it was issued for.
+         *
+         * A phone paired to last week's party still authenticates perfectly;
+         * it is simply attached to the wrong thing. Without this the booth
+         * showed "this event has ended" while the owner had a live event
+         * open in the same app, with no hint that the two were different
+         * events and no way to act on it.
+         */
+        if (active && result.event.id !== active.id) {
+          running.current = false
+          await forgetPairing()
+          setPaired(false)
+          setPoll(null)
+          setWrongEvent(result.event.name)
+          setPhase({ kind: 'setup' })
+          return
+        }
+
         setPoll(result)
         setPhase((current) => (current.kind === 'setup' ? { kind: 'idle' } : current))
 
@@ -327,6 +368,12 @@ export default function Booth() {
           <Body>{active ? active.name : t('event.none')}</Body>
           <Body muted>{active ? t('booth.pairHint') : t('event.noneHint')}</Body>
         </Card>
+
+        {wrongEvent ? (
+          <Notice tone="warn">
+            {t('booth.wrongEvent', { event: wrongEvent })}
+          </Notice>
+        ) : null}
 
         {stopped ? <Notice tone="warn">{t('booth.stoppedByOwner')}</Notice> : null}
 

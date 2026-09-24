@@ -44,7 +44,8 @@
     },
     "start": "Começar o evento",
     "end": "Encerrar o evento",
-    "useAsBooth": "Usar este celular como cabine"
+    "useAsBooth": "Usar este celular como cabine",
+    "endConfirm": "Encerrar a festa? Os convidados não poderão mais tirar fotos e a cabine para. As fotos são mantidas."
   },
   "dashboard": {
     "rightNow": "Agora",
@@ -107,7 +108,8 @@
     "orCode": "ou código {code}",
     "linkShared": "Compartilhado",
     "viewPhoto": "Ver foto",
-    "tapToClose": "Toque em qualquer lugar para fechar"
+    "tapToClose": "Toque em qualquer lugar para fechar",
+    "guestLinkNotYet": "Inicie o evento antes de enviar — até lá o link não abre."
   },
   "retention": {
     "guest": "Suas fotos ficam guardadas até {date}.",
@@ -146,7 +148,8 @@
     "scanToTrigger": "Escaneie para tirar a foto pelo seu celular",
     "orEnterCode": "ou use o código {code}",
     "printSent": "Enviado para a impressora",
-    "stoppedByOwner": "Esta cabine foi encerrada pelo evento. Inicie de novo para continuar."
+    "stoppedByOwner": "Esta cabine foi encerrada pelo evento. Inicie de novo para continuar.",
+    "wrongEvent": "Este celular estava configurado para “{event}”. Usar neste evento?"
   },
   "guest": {
     "welcome": "Você está em {name}",

@@ -44,7 +44,8 @@
     },
     "start": "Start the event",
     "end": "End the event",
-    "useAsBooth": "Use this phone as the booth"
+    "useAsBooth": "Use this phone as the booth",
+    "endConfirm": "End the party? Guests can no longer take photos, and the booth stops. The photos are kept."
   },
   "dashboard": {
     "rightNow": "Right now",
@@ -107,7 +108,8 @@
     "orCode": "or code {code}",
     "linkShared": "Shared",
     "viewPhoto": "View photo",
-    "tapToClose": "Tap anywhere to close"
+    "tapToClose": "Tap anywhere to close",
+    "guestLinkNotYet": "Start the event before sending this — until then the link will not open."
   },
   "retention": {
     "guest": "Your photos are saved until {date}.",
@@ -146,7 +148,8 @@
     "scanToTrigger": "Scan to start from your own phone",
     "orEnterCode": "or use code {code}",
     "printSent": "Sent to the printer",
-    "stoppedByOwner": "This booth was stopped from the event. Start it again to carry on."
+    "stoppedByOwner": "This booth was stopped from the event. Start it again to carry on.",
+    "wrongEvent": "This phone was set up for “{event}”. Use it for this event instead?"
   },
   "guest": {
     "welcome": "You are at {name}",

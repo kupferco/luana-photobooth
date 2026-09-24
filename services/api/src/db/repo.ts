@@ -178,6 +178,37 @@ export async function softDeleteEvent(tenantId: string, eventId: string) {
 // Devices
 // ---------------------------------------------------------------------------
 
+/**
+ * A friendly name for the next device of this kind at an event.
+ *
+ * "Photo booth 2" tells the owner which of the two phones in the room they
+ * are about to stop. A uuid does not, and neither does three rows all
+ * labelled "Booth" -- which is what they got, and it made the stop button
+ * a coin flip.
+ *
+ * Numbered by how many exist rather than by position, so removing the first
+ * does not renumber the others out from under someone mid-party.
+ */
+export async function nextDeviceLabel(
+  tenantId: string,
+  eventId: string | null,
+  kind: 'booth' | 'agent',
+): Promise<string> {
+  const [row] = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(devices)
+    .where(
+      and(
+        eq(devices.tenantId, tenantId),
+        eq(devices.kind, kind),
+        eventId ? eq(devices.eventId, eventId) : isNull(devices.eventId),
+      ),
+    )
+
+  const next = (row?.n ?? 0) + 1
+  return kind === 'booth' ? `Photo booth ${next}` : `Printer ${next}`
+}
+
 export async function createDevice(
   tenantId: string,
   input: {

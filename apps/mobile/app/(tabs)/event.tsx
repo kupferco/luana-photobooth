@@ -70,6 +70,8 @@ export default function EventTab() {
    * Open by default when nothing is paired, because then it *is* the point.
    */
   const [setupOpen, setSetupOpen] = useState<boolean | null>(null)
+  const [endingConfirm, setEndingConfirm] = useState(false)
+  const [ending, setEnding] = useState(false)
   const [sharedLink, setSharedLink] = useState(false)
   const [downloading, setDownloading] = useState(false)
   const [downloadNote, setDownloadNote] = useState<string | null>(null)
@@ -344,6 +346,12 @@ export default function EventTab() {
           * room.
           */}
         <Label>{t('dashboard.guestLink')}</Label>
+        {/* The guest page looks the event up by join code and only finds live
+            ones, so sending this to anyone before the party starts hands them
+            a link that says the event does not exist. */}
+        {event.status === 'draft' ? (
+          <Notice tone="warn">{t('dashboard.guestLinkNotYet')}</Notice>
+        ) : null}
         <Text
           selectable
           style={{
@@ -359,6 +367,7 @@ export default function EventTab() {
         <Button
           label={sharedLink ? t('dashboard.linkShared') : t('dashboard.share')}
           variant="secondary"
+          disabled={event.status === 'draft'}
           onPress={async () => {
             const outcome = await shareLink(
               guestUrl(event.joinCode),
@@ -395,14 +404,39 @@ export default function EventTab() {
       {event.status === 'live' ? (
         <>
           <Button label={t('events.useAsBooth')} onPress={() => router.push('/booth')} />
-          <Button
-            label={t('events.end')}
-            variant="secondary"
-            onPress={async () => {
-              setEvent(await api.setEventStatus(tenantId!, event.id, 'ended'))
-              await refresh()
-            }}
-          />
+          {/* Ending is irreversible and sits directly under a button people
+              press all evening. One tap should not close a party. */}
+          {endingConfirm ? (
+            <>
+              <Notice tone="warn">{t('events.endConfirm')}</Notice>
+              <Button
+                label={t('events.end')}
+                variant="danger"
+                busy={ending}
+                onPress={async () => {
+                  setEnding(true)
+                  try {
+                    setEvent(await api.setEventStatus(tenantId!, event.id, 'ended'))
+                    await refresh()
+                  } finally {
+                    setEnding(false)
+                    setEndingConfirm(false)
+                  }
+                }}
+              />
+              <Button
+                label={t('common.cancel')}
+                variant="secondary"
+                onPress={() => setEndingConfirm(false)}
+              />
+            </>
+          ) : (
+            <Button
+              label={t('events.end')}
+              variant="secondary"
+              onPress={() => setEndingConfirm(true)}
+            />
+          )}
         </>
       ) : null}
 

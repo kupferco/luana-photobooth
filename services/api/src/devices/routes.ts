@@ -8,6 +8,7 @@ import {
   createDevice,
   getEvent,
   listDevices,
+  nextDeviceLabel,
   revokeDevice,
 } from '../db/repo'
 import { deviceToken, isWellFormedCode, normaliseCode, pairingCode } from '../lib/codes'
@@ -132,7 +133,9 @@ deviceRoutes.post('/pairing-code', async (req, res, next) => {
     const device = await createDevice(body.data.tenantId, {
       eventId: body.data.eventId ?? null,
       kind: 'agent',
-      label: body.data.label ?? 'Printer',
+      label:
+        body.data.label ??
+        (await nextDeviceLabel(body.data.tenantId, body.data.eventId ?? null, 'agent')),
       pairingCode: code,
       pairingExpiresAt: new Date(Date.now() + PAIRING_TTL_MINUTES * 60_000),
     })
@@ -179,7 +182,9 @@ deviceRoutes.post('/booth', async (req, res, next) => {
     const device = await createDevice(body.data.tenantId, {
       eventId: body.data.eventId,
       kind: 'booth',
-      label: body.data.label ?? 'Booth',
+      label:
+        body.data.label ??
+        (await nextDeviceLabel(body.data.tenantId, body.data.eventId, 'booth')),
       tokenHash: hashDeviceToken(token),
     })
 
