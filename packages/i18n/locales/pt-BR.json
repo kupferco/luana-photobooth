@@ -94,7 +94,11 @@
     "connectPrinter": "Conectar impressora",
     "pairingCode": "Código de pareamento",
     "pairingCodeHint": "Digite na página de configuração da impressora. Vale 15 minutos e funciona uma vez.",
-    "pairingCodeExpired": "Esse código expirou. Gere um novo."
+    "pairingCodeExpired": "Esse código expirou. Gere um novo.",
+    "printQueuedFor": "Esperando a impressora",
+    "printSending": "Enviando para a impressora",
+    "printInProgress": "Imprimindo…",
+    "printFailed": "A impressão falhou"
   },
   "retention": {
     "guest": "Suas fotos ficam guardadas até {date}.",

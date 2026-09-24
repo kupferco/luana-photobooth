@@ -94,7 +94,11 @@
     "connectPrinter": "Connect a printer",
     "pairingCode": "Pairing code",
     "pairingCodeHint": "Enter this on the printer setup page. It lasts 15 minutes and works once.",
-    "pairingCodeExpired": "That code has expired. Make a new one."
+    "pairingCodeExpired": "That code has expired. Make a new one.",
+    "printQueuedFor": "Waiting for the printer",
+    "printSending": "Sending to the printer",
+    "printInProgress": "Printing…",
+    "printFailed": "Print failed"
   },
   "retention": {
     "guest": "Your photos are saved until {date}.",

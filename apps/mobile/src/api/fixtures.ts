@@ -136,13 +136,26 @@ const MONTAGE =
 
 const SESSIONS: Record<string, GallerySession[]> = {
   'evt-live': [
-    { id: 's1', code: 'K3MQ7', status: 'ready', createdAt: iso(0), montageUrl: MONTAGE, printCount: 1, emailedTo: 'aunt@example.com' },
-    { id: 's2', code: 'B9XTN', status: 'ready', createdAt: iso(0), montageUrl: MONTAGE, printCount: 0, emailedTo: null },
-    { id: 's3', code: 'V2HPD', status: 'capturing', createdAt: iso(0), montageUrl: null, printCount: 0, emailedTo: null },
-    { id: 's4', code: 'Q8WRJ', status: 'queued', createdAt: iso(0), montageUrl: null, printCount: 0, emailedTo: null },
+    { id: 's1', code: 'K3MQ7', status: 'ready', createdAt: iso(0), montageUrl: MONTAGE, printCount: 1,
+      printStatus: 'printed',
+      printError: null, emailedTo: 'aunt@example.com' },
+    // Mid-print, so the progress line is visible in fixtures mode.
+    { id: 's2', code: 'B9XTN', status: 'ready', createdAt: iso(0), montageUrl: MONTAGE, printCount: 0,
+      printStatus: 'printing',
+      printError: null, emailedTo: null },
+    { id: 's3', code: 'V2HPD', status: 'capturing', createdAt: iso(0), montageUrl: null, printCount: 0,
+      printStatus: null,
+      printError: null, emailedTo: null },
+    { id: 's4', code: 'Q8WRJ', status: 'queued', createdAt: iso(0), montageUrl: null, printCount: 0,
+      printStatus: null,
+      printError: null, emailedTo: null },
     // A failure the owner has to be able to understand and act on.
-    { id: 's5', code: 'M4CKZ', status: 'failed', createdAt: iso(0), montageUrl: null, printCount: 0, emailedTo: null },
-    { id: 's6', code: 'T7NGB', status: 'ready', createdAt: iso(0), montageUrl: MONTAGE, printCount: 3, emailedTo: null },
+    { id: 's5', code: 'M4CKZ', status: 'failed', createdAt: iso(0), montageUrl: null, printCount: 0,
+      printStatus: null,
+      printError: null, emailedTo: null },
+    { id: 's6', code: 'T7NGB', status: 'ready', createdAt: iso(0), montageUrl: MONTAGE, printCount: 3,
+      printStatus: 'failed',
+      printError: 'Out of paper', emailedTo: null },
   ],
   'evt-draft': [],
   'evt-ended': Array.from({ length: 24 }, (_, i) => ({
@@ -152,6 +165,8 @@ const SESSIONS: Record<string, GallerySession[]> = {
     createdAt: iso(-88),
     montageUrl: MONTAGE,
     printCount: i % 3 === 0 ? 1 : 0,
+    printStatus: i % 3 === 0 ? ('printed' as const) : null,
+    printError: null,
     emailedTo: i % 4 === 0 ? 'someone@example.com' : null,
   })),
 }

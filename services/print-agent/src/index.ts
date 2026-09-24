@@ -62,13 +62,54 @@ async function handle(job: { id: string; code: string; url: string }): Promise<v
     log(`printing ${job.code} as ${cupsJobId}`)
     await api.jobStatus(job.id, { status: 'printing', cupsJobId })
 
-    // Wait for CUPS to let go of it. Absence from the queue is the only
-    // signal CUPS reliably gives, so the printer's own state is what
-    // distinguishes finished from failed.
+    /*
+     * Two waits, because the CUPS queue and the printer are not the same
+     * thing.
+     *
+     * A job leaves the queue when its data has finished transferring, which
+     * on a SELPHY is about a minute before the sheet does. Waiting only for
+     * that reported "printed" eleven seconds in, while the printer was
+     * visibly still working -- so the dashboard said done and the guest
+     * walked away from a photo still coming out.
+     *
+     * It was worse than merely early: a job cancelled by the backend also
+     * leaves the queue, and leaves the printer idle, so a print that never
+     * happened looked identical to one that did.
+     *
+     * So: wait for the queue to drain, then follow the printer's own state
+     * until it stops printing. Measured on the hardware, it reports
+     * 'printing' within ten seconds of submission and returns to 'idle' when
+     * the sheet is done.
+     */
     const until = Date.now() + PRINT_TIMEOUT_MS
+
     while (Date.now() < until) {
       await new Promise((r) => setTimeout(r, 2000))
       if (!(await isQueued(cupsJobId))) break
+    }
+
+    // Give the printer a moment to admit it has started; submitting and
+    // asking immediately catches it before it has picked the sheet up.
+    let started = false
+    while (Date.now() < until) {
+      const now = await status(PRINTER)
+      if (now.state === 'printing') {
+        started = true
+        break
+      }
+      if (now.state === 'stopped') break
+      // Not printing and not stopped: either finished already, or never
+      // started. A few seconds settles which.
+      if (Date.now() > until - PRINT_TIMEOUT_MS + 15_000) break
+      await new Promise((r) => setTimeout(r, 2000))
+    }
+
+    if (started) {
+      while (Date.now() < until) {
+        await new Promise((r) => setTimeout(r, 2000))
+        const now = await status(PRINTER)
+        if (now.state !== 'printing') break
+      }
     }
 
     const printer = await status(PRINTER)

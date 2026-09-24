@@ -588,6 +588,40 @@ export async function gallery(tenantId: string, eventId: string) {
     .where(and(eq(printJobs.tenantId, tenantId), inArray(printJobs.sessionId, ids)))
     .groupBy(printJobs.sessionId)
 
+  /*
+   * The most recent print's state, so the owner can watch one happen.
+   *
+   * A count alone cannot answer "is it coming?", which is the only question
+   * anyone asks in the thirty seconds after pressing Print -- and on a
+   * SELPHY that is a long thirty seconds during which nothing visibly
+   * happens.
+   */
+  const latest = await db
+    .select({
+      sessionId: printJobs.sessionId,
+      status: printJobs.status,
+      error: printJobs.error,
+      updatedAt: printJobs.updatedAt,
+    })
+    .from(printJobs)
+    .where(
+      and(
+        eq(printJobs.tenantId, tenantId),
+        inArray(printJobs.sessionId, ids),
+        sql`${printJobs.createdAt} = (
+          SELECT max(created_at) FROM print_jobs pj2
+           WHERE pj2.session_id = ${printJobs.sessionId}
+        )`,
+      ),
+    )
+
+  const lastPrint = new Map(
+    latest.map((p) => [
+      p.sessionId,
+      { status: p.status, error: p.error, at: p.updatedAt },
+    ]),
+  )
+
   const emails = await db
     .select({ sessionId: emailDeliveries.sessionId, to: emailDeliveries.toEmail })
     .from(emailDeliveries)
@@ -604,6 +638,7 @@ export async function gallery(tenantId: string, eventId: string) {
   return rows.map((row) => ({
     row,
     printCount: printCounts.get(row.id) ?? 0,
+    lastPrint: lastPrint.get(row.id) ?? null,
     emailedTo: emailedTo.get(row.id) ?? null,
   }))
 }

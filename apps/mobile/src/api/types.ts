@@ -59,6 +59,16 @@ export interface GallerySession {
   createdAt: string
   montageUrl: string | null
   printCount: number
+  /**
+   * The most recent print's state, so a print in progress can be watched.
+   *
+   * A count alone cannot answer "is it coming?", which is the only thing
+   * anyone wants to know in the minute after pressing Print -- and on a
+   * dye-sublimation printer that is a long minute during which nothing
+   * visibly happens.
+   */
+  printStatus: 'queued' | 'sent' | 'printing' | 'printed' | 'failed' | null
+  printError: string | null
   emailedTo: string | null
 }
 

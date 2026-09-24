@@ -185,7 +185,7 @@ eventRoutes.get('/:eventId/sessions', async (req, res, next) => {
     const rows = await gallery(query.data.tenantId, event.id)
 
     const sessions = await Promise.all(
-      rows.map(async ({ row, printCount, emailedTo }) => ({
+      rows.map(async ({ row, printCount, lastPrint, emailedTo }) => ({
         id: row.id,
         code: row.code,
         status: row.status,
@@ -194,6 +194,8 @@ eventRoutes.get('/:eventId/sessions', async (req, res, next) => {
           ? await createReadUrl(row.montagePath, query.data.tenantId)
           : null,
         printCount,
+        printStatus: lastPrint?.status ?? null,
+        printError: lastPrint?.error ?? null,
         emailedTo,
       })),
     )

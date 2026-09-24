@@ -27,6 +27,9 @@ function areEqual(a: Props, b: Props): boolean {
     a.session.id === b.session.id &&
     a.session.status === b.session.status &&
     a.session.printCount === b.session.printCount &&
+    // Without this the card would not re-render as a print progresses, and
+    // the status it exists to show would never change.
+    a.session.printStatus === b.session.printStatus &&
     a.session.emailedTo === b.session.emailedTo &&
     // The signed URL is quantised to the hour, so this stays equal across
     // polls and the <Image> is never asked to reload.
@@ -43,6 +46,31 @@ export const SessionCard = memo(function SessionCard({
   const t = useTheme()
   const tr = useT()
   const { locale } = useLocale()
+
+  /**
+   * The stage a print has reached, or nothing once it is done.
+   *
+   * 'printed' deliberately shows nothing: the count beside the timestamp
+   * already says so, and a card that keeps announcing a finished print is
+   * noise on a screen that will hold fifty of them.
+   */
+  const progress = (() => {
+    switch (session.printStatus) {
+      case 'queued':
+        return { label: tr('dashboard.printQueuedFor'), bad: false }
+      case 'sent':
+        return { label: tr('dashboard.printSending'), bad: false }
+      case 'printing':
+        return { label: tr('dashboard.printInProgress'), bad: false }
+      case 'failed':
+        return {
+          label: session.printError ?? tr('dashboard.printFailed'),
+          bad: true,
+        }
+      default:
+        return null
+    }
+  })()
 
   const [busy, setBusy] = useState<'print' | 'email' | 'share' | null>(null)
   const [emailing, setEmailing] = useState(false)
@@ -136,8 +164,6 @@ export const SessionCard = memo(function SessionCard({
               hour: '2-digit',
               minute: '2-digit',
             })}
-            {/* What was asked for, not what came out of the printer -- the
-                app never learns whether paper actually appeared. */}
             {session.printCount > 0
               ? ` · ${tr.plural('dashboard.printedCount', session.printCount)}`
               : ''}
@@ -145,6 +171,35 @@ export const SessionCard = memo(function SessionCard({
           </Text>
         </View>
       </Row>
+
+      {/*
+       * A print takes about a minute on a SELPHY, most of it silent. Showing
+       * the stage it has reached is the difference between "is this working?"
+       * and watching it work -- and it is the window in which someone would
+       * otherwise press Print a second time and spend another sheet.
+       */}
+      {progress ? (
+        <Row>
+          <View
+            style={{
+              width: 8,
+              height: 8,
+              borderRadius: 4,
+              backgroundColor: progress.bad ? t.color.status.bad : t.color.status.poor,
+            }}
+          />
+          <Text
+            style={{
+              color: progress.bad ? t.color.status.bad : t.color.text.secondary,
+              fontSize: t.fontSize.sm,
+              flex: 1,
+            }}
+            numberOfLines={2}
+          >
+            {progress.label}
+          </Text>
+        </Row>
+      ) : null}
 
       {ready ? (
         <Row>
