@@ -324,18 +324,6 @@ export default function EventTab() {
             <View style={{ gap: 10, paddingTop: 12 }}>
               <Label>{t('dashboard.pairingCode')}</Label>
 
-              {/*
-                * With the steps, not before them.
-                *
-                * It sat above the button and vanished the moment a code
-                * existed -- gone exactly when it mattered. Step 2 takes you
-                * off your own network, and the setup page then asks for the
-                * venue's wifi password; going back to look it up closes the
-                * page. We cannot supply it: neither iOS nor Android exposes
-                * saved wifi passwords to an app, by design.
-                */}
-              <Notice tone="warn">{t('dashboard.wifiWarning')}</Notice>
-
               {/* Tapping copies it: the next thing anyone does with this code
                   is paste it into a page on another network, and retyping six
                   characters after switching wifi is where mistakes happen. */}
@@ -377,6 +365,7 @@ export default function EventTab() {
                   t('dashboard.pairStep2'),
                   t('dashboard.pairStep3'),
                   t('dashboard.pairStep4'),
+                  t('dashboard.pairStep5'),
                 ].map((step, i) => (
                   <View key={i} style={{ flexDirection: 'row', gap: 10 }}>
                     <Text

@@ -1,4 +1,4 @@
-import { chown, mkdir, readFile, stat, writeFile } from 'node:fs/promises'
+import { chown, mkdir, readFile, stat, unlink, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import type { PrinterStatus } from './printer'
 
@@ -58,6 +58,32 @@ async function token(): Promise<string | null> {
     cached = null
   }
   return cached
+}
+
+/**
+ * Marker asking onboarding to offer the setup network even though this Pi is
+ * on wifi and would otherwise stay out of the way.
+ *
+ * Written when the agent's token is refused for good. Without it a Pi whose
+ * device was deleted server-side is stranded: the agent cannot authenticate,
+ * and onboarding sees a token file, concludes it is already set up, and never
+ * broadcasts. Both halves behave sensibly and the box is useless, with the
+ * only visible symptom being a setup network that never appears.
+ */
+export const SETUP_MARKER = '/var/lib/photobooth/needs-setup'
+
+/** The token has been refused for good; ask for the Pi to be set up again. */
+export async function requestSetup(): Promise<void> {
+  await clearToken()
+  await mkdir(dirname(SETUP_MARKER), { recursive: true }).catch(() => {})
+  await writeFile(SETUP_MARKER, new Date().toISOString())
+  log('this printer is no longer known to the service; asking to be set up again')
+}
+
+/** Forgets the stored token, so nothing claims to be paired when it is not. */
+export async function clearToken(): Promise<void> {
+  cached = null
+  await unlink(TOKEN_PATH).catch(() => {})
 }
 
 export async function saveToken(value: string): Promise<void> {

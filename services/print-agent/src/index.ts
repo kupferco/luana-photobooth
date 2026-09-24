@@ -1,7 +1,7 @@
 import { writeFile, mkdir, unlink } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { api, hasToken } from './client'
+import { api, hasToken, requestSetup } from './client'
 import { cancelAll, isQueued, status, submit } from './printer'
 
 /**
@@ -160,6 +160,18 @@ let lastReported: string | null = null
 /** The last thing that went wrong, so it is reported once rather than hourly. */
 let lastProblem: string | null = null
 
+/** Best effort: the unit is in the agent's sudoers rule, or nothing happens. */
+async function restartOnboarding(): Promise<void> {
+  try {
+    const { execFile } = await import('node:child_process')
+    const { promisify } = await import('node:util')
+    await promisify(execFile)('sudo', ['-n', 'systemctl', 'start', 'photobooth-onboarding'])
+    log('setup network requested')
+  } catch {
+    log('could not start onboarding; it will run at the next boot')
+  }
+}
+
 async function heartbeat(): Promise<void> {
   try {
     const current = await status(PRINTER)
@@ -242,6 +254,26 @@ async function main(): Promise<void> {
       if (message !== lastProblem) {
         log(`waiting: ${message}`)
         lastProblem = message
+      }
+
+      /*
+       * A token refused for good, not a blip.
+       *
+       * client.call already re-reads the file once before giving up, so
+       * reaching here means the device really is gone from the service --
+       * deleted, or belonging to an account that no longer has it. The Pi
+       * cannot recover on its own and nothing on it looks broken: onboarding
+       * sees a token file and decides it is already set up, so the setup
+       * network never appears and the only symptom is silence.
+       *
+       * Clearing the token and asking for setup makes it visible again. The
+       * radio is worth spending: a printer that cannot authenticate is doing
+       * nothing with it anyway.
+       */
+      if (message.includes('no longer paired')) {
+        await requestSetup().catch(() => {})
+        await restartOnboarding()
+        lastProblem = null
       }
 
       await new Promise((r) => setTimeout(r, OFFLINE_BACKOFF_MS))

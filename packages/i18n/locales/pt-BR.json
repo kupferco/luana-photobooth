@@ -112,13 +112,12 @@
     "guestLinkNotYet": "Inicie o evento antes de enviar — até lá o link não abre.",
     "stopShort": "Parar",
     "unpairShort": "Remover",
-    "pairStep1": "Ligue a caixa da impressora e ligue a impressora.",
-    "pairStep2": "Neste celular, entre na rede wifi que começa com “PhotoLu-Setup”. Ela não tem senha.",
-    "pairStep3": "Uma página de configuração abre sozinha. Se não abrir, acesse 192.168.4.1",
-    "pairStep4": "Escolha seu wifi, digite a senha e cole o código acima.",
+    "pairStep1": "Anote o nome e a senha do seu wifi. Você vai precisar deles no passo 5.",
+    "pairStep2": "Ligue a caixa da impressora e ligue a impressora.",
+    "pairStep3": "Neste celular, entre na rede wifi que começa com “PhotoLu-Setup”. Ela não tem senha.",
+    "pairStep4": "Uma página de configuração abre sozinha. Se não abrir, acesse 192.168.4.1",
     "tapToCopy": "Toque para copiar",
     "codeCopied": "Copiado",
-    "wifiWarning": "Tenha a senha do wifi em mãos agora. O passo 2 tira você da sua própria rede, e voltar para procurar a senha fecha a página de configuração.",
     "movePrinter": "Usar uma impressora de outro evento",
     "movePrinterHint": "Já configurada e no seu wifi. Não precisa de código — só muda para qual festa ela imprime.",
     "useHere": "Usar aqui",
@@ -126,7 +125,8 @@
     "availablePrintersHint": "Já configuradas e no seu wifi. Adicione uma a esta festa — sem código.",
     "addToEvent": "Adicionar",
     "setUpNewPrinter": "Configurar uma impressora nova",
-    "newPrinterOnly": "Só para uma impressora que nunca foi conectada. Uma que já está no seu wifi é adicionada pela lista acima."
+    "newPrinterOnly": "Só para uma impressora que nunca foi conectada. Uma que já está no seu wifi é adicionada pela lista acima.",
+    "pairStep5": "Escolha seu wifi, digite a senha e cole o código acima."
   },
   "retention": {
     "guest": "Suas fotos ficam guardadas até {date}.",

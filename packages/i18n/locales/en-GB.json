@@ -112,13 +112,12 @@
     "guestLinkNotYet": "Start the event before sending this — until then the link will not open.",
     "stopShort": "Stop",
     "unpairShort": "Unpair",
-    "pairStep1": "Plug the printer box in and turn the printer on.",
-    "pairStep2": "On this phone, join the wifi network starting “PhotoLu-Setup”. It has no password.",
-    "pairStep3": "A setup page opens by itself. If it does not, go to 192.168.4.1",
-    "pairStep4": "Choose your wifi, enter its password, and paste the code above.",
+    "pairStep1": "Write down your wifi name and password. You will need them in step 5.",
+    "pairStep2": "Plug the printer box in and turn the printer on.",
+    "pairStep3": "On this phone, join the wifi network starting “PhotoLu-Setup”. It has no password.",
+    "pairStep4": "A setup page opens by itself. If it does not, go to 192.168.4.1",
     "tapToCopy": "Tap to copy",
     "codeCopied": "Copied",
-    "wifiWarning": "Have your wifi password ready now. Step 2 takes you off your own network, and going back to look the password up closes the setup page.",
     "movePrinter": "Use a printer from another event",
     "movePrinterHint": "Already set up and on your wifi. No code needed — it just changes which party it prints for.",
     "useHere": "Use here",
@@ -126,7 +125,8 @@
     "availablePrintersHint": "Set up already and on your wifi. Add one to this party — no code needed.",
     "addToEvent": "Add",
     "setUpNewPrinter": "Set up a new printer",
-    "newPrinterOnly": "Only for a printer that has never been connected. One already on your wifi is added from the list above."
+    "newPrinterOnly": "Only for a printer that has never been connected. One already on your wifi is added from the list above.",
+    "pairStep5": "Choose your wifi, type its password, and paste the code above."
   },
   "retention": {
     "guest": "Your photos are saved until {date}.",

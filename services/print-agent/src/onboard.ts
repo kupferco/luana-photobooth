@@ -1,5 +1,15 @@
+import { existsSync } from 'node:fs'
+import { unlink } from 'node:fs/promises'
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
-import { apiBase, apiBaseIsDefault, hasToken, pair, saveToken, waitForApi } from './client'
+import {
+  apiBase,
+  apiBaseIsDefault,
+  hasToken,
+  pair,
+  saveToken,
+  SETUP_MARKER,
+  waitForApi,
+} from './client'
 import { setupPage } from './setup-page'
 import {
   currentSsid,
@@ -118,6 +128,8 @@ async function apply(ssid: string, password: string, code: string): Promise<stri
     await saveToken(token)
     log('paired')
     finished = true
+    // Whatever asked for setup has been answered.
+    await unlink(SETUP_MARKER).catch(() => {})
 
     /*
      * Nudge the agent so the printer appears in the app immediately.
@@ -297,7 +309,20 @@ function armRevert(previous: string[]): void {
 }
 
 async function main(): Promise<void> {
-  const force = process.argv.includes('--force')
+  /*
+   * The agent can ask for this too.
+   *
+   * A Pi whose device was deleted server-side holds a token that no longer
+   * works. Onboarding sees the file, concludes it is already set up, and
+   * stays out of the way -- so the setup network never appears and the box
+   * sits there looking fine and doing nothing. The agent drops the marker
+   * when its token is refused for good, and it means: offer setup even
+   * though this Pi is on wifi.
+   */
+  const asked = existsSync(SETUP_MARKER)
+  const force = process.argv.includes('--force') || asked
+
+  if (asked) log('the agent asked to be set up again')
 
   const online = await isOnline()
   const paired = await hasToken()
