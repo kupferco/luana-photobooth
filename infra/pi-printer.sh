@@ -40,6 +40,13 @@ cat > "$STAGE" <<REMOTE
 #!/usr/bin/env bash
 set -euo pipefail
 
+# lpinfo and lpadmin live in /usr/sbin, which is not on a login user's PATH.
+# Without this they are simply "command not found", every probe returns
+# nothing, the greps below match nothing, and pipefail aborts the script
+# before it can report its own failure. It looked exactly like a printer CUPS
+# could not see; the printer was fine and CUPS knew about it perfectly.
+export PATH="/usr/sbin:/usr/local/sbin:\$PATH"
+
 PRINTER_NAME="$PRINTER_NAME"
 POOL=http://deb.debian.org/debian/pool/main/g/gutenprint
 WORK=\$(mktemp -d)
@@ -115,8 +122,10 @@ if ! lsusb | grep -qi canon; then
 fi
 lsusb | grep -i canon | sed 's/^/    /'
 
-URI=\$(lpinfo -v 2>/dev/null | grep -i 'selphy\|canon' | grep -i usb | head -1 | awk '{print \$2}')
-MODEL=\$(lpinfo -m 2>/dev/null | grep -i 'CP1500' | head -1 | awk '{print \$1}')
+# `|| true` on both: a grep that matches nothing must reach the diagnostic
+# below, not kill the script through pipefail before it can report anything.
+URI=\$(lpinfo -v 2>&1 | grep -i 'selphy\|canon' | grep -i usb | head -1 | awk '{print \$2}' || true)
+MODEL=\$(lpinfo -m 2>&1 | grep -i 'CP1500' | head -1 | awk '{print \$1}' || true)
 
 if [ -z "\$URI" ] || [ -z "\$MODEL" ]; then
   echo "    Found the printer on USB but could not match a CUPS driver."
