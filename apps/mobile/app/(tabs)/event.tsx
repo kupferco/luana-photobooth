@@ -291,21 +291,65 @@ export default function EventTab() {
 
           {/* The code is what a headless Pi authenticates with, so there has
               to be a way to mint one without an SSH session. */}
+          {/*
+            * A code on its own is not instructions.
+            *
+            * This showed six characters and "enter this on the printer setup
+            * page", which assumes you know there is a setup page, that it
+            * lives on a wifi network the printer is broadcasting, and that
+            * you have to leave your own network to reach it. Nobody knows
+            * that the first time. The steps are the feature; the code is one
+            * line of it.
+            */}
           {open && pairing ? (
-            <View style={{ gap: 4, paddingTop: 8 }}>
+            <View style={{ gap: 10, paddingTop: 12 }}>
               <Label>{t('dashboard.pairingCode')}</Label>
+
               <Text
                 selectable
                 style={{
                   color: theme.color.text.primary,
-                  fontSize: theme.fontSize['3xl'],
+                  fontSize: theme.fontSize['2xl'],
                   fontWeight: '700',
-                  letterSpacing: 6,
+                  letterSpacing: 5,
                   textAlign: 'center',
                 }}
               >
                 {pairing.code}
               </Text>
+
+              <View style={{ gap: 8 }}>
+                {[
+                  t('dashboard.pairStep1'),
+                  t('dashboard.pairStep2'),
+                  t('dashboard.pairStep3'),
+                  t('dashboard.pairStep4'),
+                ].map((step, i) => (
+                  <View key={i} style={{ flexDirection: 'row', gap: 10 }}>
+                    <Text
+                      style={{
+                        color: theme.color.text.secondary,
+                        fontSize: theme.fontSize.sm,
+                        fontWeight: '700',
+                        width: 16,
+                      }}
+                    >
+                      {i + 1}
+                    </Text>
+                    <Text
+                      style={{
+                        color: theme.color.text.secondary,
+                        fontSize: theme.fontSize.sm,
+                        flex: 1,
+                        lineHeight: 20,
+                      }}
+                    >
+                      {step}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+
               <Body muted>{t('dashboard.pairingCodeHint')}</Body>
             </View>
           ) : null}
@@ -470,6 +514,21 @@ export default function EventTab() {
  * the web too, where React Native's Alert does nothing at all -- an ignored
  * tap on "stop the booth" is the worst possible way to find that out.
  */
+/**
+ * One booth or printer, and the one thing you can do to it.
+ *
+ * Laid out on a single baseline: dot, name and state in a column that fills
+ * the row, action on the right. Previously the name, the state and a bare
+ * red "Unpair printer" floated at whatever width their text happened to be,
+ * which is what made a list of two devices look untidy.
+ *
+ * Colour means what it says. Red is for something wrong -- a device that has
+ * stopped answering, a printer that has stopped. Amber is for waiting, which
+ * is what a pairing code is doing: nothing is broken, nobody need act. And
+ * the action is a plain secondary button, because unpairing a working
+ * printer is a normal thing to do, not a destructive one. It is red only
+ * once you have asked for it and are being asked to confirm.
+ */
 function DeviceRow({
   device,
   confirming,
@@ -491,44 +550,43 @@ function DeviceRow({
   const isBooth = device.kind === 'booth'
   const name = device.label ?? (isBooth ? t('dashboard.booth') : t('dashboard.printer'))
 
-  /*
-   * Two different questions, which were being answered with one dot.
-   *
-   * Is the device talking to us, and is the thing it drives healthy? A Pi
-   * that is online and reporting "no printer attached" is not a failure --
-   * it is a Pi doing its job. Showing that in the same red as a device that
-   * has vanished told the owner their pairing had broken when it had not.
-   */
-  /*
-   * Two minutes of silence means gone. The booth polls every 2 seconds and
-   * the agent heartbeats every 10, so a minute is already conclusive -- but
-   * a phone on venue wifi drops a beat now and then, and a dot that flickers
-   * red is a dot people learn to ignore.
-   */
   const silentFor = device.lastSeenAt ? Date.now() - new Date(device.lastSeenAt).getTime() : null
-  const silent = device.pairingPending || silentFor === null || silentFor > 2 * 60_000
-
   const printer = device.printerState
-  const tone: 'good' | 'warn' | 'bad' = silent
-    ? 'bad'
-    : printer?.state === 'stopped'
-      ? 'bad'
-      : printer?.state === 'unknown'
-        ? 'warn'
-        : 'good'
 
-  // The printer's own words win over "active just now" whenever it has
-  // something to say -- "Out of paper" is the more useful sentence.
+  // Three states, not two. "Waiting to be paired" is not a fault.
+  const tone: 'good' | 'warn' | 'bad' = device.pairingPending
+    ? 'warn'
+    : silentFor === null || silentFor > 2 * 60_000
+      ? 'bad'
+      : printer?.state === 'stopped'
+        ? 'bad'
+        : printer?.state === 'unknown'
+          ? 'warn'
+          : 'good'
+
   const detail = device.pairingPending
     ? t('dashboard.waitingToPair')
-    : silent
+    : tone === 'bad' && silentFor !== null && silentFor > 2 * 60_000
       ? lastSeen(t, device.lastSeenAt)
       : (printer?.message ?? lastSeen(t, device.lastSeenAt))
 
+  const dotColour =
+    tone === 'bad'
+      ? theme.color.status.bad
+      : tone === 'warn'
+        ? theme.color.status.poor
+        : theme.color.status.good
+
   if (confirming) {
     return (
-      <View style={{ gap: 8, paddingVertical: 8 }}>
-        <Text style={{ color: theme.color.text.primary, fontSize: theme.fontSize.sm, fontWeight: '600' }}>
+      <View style={{ gap: 8, paddingVertical: 10 }}>
+        <Text
+          style={{
+            color: theme.color.text.primary,
+            fontSize: theme.fontSize.sm,
+            fontWeight: '600',
+          }}
+        >
           {t(isBooth ? 'dashboard.stopBoothConfirm' : 'dashboard.unpairPrinterConfirm')}
         </Text>
         <Body muted>
@@ -551,37 +609,25 @@ function DeviceRow({
         flexDirection: 'row',
         alignItems: 'center',
         gap: 10,
-        paddingVertical: 8,
+        paddingVertical: 10,
       }}
     >
-      <View
-        style={{
-          width: 8,
-          height: 8,
-          borderRadius: 4,
-          backgroundColor:
-            tone === 'bad'
-              ? theme.color.status.bad
-              : tone === 'warn'
-                ? theme.color.status.poor
-                : theme.color.status.good,
-        }}
-      />
-      <View style={{ flex: 1, gap: 2 }}>
+      <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: dotColour }} />
+
+      <View style={{ flex: 1, gap: 2, minWidth: 0 }}>
         <Text
-          style={{ color: theme.color.text.primary, fontSize: theme.fontSize.sm, fontWeight: '600' }}
+          style={{
+            color: theme.color.text.primary,
+            fontSize: theme.fontSize.sm,
+            fontWeight: '600',
+          }}
           numberOfLines={1}
         >
           {name}
         </Text>
         <Text
           style={{
-            color:
-              tone === 'bad'
-                ? theme.color.status.bad
-                : tone === 'warn'
-                  ? theme.color.status.poor
-                  : theme.color.text.secondary,
+            color: tone === 'bad' ? theme.color.status.bad : theme.color.text.secondary,
             fontSize: theme.fontSize.xs,
           }}
           numberOfLines={1}
@@ -589,11 +635,15 @@ function DeviceRow({
           {detail}
         </Text>
       </View>
-      <Pressable onPress={onAsk} hitSlop={8}>
-        <Text style={{ color: theme.color.status.bad, fontSize: theme.fontSize.sm, fontWeight: '600' }}>
-          {t(isBooth ? 'dashboard.stopBooth' : 'dashboard.unpairPrinter')}
-        </Text>
-      </Pressable>
+
+      {/* Fixed width so two rows line up, however long the names are. */}
+      <View style={{ width: 96 }}>
+        <Button
+          label={t(isBooth ? 'dashboard.stopShort' : 'dashboard.unpairShort')}
+          variant="secondary"
+          onPress={onAsk}
+        />
+      </View>
     </View>
   )
 }

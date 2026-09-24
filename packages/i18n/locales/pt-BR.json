@@ -94,7 +94,7 @@
     "downloadFailed": "O download não terminou. Tente de novo.",
     "connectPrinter": "Conectar impressora",
     "pairingCode": "Código de pareamento",
-    "pairingCodeHint": "Digite na página de configuração da impressora. Vale 15 minutos e funciona uma vez.",
+    "pairingCodeHint": "O código vale 15 minutos e funciona uma vez. Volte para o seu wifi normal depois.",
     "pairingCodeExpired": "Esse código expirou. Gere um novo.",
     "printQueuedFor": "Esperando a impressora",
     "printSending": "Enviando para a impressora",
@@ -109,7 +109,13 @@
     "linkShared": "Compartilhado",
     "viewPhoto": "Ver foto",
     "tapToClose": "Toque em qualquer lugar para fechar",
-    "guestLinkNotYet": "Inicie o evento antes de enviar — até lá o link não abre."
+    "guestLinkNotYet": "Inicie o evento antes de enviar — até lá o link não abre.",
+    "stopShort": "Parar",
+    "unpairShort": "Remover",
+    "pairStep1": "Ligue a caixa da impressora e ligue a impressora.",
+    "pairStep2": "Neste celular, entre na rede wifi que começa com “PhotoLu-Setup”. Ela não tem senha.",
+    "pairStep3": "Uma página de configuração abre sozinha. Se não abrir, acesse 192.168.4.1",
+    "pairStep4": "Escolha seu wifi, digite a senha e cole o código acima."
   },
   "retention": {
     "guest": "Suas fotos ficam guardadas até {date}.",

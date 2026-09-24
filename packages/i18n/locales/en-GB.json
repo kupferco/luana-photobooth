@@ -94,7 +94,7 @@
     "downloadFailed": "The download did not finish. Try again.",
     "connectPrinter": "Connect a printer",
     "pairingCode": "Pairing code",
-    "pairingCodeHint": "Enter this on the printer setup page. It lasts 15 minutes and works once.",
+    "pairingCodeHint": "The code lasts 15 minutes and works once. Rejoin your normal wifi afterwards.",
     "pairingCodeExpired": "That code has expired. Make a new one.",
     "printQueuedFor": "Waiting for the printer",
     "printSending": "Sending to the printer",
@@ -109,7 +109,13 @@
     "linkShared": "Shared",
     "viewPhoto": "View photo",
     "tapToClose": "Tap anywhere to close",
-    "guestLinkNotYet": "Start the event before sending this — until then the link will not open."
+    "guestLinkNotYet": "Start the event before sending this — until then the link will not open.",
+    "stopShort": "Stop",
+    "unpairShort": "Unpair",
+    "pairStep1": "Plug the printer box in and turn the printer on.",
+    "pairStep2": "On this phone, join the wifi network starting “PhotoLu-Setup”. It has no password.",
+    "pairStep3": "A setup page opens by itself. If it does not, go to 192.168.4.1",
+    "pairStep4": "Choose your wifi, enter its password, and paste the code above."
   },
   "retention": {
     "guest": "Your photos are saved until {date}.",
