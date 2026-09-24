@@ -118,13 +118,15 @@
     "pairStep4": "Choose your wifi, enter its password, and paste the code above.",
     "tapToCopy": "Tap to copy",
     "codeCopied": "Copied",
-    "wifiWarning": "Have your wifi password to hand before you start. Once you join the printer’s network you will need to type it, and leaving to look it up closes the setup page.",
+    "wifiWarning": "Have your wifi password ready now. Step 2 takes you off your own network, and going back to look the password up closes the setup page.",
     "movePrinter": "Use a printer from another event",
     "movePrinterHint": "Already set up and on your wifi. No code needed — it just changes which party it prints for.",
     "useHere": "Use here",
     "availablePrinters": "Your printers",
     "availablePrintersHint": "Set up already and on your wifi. Add one to this party — no code needed.",
-    "addToEvent": "Add"
+    "addToEvent": "Add",
+    "setUpNewPrinter": "Set up a new printer",
+    "newPrinterOnly": "Only for a printer that has never been connected. One already on your wifi is added from the list above."
   },
   "retention": {
     "guest": "Your photos are saved until {date}.",

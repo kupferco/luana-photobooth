@@ -324,6 +324,18 @@ export default function EventTab() {
             <View style={{ gap: 10, paddingTop: 12 }}>
               <Label>{t('dashboard.pairingCode')}</Label>
 
+              {/*
+                * With the steps, not before them.
+                *
+                * It sat above the button and vanished the moment a code
+                * existed -- gone exactly when it mattered. Step 2 takes you
+                * off your own network, and the setup page then asks for the
+                * venue's wifi password; going back to look it up closes the
+                * page. We cannot supply it: neither iOS nor Android exposes
+                * saved wifi passwords to an app, by design.
+                */}
+              <Notice tone="warn">{t('dashboard.wifiWarning')}</Notice>
+
               {/* Tapping copies it: the next thing anyone does with this code
                   is paste it into a page on another network, and retyping six
                   characters after switching wifi is where mistakes happen. */}
@@ -395,17 +407,6 @@ export default function EventTab() {
             </View>
           ) : null}
 
-          {/*
-            * Said before they start, not after they are stuck.
-            *
-            * Joining the printer's network means leaving their own, and the
-            * setup page asks for the venue's wifi password. Going to fetch it
-            * from a password manager closes the page -- so the moment to
-            * mention it is now. We cannot read it for them: neither iOS nor
-            * Android exposes saved wifi passwords to an app, deliberately.
-            */}
-          {open && !pairing ? <Notice tone="warn">{t('dashboard.wifiWarning')}</Notice> : null}
-
           {open && available.length > 0 ? (
             <View style={{ gap: 6, paddingTop: 8 }}>
               <Label>{t('dashboard.availablePrinters')}</Label>
@@ -466,7 +467,7 @@ export default function EventTab() {
 
           {open ? (
           <Button
-            label={t('dashboard.connectPrinter')}
+            label={t('dashboard.setUpNewPrinter')}
             variant="secondary"
             busy={pairingBusy}
             onPress={async () => {
@@ -482,6 +483,11 @@ export default function EventTab() {
             }}
           />
           ) : null}
+          {/* The hotspot only appears on a printer that has never been set
+              up. One already on the wifi has nothing to broadcast and is
+              added from the list above, so saying this stops people hunting
+              for a network that will never appear. */}
+          {open && !pairing ? <Body muted>{t('dashboard.newPrinterOnly')}</Body> : null}
         </Card>
       ) : null}
 
