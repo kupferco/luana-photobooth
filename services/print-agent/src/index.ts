@@ -157,6 +157,9 @@ async function handle(job: { id: string; code: string; url: string }): Promise<v
  */
 let lastReported: string | null = null
 
+/** The last thing that went wrong, so it is reported once rather than hourly. */
+let lastProblem: string | null = null
+
 async function heartbeat(): Promise<void> {
   try {
     const current = await status(PRINTER)
@@ -208,6 +211,10 @@ async function main(): Promise<void> {
     try {
       if (!printing) {
         const { job } = await api.nextJob()
+        if (lastProblem) {
+          log('back in service')
+          lastProblem = null
+        }
         if (job) {
           printing = true
           await handle(job)
@@ -220,7 +227,23 @@ async function main(): Promise<void> {
       await new Promise((r) => setTimeout(r, POLL_MS))
     } catch (e) {
       printing = false
-      log(`offline: ${e instanceof Error ? e.message : String(e)}`)
+
+      /*
+       * Say it once.
+       *
+       * Waiting between parties is a normal state, not a fault: a printer
+       * whose event has ended is released and sits idle until it is added to
+       * the next one. Logging that every fifteen seconds buried the log in
+       * thousands of identical lines and made a healthy Pi look broken --
+       * which is exactly how an hour went into "no longer paired with an
+       * event" that turned out to be a stale token.
+       */
+      const message = e instanceof Error ? e.message : String(e)
+      if (message !== lastProblem) {
+        log(`waiting: ${message}`)
+        lastProblem = message
+      }
+
       await new Promise((r) => setTimeout(r, OFFLINE_BACKOFF_MS))
     }
   }

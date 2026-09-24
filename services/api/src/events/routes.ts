@@ -10,6 +10,7 @@ import {
   listEvents,
   listTemplates,
   queuePrint,
+  releaseEventDevices,
   softDeleteEvent,
   toTemplate,
   updateEvent,
@@ -367,6 +368,23 @@ eventRoutes.patch('/:eventId', async (req, res, next) => {
     if (!event) {
       return res.status(404).json({ error: { code: 'not_found', message: 'Not found' } })
     }
+
+    /*
+     * Ending the party hands the hardware back.
+     *
+     * Without this a printer stayed bound to a finished event and was
+     * invisible to the next one -- and an online Pi never broadcasts a setup
+     * network, so there was no obvious way to recover it. Orphaned by the one
+     * action that should most clearly have freed it.
+     */
+    if (body.data.status === 'ended') {
+      const released = await releaseEventDevices(query.data.tenantId, event.id)
+      console.log(
+        `event ${event.id} ended: released ${released.printersReleased} printer(s), ` +
+          `stopped ${released.boothsStopped} booth(s)`,
+      )
+    }
+
     return res.json({ event: present(event) })
   } catch (e) {
     return next(e)

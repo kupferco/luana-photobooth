@@ -54,7 +54,7 @@ export default function EventTab() {
   const [stats, setStats] = useState<EventLiveStats | null>(null)
   const [sessions, setSessions] = useState<GallerySession[] | null>(null)
   const [devices, setDevices] = useState<Device[]>([])
-  const [elsewhere, setElsewhere] = useState<Device[]>([])
+  const [available, setAvailable] = useState<Device[]>([])
   const [moving, setMoving] = useState<string | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   /** Which device is mid-confirmation, and which is being removed. */
@@ -96,11 +96,17 @@ export default function EventTab() {
         JSON.stringify(previous) === JSON.stringify(connected) ? previous : connected,
       )
 
-      // Paired printers belonging to some other party. Offering these is the
-      // only route to reusing a printer that is already on the wifi, because
-      // such a box never broadcasts a setup network.
-      setElsewhere(
-        all.filter((d) => d.kind === 'agent' && d.paired && d.eventId !== id),
+      /*
+       * Printers paired to this account but not attached to any event.
+       *
+       * Ending a party releases its printers back here, so this is where a
+       * printer lives between events. Offering "a printer from another
+       * event" was the wrong idea -- it read as taking something from a
+       * party that might still be running, when in fact the hardware was
+       * simply idle.
+       */
+      setAvailable(
+        all.filter((d) => d.kind === 'agent' && d.paired && d.eventId === null),
       )
 
       // A code that has been spent, replaced or expired is worse than
@@ -288,6 +294,7 @@ export default function EventTab() {
               <DeviceRow
                 key={device.id}
                 device={device}
+                index={devices.filter((d) => d.kind === device.kind).indexOf(device)}
                 confirming={confirming === device.id}
                 busy={removing === device.id}
                 onAsk={() => setConfirming(device.id)}
@@ -399,11 +406,11 @@ export default function EventTab() {
             */}
           {open && !pairing ? <Notice tone="warn">{t('dashboard.wifiWarning')}</Notice> : null}
 
-          {open && elsewhere.length > 0 ? (
+          {open && available.length > 0 ? (
             <View style={{ gap: 6, paddingTop: 8 }}>
-              <Label>{t('dashboard.movePrinter')}</Label>
-              <Body muted>{t('dashboard.movePrinterHint')}</Body>
-              {elsewhere.map((device) => (
+              <Label>{t('dashboard.availablePrinters')}</Label>
+              <Body muted>{t('dashboard.availablePrintersHint')}</Body>
+              {available.map((device) => (
                 <View
                   key={device.id}
                   style={{
@@ -436,7 +443,7 @@ export default function EventTab() {
                   </View>
                   <View style={{ width: 96 }}>
                     <Button
-                      label={t('dashboard.useHere')}
+                      label={t('dashboard.addToEvent')}
                       variant="secondary"
                       busy={moving === device.id}
                       onPress={async () => {
@@ -634,6 +641,7 @@ export default function EventTab() {
  */
 function DeviceRow({
   device,
+  index,
   confirming,
   busy,
   onAsk,
@@ -641,6 +649,8 @@ function DeviceRow({
   onConfirm,
 }: {
   device: Device
+  /** Position among devices of the same kind, for the display number. */
+  index: number
   confirming: boolean
   busy: boolean
   onAsk: () => void
@@ -651,7 +661,19 @@ function DeviceRow({
   const t = useT()
 
   const isBooth = device.kind === 'booth'
-  const name = device.label ?? (isBooth ? t('dashboard.booth') : t('dashboard.printer'))
+  /*
+   * Numbered for display, not just at creation.
+   *
+   * Devices made before numbering existed are still called "Booth" and
+   * "Printer", and two rows with the same name make the stop button a coin
+   * flip. A name someone actually chose is left alone; the generic defaults
+   * are replaced with a position, which is what the owner is looking for
+   * when deciding which of two phones to stop.
+   */
+  const generic = !device.label || device.label === 'Booth' || device.label === 'Printer'
+  const name = generic
+    ? `${isBooth ? t('dashboard.booth') : t('dashboard.printer')} ${index + 1}`
+    : device.label
 
   const silentFor = device.lastSeenAt ? Date.now() - new Date(device.lastSeenAt).getTime() : null
   const printer = device.printerState

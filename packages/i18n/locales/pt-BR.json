@@ -121,7 +121,10 @@
     "wifiWarning": "Tenha a senha do wifi em mãos antes de começar. Depois de entrar na rede da impressora você vai precisar digitá-la, e sair para procurar fecha a página de configuração.",
     "movePrinter": "Usar uma impressora de outro evento",
     "movePrinterHint": "Já configurada e no seu wifi. Não precisa de código — só muda para qual festa ela imprime.",
-    "useHere": "Usar aqui"
+    "useHere": "Usar aqui",
+    "availablePrinters": "Suas impressoras",
+    "availablePrintersHint": "Já configuradas e no seu wifi. Adicione uma a esta festa — sem código.",
+    "addToEvent": "Adicionar"
   },
   "retention": {
     "guest": "Suas fotos ficam guardadas até {date}.",

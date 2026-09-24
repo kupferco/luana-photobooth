@@ -323,6 +323,50 @@ export async function clearUnclaimedPairings(
 }
 
 /**
+ * Releases an event's hardware when the party finishes.
+ *
+ * A printer stayed bound to an event that had ended, which made it invisible
+ * to the next one: the setup instructions describe a hotspot an online Pi
+ * never broadcasts, so the only way to reuse it was to know it was attached
+ * to a dead event and move it. Nobody would guess that.
+ *
+ * Printers are detached, not deleted: the pairing is real hardware and
+ * survives the party, so it returns to the tenant's pool and can be added to
+ * the next event in one tap.
+ *
+ * Booths are deleted. A booth is somebody's phone claiming itself for the
+ * evening; when the party ends it should simply stop being a booth, and
+ * claiming again is one tap on the phone itself. Leaving a row behind would
+ * mean a list of phones that are no longer anywhere near the venue.
+ */
+export async function releaseEventDevices(tenantId: string, eventId: string) {
+  const detached = await db
+    .update(devices)
+    .set({ eventId: null, updatedAt: new Date() })
+    .where(
+      and(
+        eq(devices.tenantId, tenantId),
+        eq(devices.eventId, eventId),
+        eq(devices.kind, 'agent'),
+      ),
+    )
+    .returning()
+
+  const removed = await db
+    .delete(devices)
+    .where(
+      and(
+        eq(devices.tenantId, tenantId),
+        eq(devices.eventId, eventId),
+        eq(devices.kind, 'booth'),
+      ),
+    )
+    .returning()
+
+  return { printersReleased: detached.length, boothsStopped: removed.length }
+}
+
+/**
  * Moves an already-paired device to another event.
  *
  * A printer that is on the network and paired does not broadcast a setup
