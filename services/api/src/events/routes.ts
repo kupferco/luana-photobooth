@@ -10,6 +10,7 @@ import {
   listEvents,
   listTemplates,
   queuePrint,
+  ensureShareToken,
   releaseEventDevices,
   softDeleteEvent,
   toTemplate,
@@ -18,7 +19,8 @@ import {
 import { eventJoinCode } from '../lib/codes'
 import { requireAuth, requireTenant } from '../middleware/auth'
 import { queueEmail } from '../email/queue'
-import { createReadUrl, MAX_SIGNED_URL_MS } from '../storage/gcs'
+import { env } from '../config/env'
+import { createReadUrl } from '../storage/gcs'
 import { downloadEventZip } from './download'
 
 export const eventRoutes: Router = Router()
@@ -275,15 +277,28 @@ eventRoutes.post('/:eventId/sessions/:sessionId/share-link', async (req, res, ne
     }
 
     const event = await getEvent(query.data.tenantId, session.eventId)
+    const token = await ensureShareToken(query.data.tenantId, session.id)
 
+    if (!token) {
+      return res.status(404).json({ error: { code: 'not_found', message: 'Not found' } })
+    }
+
+    /*
+     * A short link to a page, not a signed URL to a file.
+     *
+     * It used to hand out the storage URL directly: several hundred
+     * characters of signature, dead after seven days, and it exposed the
+     * bucket layout to anyone it was forwarded to. Pasted into a group chat
+     * it looked like spam and stopped working before most people opened it.
+     *
+     * This one is short, survives as long as the photos do, and goes to a
+     * page we control -- so it can carry the event's name and say when the
+     * photos will be deleted.
+     */
     return res.json({
-      url: await createReadUrl(
-        session.montagePath,
-        query.data.tenantId,
-        MAX_SIGNED_URL_MS,
-      ),
+      url: `${env.GUEST_URL}/p/${token}`,
       title: event?.name ?? 'Photo Booth',
-      expiresInDays: 7,
+      expiresInDays: null,
     })
   } catch (e) {
     return next(e)
@@ -314,13 +329,19 @@ eventRoutes.post('/:eventId/sessions/:sessionId/email', async (req, res, next) =
 
     const event = await getEvent(query.data.tenantId, session.eventId)
 
-    // A week is the longest a V4 signature can live, and is long enough that
-    // the link still works when someone opens the email days later.
-    const link = await createReadUrl(
-      session.montagePath,
-      query.data.tenantId,
-      MAX_SIGNED_URL_MS,
-    )
+    /*
+     * The same short link the share button hands out.
+     *
+     * A signed storage URL was used here, which expired after seven days --
+     * the longest such a signature can live. People open a photo email weeks
+     * later, and finding a dead link then is worse than never being sent
+     * one. This link lasts as long as the photographs do.
+     */
+    const token = await ensureShareToken(query.data.tenantId, session.id)
+    if (!token) {
+      return res.status(404).json({ error: { code: 'not_found', message: 'Not found' } })
+    }
+    const link = `${env.GUEST_URL}/p/${token}`
 
     await queueEmail({
       to: body.data.to,

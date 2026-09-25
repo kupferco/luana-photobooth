@@ -374,12 +374,25 @@ export const sessions = pgTable(
     /** Composed by the API with sharp; the Pi only ever prints this file. */
     montagePath: text('montage_path'),
     error: text('error'),
+    /**
+     * A short, public, view-only handle for one montage.
+     *
+     * Minted the first time someone shares, and never expires within
+     * retention -- unlike a signed storage URL, which is enormous, leaks the
+     * bucket layout, and dies after seven days. A shared photo should still
+     * open when someone gets round to the group chat.
+     *
+     * Separate from guestTokenHash on purpose: that one can delete photos and
+     * order prints, and a link pasted into WhatsApp must do neither.
+     */
+    shareToken: text('share_token'),
     /** Set when a guest uses "delete my photos" on their own link. */
     deletedAt: timestamp('deleted_at', { withTimezone: true }),
     ...timestamps,
   },
   (t) => [
     uniqueIndex('sessions_code_key').on(t.code),
+    uniqueIndex('sessions_share_token_key').on(t.shareToken),
     index('sessions_event_idx').on(t.eventId, t.createdAt),
     index('sessions_queue_idx').on(t.eventId, t.status, t.queuedAt),
     index('sessions_tenant_idx').on(t.tenantId),

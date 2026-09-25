@@ -245,5 +245,11 @@
     "emailPrompt": "Which email?",
     "send": "Send",
     "sent": "Sent."
+  },
+  "shared": {
+    "save": "Save photo",
+    "keptUntil": "Kept until {date}",
+    "goneTitle": "This photo is no longer available",
+    "goneBody": "It may have been deleted, or the link may be wrong."
   }
 }

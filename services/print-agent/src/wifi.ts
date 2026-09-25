@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process'
-import { readFile } from 'node:fs/promises'
+import { localDeviceName } from './client'
 import { promisify } from 'node:util'
 
 const run = promisify(execFile)
@@ -40,25 +40,19 @@ export interface Network {
 }
 
 /**
- * A stable four-character suffix for this Pi, from its CPU serial.
+ * The setup network is named after the box.
  *
- * Two Pis in one room both advertising `PhotoLu-Setup` would be
- * indistinguishable, so the SSID says which box it is. This is a label, not
- * a secret: the pairing code is what authorises anything.
+ * Three printers in one room all advertising "PhotoLu-Setup" is a guessing
+ * game, and the point of giving each unit a permanent name is that the thing
+ * on the table and the thing on screen are obviously the same. The card
+ * taped to the box says which network to join.
+ *
+ * No "PhotoLu" prefix: an SSID is capped at 32 bytes and the longest name
+ * reaches 29, so the prefix would not fit -- and a truncated name would stop
+ * matching the card, which is the one thing it must not do.
  */
-export async function deviceSuffix(): Promise<string> {
-  try {
-    const cpuinfo = await readFile('/proc/cpuinfo', 'utf8')
-    const serial = cpuinfo.match(/^Serial\s*:\s*(\w+)$/m)?.[1]
-    if (serial) return serial.slice(-4).toUpperCase()
-  } catch {
-    // Not a Pi, or a kernel that does not expose it.
-  }
-  return 'SETUP'
-}
-
 export async function hotspotSsid(): Promise<string> {
-  return `PhotoLu-Setup-${await deviceSuffix()}`
+  return (await localDeviceName()).slice(0, 32)
 }
 
 /**

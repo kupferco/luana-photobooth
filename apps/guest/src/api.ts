@@ -73,7 +73,17 @@ async function call<T>(path: string, init?: RequestInit): Promise<T> {
   return body as T
 }
 
+export interface SharedPhoto {
+  montageUrl: string
+  eventName: string | null
+  retentionUntil: string | null
+  takenAt: string
+}
+
 export const api = {
+  /** One shared montage. The token in the link is the whole authorisation. */
+  shared: (token: string) => call<SharedPhoto>(`/p/${token}`),
+
   join: (joinCode: string) => call<JoinInfo>(`/join/${encodeURIComponent(joinCode)}`),
 
   start: (joinCode: string) =>

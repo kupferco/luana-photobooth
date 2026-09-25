@@ -10,6 +10,7 @@ import { z } from 'zod'
 import {
   createSession,
   getEvent,
+  getSharedSession,
   getLiveEventByJoinCode,
   countPrints,
   getSessionByCode,
@@ -188,6 +189,42 @@ const TokenQuery = z.object({ token: z.string().min(1) })
  * session changes state about three times in a minute, which is why this is
  * polled rather than pushed -- see docs/architecture.md.
  */
+/**
+ * A shared photo, for anyone holding the link.
+ *
+ * Unauthenticated by design -- the token is the authorisation, which is why
+ * it is long and random. It grants exactly one thing: looking. No deleting,
+ * no printing, no seeing anything else from the party.
+ *
+ * The image URL is signed briefly and fetched fresh each time, so the link
+ * itself never carries credentials and cannot be replayed once the photos
+ * are gone.
+ */
+sessionRoutes.get('/p/:shareToken', async (req, res, next) => {
+  try {
+    const session = await getSharedSession(req.params.shareToken!)
+
+    if (!session?.montagePath) {
+      return res.status(404).json({
+        error: { code: 'not_found', message: 'This photo is no longer available.' },
+      })
+    }
+
+    // The session carries its tenant, so this stays inside the usual
+    // tenant-scoped accessor rather than adding a way around it.
+    const event = await getEvent(session.tenantId, session.eventId)
+
+    return res.json({
+      montageUrl: await createReadUrl(session.montagePath, session.tenantId),
+      eventName: event?.name ?? null,
+      retentionUntil: event?.retentionUntil?.toISOString() ?? null,
+      takenAt: session.createdAt.toISOString(),
+    })
+  } catch (e) {
+    return next(e)
+  }
+})
+
 sessionRoutes.get('/sessions/:code', async (req, res, next) => {
   try {
     const query = TokenQuery.safeParse(req.query)

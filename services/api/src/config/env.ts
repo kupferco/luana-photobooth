@@ -23,6 +23,13 @@ const EnvSchema = z.object({
   /** Long: the owner should not be signed out mid-party. */
   REFRESH_TOKEN_TTL: z.coerce.number().int().positive().default(60 * 60 * 24 * 60),
 
+  /**
+   * Where a shared photo opens. Shared links are built here rather than in
+   * the app, because email sends them too and there is only one right
+   * answer per environment.
+   */
+  GUEST_URL: z.string().url().default('http://localhost:5173'),
+
   PORT: z.coerce.number().int().positive().default(8080),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
 })

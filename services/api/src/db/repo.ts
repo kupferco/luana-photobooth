@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto'
 import { and, desc, eq, inArray, isNull, lt, sql } from 'drizzle-orm'
 import {
   CLASSIC_3UP,
@@ -710,6 +711,55 @@ export async function listSessionPhotos(tenantId: string, sessionId: string) {
 
 /** A device is "online" if it has called in recently. */
 const ONLINE_WINDOW_MS = 30_000
+
+/**
+ * The public handle for one montage, minted on first share.
+ *
+ * Reused afterwards so the same photo always has the same link: someone who
+ * shares twice should not create two, and a link already sent must keep
+ * working.
+ */
+export async function ensureShareToken(
+  tenantId: string,
+  sessionId: string,
+): Promise<string | null> {
+  const [existing] = await db
+    .select({ shareToken: sessions.shareToken })
+    .from(sessions)
+    .where(and(eq(sessions.tenantId, tenantId), eq(sessions.id, sessionId)))
+    .limit(1)
+
+  if (!existing) return null
+  if (existing.shareToken) return existing.shareToken
+
+  // Long enough not to be guessable: this is the only thing protecting a
+  // photograph of someone's child from anyone who tries a few URLs.
+  const token = randomBytes(18).toString('base64url')
+
+  const [updated] = await db
+    .update(sessions)
+    .set({ shareToken: token, updatedAt: new Date() })
+    .where(and(eq(sessions.tenantId, tenantId), eq(sessions.id, sessionId)))
+    .returning({ shareToken: sessions.shareToken })
+
+  return updated?.shareToken ?? null
+}
+
+/**
+ * A shared montage, by its public token.
+ *
+ * Not tenant-scoped: the token *is* the authorisation, which is why it is
+ * long and random. Deleted sessions return nothing, so "delete my photos"
+ * kills every link that was ever shared.
+ */
+export async function getSharedSession(shareToken: string) {
+  const [row] = await db
+    .select()
+    .from(sessions)
+    .where(and(eq(sessions.shareToken, shareToken), isNull(sessions.deletedAt)))
+    .limit(1)
+  return row ?? null
+}
 
 export async function eventStats(tenantId: string, eventId: string) {
   const queue = await eventQueue(tenantId, eventId)

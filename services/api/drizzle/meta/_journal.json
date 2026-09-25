@@ -36,6 +36,13 @@
       "when": 1790325281143,
       "tag": "0004_zippy_sharon_ventura",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1790326339968,
+      "tag": "0005_lonely_stardust",
+      "breakpoints": true
     }
   ]
 }

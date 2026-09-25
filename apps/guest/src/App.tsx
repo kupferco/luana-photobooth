@@ -10,6 +10,7 @@ import {
   type JoinInfo,
   type StartedSession,
 } from './api'
+import { SharedPhoto } from './SharedPhoto'
 
 /**
  * The guest page.
@@ -27,8 +28,20 @@ function joinCodeFromPath(): string {
   return (parts[parts.length - 1] ?? '').toUpperCase()
 }
 
+/**
+ * /p/<token> is a shared photo rather than a party to join.
+ *
+ * Case-sensitive, unlike a join code: the token is base64url and `aB` is not
+ * `Ab`. Upper-casing it the way join codes are would break every link.
+ */
+function shareTokenFromPath(): string | null {
+  const parts = window.location.pathname.split('/').filter(Boolean)
+  return parts[0] === 'p' && parts[1] ? parts[1] : null
+}
+
 export function App() {
   const t = useMemo(() => createTranslator(resolveLocale(navigator.language)), [])
+  const shareToken = useMemo(shareTokenFromPath, [])
   const joinCode = useMemo(joinCodeFromPath, [])
 
   const [info, setInfo] = useState<JoinInfo | null>(null)
@@ -163,6 +176,15 @@ export function App() {
   }, [joinCode])
 
   // --- screens -------------------------------------------------------------
+
+  /* A shared photo is not a party: no code, no queue, nothing to join. */
+  if (shareToken) {
+    return (
+      <Shell>
+        <SharedPhoto token={shareToken} t={t} />
+      </Shell>
+    )
+  }
 
   if (!joinCode) {
     return (

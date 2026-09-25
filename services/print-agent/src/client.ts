@@ -260,6 +260,29 @@ export async function deviceName(): Promise<string | null> {
     .catch(() => null)
 }
 
+/**
+ * This box's name, inventing one if it has never had it confirmed.
+ *
+ * The setup network is named after the box, which means a name is needed
+ * *before* pairing -- and pairing is what normally assigns it. So one is
+ * generated locally on first use and written down. The server almost always
+ * confirms it; on the rare clash it hands back a different one, and by then
+ * the hotspot has done its job.
+ *
+ * Without this, three printers in one room all advertised "PhotoLu-Setup"
+ * and nobody could tell which was which.
+ */
+export async function localDeviceName(): Promise<string> {
+  const stored = await deviceName()
+  if (stored) return stored
+
+  const generated = proposeDeviceName()
+  await mkdir(dirname(NAME_PATH), { recursive: true }).catch(() => {})
+  await writeFile(NAME_PATH, generated).catch(() => {})
+  log(`this printer will call itself ${generated} until pairing confirms it`)
+  return generated
+}
+
 export async function pair(
   code: string,
 ): Promise<{ token: string; eventId: string | null; name: string | null }> {
