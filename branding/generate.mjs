@@ -64,7 +64,14 @@ const INK_THRESHOLD = Number(process.env.INK ?? 110)
  */
 const FAVICON_CROP = process.env.CROP
   ? (([x, y, w, h]) => ({ x, y, w, h }))(process.env.CROP.split(',').map(Number))
-  : null
+  : // The girl in the middle: her hair, the heart glasses and the smile.
+    //
+    // It stops where it does because the three figures overlap. Her hair runs
+    // straight into the afro on one side and under the sombrero brim on the
+    // other, so a wider crop does not get more of her hair -- it gets the hat.
+    // The top is inside her fringe for the same reason a 48px icon wants
+    // anything: the fewer things in it, the more pixels each one gets.
+    { x: 0.345, y: 0.06, w: 0.33, h: 0.52 }
 
 /**
  * The logo, cropped to its own edges and centred on a square.
@@ -273,12 +280,11 @@ await write(join(ASSETS, 'splash-icon.png'), await square(1024, 0.6, TRANSPARENT
  * Small enough that a transparent mark disappears against a dark tab strip,
  * so it sits on the brand colour like the app icon.
  *
- * At 48px the full scene is unreadable, so it shows one region of it --
- * see FAVICON_CROP. Until a region is chosen it falls back to the whole
- * mark, which is legible as a smudge of the right shape and colour rather
- * than as a drawing.
+ * At 48px the full scene is three faces' worth of line work in a space that
+ * fits one, and it reads as a grey smudge. It shows one face instead --
+ * see FAVICON_CROP.
  */
-const faviconMark = FAVICON_CROP ? await detail(FAVICON_CROP) : null
+const faviconMark = FAVICON_CROP ? await detail(FAVICON_CROP) : await mark()
 await write(join(ASSETS, 'favicon.png'), await square(48, 0.8, BRAND, faviconMark), {
   flatten: true,
 })

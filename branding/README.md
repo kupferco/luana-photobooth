@@ -37,9 +37,12 @@ outline, it survives, and the fix is to remove it from the source artwork.
 
 ### Choosing what the favicon shows
 
-The mark is one wide connected drawing, and at 48px the whole of it turns
-to grey soup in a tab strip. So the favicon can show a single region
-instead:
+The mark is one wide connected drawing of three figures, and at 48px all of
+it together turns to grey soup in a tab strip. So the favicon shows a single
+region instead — by default the girl in the middle: her hair, the heart
+glasses and the smile.
+
+To use a different region:
 
 ```bash
 npm run branding                      # then open logo/favicon-picker.png
@@ -55,8 +58,13 @@ to be tight.
 Check the result in `logo/favicon-preview.png`, which is the same crop at
 240px. The 48px file is too small to judge.
 
-Once a region is settled, replace the `FAVICON_CROP` fallback in
+Once a region is settled, replace the `FAVICON_CROP` default in
 `generate.mjs` with the literal so it survives without the env var.
+
+**Why the current one stops where it does.** The three figures overlap: her
+hair runs into the afro on one side and under the sombrero brim on the
+other. A wider crop does not get more of her hair, it gets the hat. So the
+region is as much of her as exists separately, and no more.
 
 ## What gets built
 
