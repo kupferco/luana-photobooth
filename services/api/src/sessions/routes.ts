@@ -17,6 +17,7 @@ import {
   getTemplate,
   listDevices,
   queuePrint,
+  retakeSession,
   toTemplate,
   updateSession,
 } from '../db/repo'
@@ -272,6 +273,7 @@ sessionRoutes.get('/sessions/:code', async (req, res, next) => {
             }
           : null,
       error: session.error,
+      retakesLeft: Math.max(0, event.retakesAllowed - session.retakeCount),
       retentionUntil: event.retentionUntil.toISOString(),
     }
 
@@ -367,6 +369,75 @@ sessionRoutes.post('/sessions/:code/print', async (req, res, next) => {
  * how this feels to a parent at someone else's party. Soft delete here; the
  * objects go with the retention job.
  */
+/**
+ * "I don't like it — let me try again."
+ *
+ * Deletes the photo and hands the guest a fresh session at the front of the
+ * queue, so they can walk straight back to the booth. Capped per event,
+ * because a booth someone can hold indefinitely is a booth nobody else gets
+ * to use.
+ *
+ * Returns a new code and token: the old session is gone, and so is anything
+ * that pointed at it, including links already shared.
+ */
+sessionRoutes.post('/sessions/:code/retake', async (req, res, next) => {
+  try {
+    const query = TokenQuery.safeParse(req.query)
+    if (!query.success) {
+      return res.status(404).json({ error: { code: 'not_found', message: 'Not found' } })
+    }
+
+    const session = await getSessionByCode(normaliseCode(req.params.code ?? ''))
+    if (!session || session.guestTokenHash !== hashGuestToken(query.data.token)) {
+      return res.status(404).json({ error: { code: 'not_found', message: 'Not found' } })
+    }
+
+    const event = await getEvent(session.tenantId, session.eventId)
+    if (!event || event.status !== 'live') {
+      return res.status(409).json({
+        error: { code: 'not_live', message: 'That party has finished.' },
+      })
+    }
+
+    if (session.retakeCount >= event.retakesAllowed) {
+      return res.status(409).json({
+        error: {
+          code: 'no_retakes_left',
+          message: 'You have used your retake. Scan the code again for another go.',
+        },
+      })
+    }
+
+    const token = guestToken()
+    const next_ = await retakeSession(
+      session.tenantId,
+      {
+        id: session.id,
+        eventId: session.eventId,
+        code: session.code,
+        retakeCount: session.retakeCount,
+        shotsExpected: session.shotsExpected,
+      },
+      { code: sessionCode(), guestTokenHash: hashGuestToken(token) },
+    )
+
+    // The same shape as starting a session, so the guest page can swap one
+    // for the other without a second code path.
+    return res.status(201).json({
+      code: next_.code,
+      token,
+      // They were just at the booth; the retake is placed ahead of whoever
+      // is waiting, so they are next.
+      queuePosition: 0,
+      shotsExpected: next_.shotsExpected,
+      retentionUntil: event.retentionUntil.toISOString(),
+      retakesLeft: event.retakesAllowed - next_.retakeCount,
+    })
+  } catch (e) {
+    return next(e)
+  }
+})
+
 sessionRoutes.delete('/sessions/:code', async (req, res, next) => {
   try {
     const query = TokenQuery.safeParse(req.query)

@@ -52,6 +52,7 @@ const EVENTS: Event[] = [
     retentionUntil: retentionUntil(new Date(), DEFAULT_MONTAGE_RETENTION_DAYS).toISOString(),
     endedAt: null,
     backgroundUrl: null,
+    retakesAllowed: 1,
   },
   {
     id: 'evt-draft',
@@ -63,6 +64,7 @@ const EVENTS: Event[] = [
     retentionUntil: iso(108),
     endedAt: null,
     backgroundUrl: null,
+    retakesAllowed: 1,
   },
   {
     // Close to deletion on purpose: this is the state the download prompt and
@@ -76,6 +78,7 @@ const EVENTS: Event[] = [
     retentionUntil: iso(2),
     endedAt: iso(-88),
     backgroundUrl: null,
+    retakesAllowed: 1,
   },
 ]
 
@@ -246,6 +249,7 @@ export const fixtureApi: PhotoboothApi = {
       retentionUntil: retentionUntil(new Date(input.eventDate)).toISOString(),
       endedAt: null,
       backgroundUrl: null,
+    retakesAllowed: 1,
     }
     EVENTS.unshift(event)
     SESSIONS[event.id] = []
@@ -291,6 +295,14 @@ export const fixtureApi: PhotoboothApi = {
   async listDevices() {
     await delay()
     return fixtureDevices.filter((d) => !removedDevices.has(d.id))
+  },
+
+  async setRetakes(_tenantId, eventId, retakesAllowed) {
+    await delay()
+    const event = EVENTS.find((e) => e.id === eventId)
+    if (!event) throw new ApiError('Not found', 'not_found', 404)
+    event.retakesAllowed = retakesAllowed
+    return event
   },
 
   async backgroundUpload() {

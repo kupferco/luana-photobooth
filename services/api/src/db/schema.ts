@@ -247,6 +247,14 @@ export const events = pgTable(
      * Null renders the template's flat colour, which is white.
      */
     backgroundPath: text('background_path'),
+    /**
+     * How many times a guest may delete their photo and try again.
+     *
+     * One by default: enough to rescue a blink or a turned head, not enough
+     * for someone to hold the booth while they get it perfect. Zero turns it
+     * off entirely for a busy party.
+     */
+    retakesAllowed: smallint('retakes_allowed').notNull().default(1),
     /** What the guest QR code encodes. Short, unique, case-insensitive. */
     joinCode: text('join_code').notNull(),
     status: eventStatus('status').notNull().default('draft'),
@@ -377,6 +385,16 @@ export const sessions = pgTable(
 
     /** Three misses and they are out; they can always scan again. */
     confirmMisses: smallint('confirm_misses').notNull().default(0),
+
+    /**
+     * How many attempts this guest has already used.
+     *
+     * Carried forward rather than chained through a parent link: the only
+     * question ever asked is "may they go again", and a count answers it in
+     * one read. The original session is deleted, so a chain would point at
+     * nothing anyway.
+     */
+    retakeCount: smallint('retake_count').notNull().default(0),
 
     shotsExpected: smallint('shots_expected').notNull(),
     shotsTaken: smallint('shots_taken').notNull().default(0),

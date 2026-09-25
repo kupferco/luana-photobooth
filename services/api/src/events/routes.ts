@@ -42,6 +42,11 @@ const PatchBody = z.object({
   name: z.string().min(1).max(120).optional(),
   status: z.enum(['draft', 'live', 'ended']).optional(),
   templateId: z.string().uuid().optional(),
+  /**
+   * Capped at 3. Beyond that a guest can hold the booth for as long as they
+   * like, which is a queue nobody else gets to the front of.
+   */
+  retakesAllowed: z.number().int().min(0).max(3).optional(),
 })
 
 const TenantQuery = z.object({ tenantId: z.string().uuid() })
@@ -65,6 +70,7 @@ async function present(event: Awaited<ReturnType<typeof getEvent>>) {
     templateId: event.templateId,
     retentionUntil: event.retentionUntil.toISOString(),
     endedAt: event.endedAt?.toISOString() ?? null,
+    retakesAllowed: event.retakesAllowed,
     backgroundUrl: event.backgroundPath
       ? await createReadUrl(event.backgroundPath, event.tenantId)
       : null,

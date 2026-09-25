@@ -51,6 +51,7 @@ export function App() {
   const [view, setView] = useState<SessionView | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [starting, setStarting] = useState(false)
+  const [retaking, setRetaking] = useState(false)
   const starts = useRef(false)
 
   // --- which party is this -------------------------------------------------
@@ -168,6 +169,29 @@ export function App() {
     if (outcome === 'copied') setNotice(t('guest.linkCopied'))
     else if (outcome === 'unsupported') setError(t('guest.shareUnsupported'))
   }, [view, info, t])
+
+  /**
+   * Throw this photo away and go again, without rescanning anything.
+   *
+   * The new session replaces the old one in place -- same screen, same
+   * device -- so from the guest's side they simply rejoin the queue, at the
+   * front, because they were just there.
+   */
+  const retake = useCallback(async () => {
+    if (!session) return
+    setRetaking(true)
+    setError(null)
+    try {
+      const next = await api.retake(session.code, session.token)
+      remember(joinCode, next)
+      setSession(next)
+      setView(null)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e))
+    } finally {
+      setRetaking(false)
+    }
+  }, [session, joinCode])
 
   const again = useCallback(() => {
     forgetLocal(joinCode)
@@ -309,6 +333,20 @@ export function App() {
           <button onClick={() => window.open(view.montageUrl!, '_blank')}>
             {t('guest.save')}
           </button>
+          {/*
+            * Two different things, deliberately worded apart.
+            *
+            * "Try again" throws this photo away and gives them their turn
+            * straight back -- for a blink or a turned head. "Another photo"
+            * keeps this one and joins the back of the queue. Offering only
+            * the second meant anyone unhappy with their picture had to keep
+            * it and queue again, which is the wrong way round.
+            */}
+          {view.retakesLeft > 0 ? (
+            <button className="quiet" onClick={retake} disabled={retaking}>
+              {retaking ? t('guest.retaking') : t('guest.retake')}
+            </button>
+          ) : null}
           <button className="quiet" onClick={again}>
             {t('guest.again')}
           </button>

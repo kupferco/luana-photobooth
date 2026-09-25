@@ -588,6 +588,38 @@ export default function EventTab() {
             </View>
           ) : null}
 
+          {/* A party setting rather than a device one, but it lives here
+              because Setup is where things you decide once belong. */}
+          {open ? (
+            <View style={{ gap: 6, paddingTop: 12 }}>
+              <Label>{t('dashboard.retakes')}</Label>
+              <Body muted>{t('dashboard.retakesHint')}</Body>
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                {([0, 1, 2] as const).map((n) => (
+                  <View key={n} style={{ flex: 1 }}>
+                    <Button
+                      label={
+                        n === 0
+                          ? t('dashboard.retakesOff')
+                          : n === 1
+                            ? t('dashboard.retakesOne')
+                            : t('dashboard.retakesTwo')
+                      }
+                      variant={event.retakesAllowed === n ? 'primary' : 'secondary'}
+                      onPress={async () => {
+                        try {
+                          setEvent(await api.setRetakes(tenantId!, event.id, n))
+                        } catch (err) {
+                          setLoadError(err instanceof Error ? err.message : String(err))
+                        }
+                      }}
+                    />
+                  </View>
+                ))}
+              </View>
+            </View>
+          ) : null}
+
           {open ? (
           <Button
             label={t('dashboard.setUpNewPrinter')}

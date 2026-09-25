@@ -136,7 +136,12 @@
     "backgroundUploading": "Enviando…",
     "backgroundFailed": "Não foi possível enviar essa imagem. Tente de novo.",
     "backgroundTooBig": "Essa imagem é muito grande. Use menos de 10MB.",
-    "backgroundOnWeb": "Escolher uma imagem funciona no navegador. Abra este evento em um computador."
+    "backgroundOnWeb": "Escolher uma imagem funciona no navegador. Abra este evento em um computador.",
+    "retakes": "Repetições",
+    "retakesHint": "Quantas vezes um convidado pode apagar a foto e tentar de novo, mantendo o lugar na frente.",
+    "retakesOff": "Desligado",
+    "retakesOne": "1 por convidado",
+    "retakesTwo": "2 por convidado"
   },
   "retention": {
     "guest": "Suas fotos ficam guardadas até {date}.",
@@ -198,7 +203,7 @@
     "welcomeHint": "Toque para começar. A cabine vai tirar {count} fotos.",
     "youAreNext": "Você é o próximo.",
     "save": "Salvar foto",
-    "again": "Tirar outra",
+    "again": "Outra foto",
     "boothOffline": "A cabine não está ligada",
     "boothOfflineHint": "Ninguém está com a cabine ligada agora. Peça para alguém da festa ligá-la.",
     "yourTurn": "É a sua vez!",
@@ -213,7 +218,9 @@
     "share": "Compartilhar",
     "shareText": "Nossa foto de {name}",
     "linkCopied": "Link copiado",
-    "shareUnsupported": "Não foi possível compartilhar neste aparelho."
+    "shareUnsupported": "Não foi possível compartilhar neste aparelho.",
+    "retake": "Não gostou? Tentar de novo",
+    "retaking": "Recuperando sua vez…"
   },
   "common": {
     "back": "Voltar",

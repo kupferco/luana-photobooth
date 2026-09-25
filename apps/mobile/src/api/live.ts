@@ -293,6 +293,15 @@ export const liveApi: PhotoboothApi = {
     return result.devices
   },
 
+  async setRetakes(tenantId, eventId, retakesAllowed) {
+    const result = await request<{ event: Event }>(
+      'PATCH',
+      `/events/${eventId}?tenantId=${encodeURIComponent(tenantId)}`,
+      { retakesAllowed },
+    )
+    return result.event
+  },
+
   async backgroundUpload(tenantId, eventId, contentType) {
     return request<BackgroundUpload>(
       'POST',

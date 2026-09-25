@@ -161,6 +161,7 @@ export async function updateEvent(
     templateId: string
     retentionUntil: Date
     endedAt: Date | null
+    retakesAllowed: number
   }>,
 ) {
   const [row] = await db
@@ -630,6 +631,73 @@ const STALE_MS = {
  * exactly when it matters, and it needs no scheduler to be running for the
  * booth to behave.
  */
+/**
+ * Deletes a guest's photo and gives them their turn straight back.
+ *
+ * The retake goes to the *front* of the queue, not the back. They are
+ * standing at the booth having just had their turn, and sending them to the
+ * end at a busy party turns a blink into a ten-minute problem -- which is
+ * exactly the situation this exists to rescue. The limit is what stops it
+ * being abused, not the wait.
+ *
+ * Their previous session is deleted outright: the whole point is that the
+ * photo they did not like stops existing, including any link they shared.
+ */
+export async function retakeSession(
+  tenantId: string,
+  previous: { id: string; eventId: string; code: string; retakeCount: number; shotsExpected: number },
+  input: { code: string; guestTokenHash: string },
+) {
+  return db.transaction(async (tx) => {
+    await tx
+      .update(sessions)
+      .set({ deletedAt: new Date(), updatedAt: new Date() })
+      .where(and(eq(sessions.tenantId, tenantId), eq(sessions.id, previous.id)))
+
+    /*
+     * Just ahead of whoever is currently first.
+     *
+     * Not `now()`, which would put them behind everyone already waiting, and
+     * not a fixed epoch, which would park them in front for ever if they
+     * retake twice.
+     */
+    const [head] = await tx
+      .select({ queuedAt: sessions.queuedAt })
+      .from(sessions)
+      .where(
+        and(
+          eq(sessions.tenantId, tenantId),
+          eq(sessions.eventId, previous.eventId),
+          eq(sessions.status, 'queued'),
+          isNull(sessions.deletedAt),
+        ),
+      )
+      .orderBy(sessions.queuedAt)
+      .limit(1)
+
+    const queuedAt = head
+      ? new Date(head.queuedAt.getTime() - 1000)
+      : new Date()
+
+    const [row] = await tx
+      .insert(sessions)
+      .values({
+        tenantId,
+        eventId: previous.eventId,
+        code: input.code,
+        guestTokenHash: input.guestTokenHash,
+        shotsExpected: previous.shotsExpected,
+        origin: 'guest',
+        retakeCount: previous.retakeCount + 1,
+        queuedAt,
+      })
+      .returning()
+
+    if (!row) throw new Error('Could not start the retake.')
+    return row
+  })
+}
+
 export async function expireStaleSessions(tenantId: string, eventId: string) {
   const now = Date.now()
 

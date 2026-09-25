@@ -84,6 +84,18 @@ export const api = {
   /** One shared montage. The token in the link is the whole authorisation. */
   shared: (token: string) => call<SharedPhoto>(`/p/${token}`),
 
+  /**
+   * Delete this photo and get another go, straight away.
+   *
+   * Returns a new code and token: the old session is gone, along with
+   * anything that pointed at it.
+   */
+  retake: (code: string, token: string) =>
+    call<StartedSession & { retakesLeft: number }>(
+      `/sessions/${code}/retake?token=${encodeURIComponent(token)}`,
+      { method: 'POST' },
+    ),
+
   join: (joinCode: string) => call<JoinInfo>(`/join/${encodeURIComponent(joinCode)}`),
 
   start: (joinCode: string) =>

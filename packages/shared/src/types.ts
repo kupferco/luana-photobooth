@@ -90,6 +90,14 @@ export const SessionViewSchema = z.object({
     })
     .nullable(),
   error: z.string().nullable(),
+    /**
+     * How many more times this guest may delete their photo and try again.
+     *
+     * Sent with the view so the button can simply not be there once they
+     * are out of goes, rather than offering something that will be
+     * refused.
+     */
+    retakesLeft: z.number().int().nonnegative(),
   /** When this session's photos are deleted. Shown to the guest verbatim. */
   retentionUntil: z.string().datetime(),
 })

@@ -136,7 +136,12 @@
     "backgroundUploading": "Uploading…",
     "backgroundFailed": "That picture could not be uploaded. Try again.",
     "backgroundTooBig": "That picture is too large. Keep it under 10MB.",
-    "backgroundOnWeb": "Choosing a picture works in the browser. Open this event on a computer."
+    "backgroundOnWeb": "Choosing a picture works in the browser. Open this event on a computer.",
+    "retakes": "Retakes",
+    "retakesHint": "How many times a guest can delete their photo and go again, keeping their place at the front.",
+    "retakesOff": "Off",
+    "retakesOne": "1 per guest",
+    "retakesTwo": "2 per guest"
   },
   "retention": {
     "guest": "Your photos are saved until {date}.",
@@ -198,7 +203,7 @@
     "welcomeHint": "Tap to start. The booth will take {count} photos.",
     "youAreNext": "You are next.",
     "save": "Save photo",
-    "again": "Take another",
+    "again": "Another photo",
     "boothOffline": "The booth is not running",
     "boothOfflineHint": "Nobody has the booth switched on right now. Ask whoever is hosting.",
     "yourTurn": "You are up!",
@@ -213,7 +218,9 @@
     "share": "Share",
     "shareText": "Our photo from {name}",
     "linkCopied": "Link copied",
-    "shareUnsupported": "Could not share on this device."
+    "shareUnsupported": "Could not share on this device.",
+    "retake": "Don't like it? Try again",
+    "retaking": "Getting your turn back…"
   },
   "common": {
     "back": "Back",

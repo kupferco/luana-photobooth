@@ -29,6 +29,8 @@ export interface Event {
   endedAt: string | null
   /** Short-lived signed URL for previewing the artwork, if there is any. */
   backgroundUrl: string | null
+  /** How many times a guest may delete their photo and go again. */
+  retakesAllowed: number
 }
 
 /** Artwork behind the photos. Null means the template's flat colour. */
@@ -109,6 +111,9 @@ export interface PhotoboothApi {
     contentType: 'image/jpeg' | 'image/png',
   ): Promise<BackgroundUpload>
   setBackground(tenantId: string, eventId: string, path: string | null): Promise<Event>
+
+  /** How many retakes a guest gets. 0 turns them off for a busy party. */
+  setRetakes(tenantId: string, eventId: string, retakesAllowed: number): Promise<Event>
 
   setEventStatus(
     tenantId: string,
