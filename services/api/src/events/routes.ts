@@ -129,7 +129,16 @@ eventRoutes.get('/', async (req, res, next) => {
     requireTenant(req, query.data.tenantId)
 
     const rows = await listEvents(query.data.tenantId)
-    return res.json({ events: rows.map(present) })
+    /*
+     * Promise.all, because present is async now.
+     *
+     * `rows.map(present)` returned an array of promises, which res.json
+     * serialised as `{}` -- so every event arrived with every field
+     * undefined and the home screen rendered cards for nothing. TypeScript
+     * could not help: res.json takes anything, and an array of promises is a
+     * perfectly good anything.
+     */
+    return res.json({ events: await Promise.all(rows.map((row) => present(row))) })
   } catch (e) {
     return next(e)
   }
