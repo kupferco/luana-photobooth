@@ -34,14 +34,75 @@ const BRAND = '#f5c518'
 const TRANSPARENT = { r: 0, g: 0, b: 0, alpha: 0 }
 
 /**
+ * Anything darker than this becomes the mark; everything else disappears.
+ *
+ * The source is a full-colour drawing on a white background, and what is
+ * wanted from it is the black line work alone. Measured on the original:
+ * 15% of it is darker than 70, 76% is near-white, and about 2% is saturated
+ * colour. So a luminance cut separates the drawing from everything around it
+ * without needing to know what any of the shapes are.
+ *
+ * Raise it to keep more of the softer greys, lower it to keep only the
+ * densest black.
+ */
+const INK_THRESHOLD = Number(process.env.INK ?? 110)
+
+/**
  * The logo, cropped to its own edges and centred on a square.
  *
  * `scale` is how much of the square the logo fills. Anything destined for an
  * Android adaptive icon needs to stay well inside, because the launcher will
  * crop it.
  */
+/**
+ * The line work, lifted off its background.
+ *
+ * The source arrives as a drawing on white, not as a transparent mark, so
+ * `.trim()` alone finds nothing to remove -- the first pass at this produced
+ * icons with a white box sitting on the brand colour.
+ *
+ * Every pixel becomes either black or nothing, judged on how dark it is. The
+ * alpha is feathered rather than binary so the curves do not come out
+ * jagged: a pixel at the threshold is half there, one well below it is
+ * solid.
+ */
+async function inkOnly() {
+  const { data, info } = await sharp(SOURCE)
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true })
+
+  const out = Buffer.alloc(info.width * info.height * 4)
+
+  for (let i = 0; i < data.length; i += 4) {
+    // Rec. 601 luma: matches how dark these read to an eye, which is what
+    // "the black outline" means.
+    const luma = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]
+    const wasOpaque = data[i + 3] > 24
+
+    // Fully opaque below the threshold, fading out over the 40 levels above
+    // it, so edges stay smooth.
+    const alpha = !wasOpaque
+      ? 0
+      : luma <= INK_THRESHOLD
+        ? 255
+        : Math.max(0, Math.round(255 * (1 - (luma - INK_THRESHOLD) / 40)))
+
+    out[i] = 0
+    out[i + 1] = 0
+    out[i + 2] = 0
+    out[i + 3] = alpha
+  }
+
+  return sharp(out, { raw: { width: info.width, height: info.height, channels: 4 } })
+    .png()
+    .toBuffer()
+}
+
 async function square(size, scale, background) {
-  const trimmed = await sharp(SOURCE).trim().toBuffer()
+  // Trim against the ink, which has real transparency, rather than the
+  // original, which does not.
+  const trimmed = await sharp(await inkOnly()).trim().toBuffer()
   const inner = Math.round(size * scale)
 
   const fitted = await sharp(trimmed)
@@ -66,6 +127,7 @@ async function square(size, scale, background) {
 
 /** A flat silhouette, for Android's themed icons. */
 async function monochrome(size) {
+  // Already a black silhouette, so this is the same mark at Android's size.
   const shape = await square(size, 0.58, TRANSPARENT)
   const alpha = await sharp(shape).extractChannel('alpha').toBuffer()
 
@@ -117,4 +179,9 @@ await write(join(ASSETS, 'splash-icon.png'), await square(1024, 0.6, TRANSPARENT
 // Small enough that a transparent mark disappears against a dark tab strip.
 await write(join(ASSETS, 'favicon.png'), await square(48, 0.8, BRAND), { flatten: true })
 
-console.log('\nDone. Check them by eye — nothing here can tell you it looks wrong.\n')
+// Big, on white and on the brand colour, so the result can be judged at a
+// glance rather than by opening eight files.
+await write(join(LOGO, 'preview-on-white.png'), await square(600, 0.86, '#ffffff'), { flatten: true })
+
+console.log(`\nInk threshold: ${INK_THRESHOLD}. Too much left? INK=90 npm run branding`)
+console.log('Check branding/logo/preview-on-white.png — nothing here can tell you it looks wrong.\n')

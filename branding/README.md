@@ -13,10 +13,27 @@ npm run branding
 That rebuilds every icon the app uses. Check them by eye afterwards — the
 script can tell you a file is the right size, not that it looks right.
 
-The source should be a **PNG with a transparent background**, square-ish, and
-at least 1024px on its longest side. Transparency matters: the script trims
-to the logo's own edges and then places it on the backgrounds each platform
-needs, which it cannot do if the artwork ships with one baked in.
+The source can be a drawing on a white background — it does not need to
+arrive transparent. The script keeps only the dark line work and discards
+everything else, which is both how the background is removed and how
+coloured elements are dropped.
+
+At least 1024px on its longest side.
+
+### Tuning what survives
+
+```bash
+INK=90 npm run branding    # keep only the densest black
+INK=140 npm run branding   # keep softer greys too
+```
+
+Default is 110, on a 0–255 luminance scale. Anything darker becomes the
+mark; anything lighter disappears, with a short fade either side so curves
+stay smooth rather than jagged.
+
+**What this cannot do** is remove a shape that is itself drawn in black. The
+filter judges darkness, not meaning — so if an unwanted element has a black
+outline, it survives, and the fix is to remove it from the source artwork.
 
 ## What gets built
 
