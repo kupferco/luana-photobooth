@@ -12,6 +12,26 @@ a gallery of the whole party and can download everything before it expires.
 > 13 September 2025, is archived in [`v1/`](v1/) and tagged
 > `v1-luana-2025-09`. It still works, and is the fallback.
 
+## Start here
+
+| I want to... | Go to |
+|---|---|
+| Run it on this machine | [Running it locally](#running-it-locally) |
+| **Set up a brand new Raspberry Pi** | [Setting up a Raspberry Pi from scratch](#setting-up-a-raspberry-pi-from-scratch) |
+| Connect a printer to a party | [Pairing a printer to a party](#pairing-a-printer-to-a-party) |
+| Run a party today | [On the day](#on-the-day) |
+| Ship a change | [Deploying](#deploying) |
+| Work out why something is broken | [When something is wrong](#when-something-is-wrong) |
+
+The four commands that do almost everything to a Pi:
+
+```bash
+npm run pi:setup      # once per Pi: Node, CUPS, services, DNS, sudo rule
+npm run pi:deploy     # build and copy the agent. Seconds.
+npm run pi:printer    # driver, JPEG decoder, CUPS queue for the SELPHY
+npm run pi:status     # power, wifi, agent, pairing, printer, recent logs
+```
+
 ## Layout
 
 | Path | What |
