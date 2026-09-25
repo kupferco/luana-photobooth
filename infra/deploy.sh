@@ -50,6 +50,12 @@ confirm_prod() {
   [[ "$answer" == "prod" ]] || { echo "  Cancelled."; exit 1; }
 }
 
+# gcloud's env-var separator is changed to | with the ^|^ prefix, because
+# RESEND_FROM contains a comma. Not @, which the address in it also contains.
+#
+# Note the whole gcloud call is one backslash-continued line: a comment in the
+# middle of it silently ends the command, which once deployed a revision with
+# no environment at all and then tried to run --set-env-vars as a program.
 deploy_back() {
   local env="$1"
   local service; service=$(cfg "$env" service)
@@ -73,7 +79,7 @@ deploy_back() {
     --cpu 1 \
     --memory 1Gi \
     --timeout 120 \
-    --set-env-vars "^@^NODE_ENV=production@GCP_PROJECT_ID=$PROJECT@GCS_BUCKET=photolu-media@RESEND_FROM=Photo Booth <noreply@kupfer.co>@GUEST_URL=$(cfg "$env" guestUrl)" \
+    --set-env-vars "^|^NODE_ENV=production|GCP_PROJECT_ID=$PROJECT|GCS_BUCKET=photolu-media|RESEND_FROM=Photo Booth <noreply@kupfer.co>|GUEST_URL=$(cfg "$env" guestUrl)" \
     --set-secrets "DATABASE_URL=photolu-database-url-$suffix:latest,JWT_SECRET=photolu-jwt-secret-$suffix:latest,RESEND_API_KEY=photolu-resend-key-$suffix:latest"
 }
 
