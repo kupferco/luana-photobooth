@@ -33,6 +33,7 @@ const guest = `http://${host}:5173`
 
 console.log(`
   Booth   http://localhost:8083/booth   (this machine — the camera needs localhost)
+                                        (Expo is pinned to 8083 so this line stays true)
   Guest   ${guest}/<CODE>
   API     ${api}
 `)

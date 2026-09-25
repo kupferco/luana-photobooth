@@ -31,7 +31,7 @@
   },
   "scripts": {
     "start": "expo start",
-    "dev": "expo start",
+    "dev": "expo start --port 8083",
     "ios": "expo start --ios",
     "android": "expo start --android",
     "web": "expo start --web",
