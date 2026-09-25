@@ -139,9 +139,7 @@
     "backgroundOnWeb": "Choosing a picture works in the browser. Open this event on a computer.",
     "retakes": "Retakes",
     "retakesHint": "How many times a guest can delete their photo and go again, keeping their place at the front.",
-    "retakesOff": "Off",
-    "retakesOne": "1 per guest",
-    "retakesTwo": "2 per guest"
+    "retakesOff": "Off"
   },
   "retention": {
     "guest": "Your photos are saved until {date}.",

@@ -45,6 +45,34 @@ export function CameraIcon({ color, size = 24 }: IconProps) {
   )
 }
 
+/** A printer: paper going in, a sheet coming out. */
+export function PrinterIcon({ color, size = 24 }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M7 9V4h10v5"
+        stroke={color as string}
+        strokeWidth={1.8}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M5 9h14a2 2 0 0 1 2 2v5h-4M7 16H3v-5a2 2 0 0 1 2-2"
+        stroke={color as string}
+        strokeWidth={1.8}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M7 13h10v7H7z"
+        stroke={color as string}
+        strokeWidth={1.8}
+        strokeLinejoin="round"
+      />
+    </Svg>
+  )
+}
+
 export function PersonIcon({ color, size = 24 }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">

@@ -15,6 +15,7 @@ import { useSession } from '../../src/session'
 import { copy } from '../../src/clipboard'
 import { pickImage } from '../../src/pickimage'
 import { saveZip } from '../../src/download'
+import { CameraIcon, PrinterIcon } from '../../src/ui/icons'
 import { shareLink } from '../../src/share'
 import { useTheme } from '../../src/theme'
 import {
@@ -280,12 +281,13 @@ export default function EventTab() {
           </Row>
           {/* Named, so "not connected" says which thing. With two of them a
               single line cannot name both, so it counts instead. */}
-          <Health label={hardwareLabel('booth')} ok={stats.boothOnline} />
+          <Health label={hardwareLabel('booth')} ok={stats.boothOnline} icon="booth" />
           {/* Ready means ready to print, which 'unknown' is not: a Pi that is
               online with no printer attached was reporting "Ready" and would
               have been believed right up until someone pressed Print. */}
           <Health
             label={hardwareLabel('agent')}
+            icon="printer"
             ok={
               stats.agentOnline &&
               (stats.printer?.state === 'idle' || stats.printer?.state === 'printing')
@@ -612,17 +614,15 @@ export default function EventTab() {
             <View style={{ gap: 6, paddingTop: 12 }}>
               <Label>{t('dashboard.retakes')}</Label>
               <Body muted>{t('dashboard.retakesHint')}</Body>
+              {/* Equal thirds. The labels were "Off", "1 per guest" and
+                  "2 per guest", which forced three different widths however
+                  the row was laid out -- the count belongs in the hint
+                  above, not repeated in every button. */}
               <View style={{ flexDirection: 'row', gap: 8 }}>
                 {([0, 1, 2] as const).map((n) => (
-                  <View key={n} style={{ flex: 1 }}>
+                  <View key={n} style={{ flex: 1, minWidth: 0 }}>
                     <Button
-                      label={
-                        n === 0
-                          ? t('dashboard.retakesOff')
-                          : n === 1
-                            ? t('dashboard.retakesOne')
-                            : t('dashboard.retakesTwo')
-                      }
+                      label={n === 0 ? t('dashboard.retakesOff') : String(n)}
                       variant={event.retakesAllowed === n ? 'primary' : 'secondary'}
                       onPress={async () => {
                         try {
@@ -1028,12 +1028,17 @@ function Health({
   label,
   ok,
   detail,
+  icon,
 }: {
   label: string
   ok: boolean
   detail?: string | null
+  /** What the dot is about. Two dots in a column need telling apart. */
+  icon?: 'booth' | 'printer'
 }) {
   const theme = useTheme()
+  const Icon = icon === 'printer' ? PrinterIcon : CameraIcon
+
   return (
     <Row>
       <View
@@ -1044,6 +1049,7 @@ function Health({
           backgroundColor: ok ? theme.color.status.good : theme.color.status.bad,
         }}
       />
+      {icon ? <Icon color={theme.color.text.secondary} size={16} /> : null}
       <Text style={{ color: theme.color.text.primary, fontSize: theme.fontSize.sm }}>
         {label}
       </Text>

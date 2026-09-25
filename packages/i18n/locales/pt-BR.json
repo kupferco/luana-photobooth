@@ -139,9 +139,7 @@
     "backgroundOnWeb": "Escolher uma imagem funciona no navegador. Abra este evento em um computador.",
     "retakes": "Repetições",
     "retakesHint": "Quantas vezes um convidado pode apagar a foto e tentar de novo, mantendo o lugar na frente.",
-    "retakesOff": "Desligado",
-    "retakesOne": "1 por convidado",
-    "retakesTwo": "2 por convidado"
+    "retakesOff": "Desligado"
   },
   "retention": {
     "guest": "Suas fotos ficam guardadas até {date}.",
