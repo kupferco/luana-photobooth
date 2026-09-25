@@ -44,7 +44,8 @@
     "secrets:push": "bash infra/push-secrets.sh",
     "logs:staging": "gcloud run services logs tail photolu-api-staging --project photolu --region europe-west2",
     "logs:prod": "gcloud run services logs tail photolu-api-prod --project photolu --region europe-west2",
-    "clean": "rm -rf node_modules apps/*/node_modules services/*/node_modules packages/*/node_modules"
+    "clean": "rm -rf node_modules apps/*/node_modules services/*/node_modules packages/*/node_modules",
+    "branding": "node branding/generate.mjs"
   },
   "devDependencies": {
     "turbo": "^2.3.3",

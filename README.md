@@ -43,6 +43,7 @@ npm run pi:status     # power, wifi, agent, pairing, printer, recent logs
 | [`packages/shared/`](packages/shared/) | Montage geometry, wire types, retention rules — shared by all of the above |
 | [`docs/architecture.md`](docs/architecture.md) | What was decided, and why |
 | [`docs/backgrounds.md`](docs/backgrounds.md) | Event artwork: what ships, and what was left for later |
+| [`branding/`](branding/) | The logo, and the script that builds every icon from it |
 
 ## Running it locally
 
