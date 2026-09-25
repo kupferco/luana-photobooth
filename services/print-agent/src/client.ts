@@ -172,6 +172,34 @@ async function call<T>(method: string, path: string, body?: unknown, retry = tru
   return (await response.json()) as T
 }
 
+/**
+ * Ask the service what this box is called, if it does not already know.
+ *
+ * Printers paired before names existed have none, and re-pairing a working
+ * one purely to get a name would mean taking it off the wifi. It already
+ * proves which box it is on every request, so it can just ask.
+ */
+export async function ensureName(): Promise<string | null> {
+  const stored = await deviceName()
+  if (stored) return stored
+
+  try {
+    const { name } = await call<{ name: string }>('POST', '/agent/name', {
+      hardwareId: await cpuSerial(),
+      proposedName: proposeDeviceName(),
+    })
+
+    await mkdir(dirname(NAME_PATH), { recursive: true }).catch(() => {})
+    await writeFile(NAME_PATH, name).catch(() => {})
+    log(`this printer is called ${name}`)
+    return name
+  } catch (e) {
+    // Not worth failing to start over: it will try again next boot.
+    log('could not claim a name yet:', e instanceof Error ? e.message : e)
+    return null
+  }
+}
+
 export const api = {
   heartbeat: (printer: PrinterStatus) => call<void>('POST', '/agent/heartbeat', printer),
 

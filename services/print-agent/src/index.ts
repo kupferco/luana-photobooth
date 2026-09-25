@@ -1,7 +1,7 @@
 import { writeFile, mkdir, unlink } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { api, hasToken, requestSetup } from './client'
+import { api, ensureName, hasToken, requestSetup } from './client'
 import { cancelAll, isQueued, status, submit } from './printer'
 
 /**
@@ -206,7 +206,11 @@ async function main(): Promise<void> {
     log('paired')
   }
 
-  log(`agent starting — printer ${PRINTER}`)
+  // Boxes paired before names existed have none; this gets them one without
+  // anyone having to set the printer up again.
+  const name = await ensureName()
+
+  log(`agent starting — printer ${PRINTER}${name ? ` on ${name}` : ''}`)
 
   // Anything left over from a previous run belongs to a party that has
   // finished; printing it now would waste paper on yesterday's photos.

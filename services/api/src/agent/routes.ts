@@ -2,7 +2,7 @@ import { and, eq, sql } from 'drizzle-orm'
 import { Router } from 'express'
 import { z } from 'zod'
 import { db } from '../db/client'
-import { getSession, touchDevice } from '../db/repo'
+import { claimDeviceName, getSession, nameDevice, touchDevice } from '../db/repo'
 import { printJobs } from '../db/schema'
 import { requireDevice } from '../middleware/device'
 import { createReadUrl } from '../storage/gcs'
@@ -39,6 +39,45 @@ agentRoutes.post('/heartbeat', async (req, res, next) => {
     const body = PrinterState.safeParse(req.body)
     await touchDevice(req.device!.deviceId, body.success ? body.data : undefined)
     return res.status(204).end()
+  } catch (e) {
+    return next(e)
+  }
+})
+
+const NameBody = z.object({
+  hardwareId: z.string().min(4).max(64),
+  proposedName: z.string().max(60).optional(),
+})
+
+/**
+ * Claim a permanent name, for a printer that was paired before it had one.
+ *
+ * Names arrived after some boxes were already in service, and re-pairing a
+ * working printer purely to give it a name would mean taking it off the wifi
+ * and walking someone through setup again. It already proves which box it is
+ * every time it polls, so it can simply ask.
+ *
+ * Idempotent: a box that already has a name gets the same one back.
+ */
+agentRoutes.post('/name', async (req, res, next) => {
+  try {
+    const body = NameBody.safeParse(req.body)
+    if (!body.success) {
+      return res.status(400).json({
+        error: { code: 'invalid_request', message: 'hardwareId is required.' },
+      })
+    }
+
+    const name = await claimDeviceName(body.data.hardwareId, body.data.proposedName ?? '')
+
+    // Record it on the row too, so the dashboard shows it without waiting
+    // for the next pairing.
+    await nameDevice(req.device!.tenantId, req.device!.deviceId, {
+      hardwareId: body.data.hardwareId,
+      name,
+    })
+
+    return res.json({ name })
   } catch (e) {
     return next(e)
   }

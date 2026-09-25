@@ -378,6 +378,37 @@ export async function claimDeviceName(
   throw new Error('Could not find a free name for this printer.')
 }
 
+/**
+ * Records the box and its name on a device row.
+ *
+ * Only fills a label that is still a default: someone who has renamed their
+ * printer "bar printer" should not have it changed back by the box claiming
+ * its generated name.
+ */
+export async function nameDevice(
+  tenantId: string,
+  deviceId: string,
+  input: { hardwareId: string; name: string },
+) {
+  const [current] = await db
+    .select({ label: devices.label })
+    .from(devices)
+    .where(and(eq(devices.tenantId, tenantId), eq(devices.id, deviceId)))
+    .limit(1)
+
+  const stillDefault =
+    !current?.label || current.label === 'Printer' || current.label === 'Raspberry Pi'
+
+  await db
+    .update(devices)
+    .set({
+      hardwareId: input.hardwareId,
+      ...(stillDefault ? { label: input.name } : {}),
+      updatedAt: new Date(),
+    })
+    .where(and(eq(devices.tenantId, tenantId), eq(devices.id, deviceId)))
+}
+
 /** The device row this box already has at this tenant, if any. */
 export async function findDeviceByHardware(tenantId: string, hardwareId: string) {
   const [row] = await db
