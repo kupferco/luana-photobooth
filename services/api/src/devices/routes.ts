@@ -3,7 +3,9 @@ import { Router } from 'express'
 import { z } from 'zod'
 import {
   claimDeviceByPairingCode,
+  claimDeviceName,
   clearUnclaimedPairings,
+  findDeviceByHardware,
   completePairing,
   createDevice,
   getEvent,
@@ -30,6 +32,10 @@ const PAIRING_TTL_MINUTES = 15
 const PairBody = z.object({
   code: z.string().min(4).max(16),
   label: z.string().max(80).optional(),
+  /** The Pi's CPU serial: which box this is, as opposed to which party. */
+  hardwareId: z.string().min(4).max(64).optional(),
+  /** A name it generated for itself. The server decides if it may keep it. */
+  proposedName: z.string().max(60).optional(),
 })
 
 /**
@@ -73,14 +79,42 @@ deviceRoutes.post('/pair', async (req, res, next) => {
       })
     }
 
+    /*
+     * Give the box its permanent name, and reuse the row it already has.
+     *
+     * Without the hardware id every setup left another device row behind:
+     * the old one still "paired" to some past event, the new one alongside
+     * it, and no way for the owner to tell which black case was which. The
+     * serial is the box; the row is just where we keep notes about it.
+     */
+    let name: string | undefined
+    if (body.data.hardwareId) {
+      name = await claimDeviceName(
+        body.data.hardwareId,
+        body.data.proposedName ?? '',
+      )
+
+      const previous = await findDeviceByHardware(device.tenantId, body.data.hardwareId)
+      if (previous && previous.id !== device.id) {
+        // This box has been set up here before. Retire the row the pairing
+        // code created and keep the one people already recognise.
+        await revokeDevice(device.tenantId, previous.id)
+      }
+    }
+
     const token = deviceToken()
-    const paired = await completePairing(device.id, hashDeviceToken(token))
+    const paired = await completePairing(device.id, hashDeviceToken(token), {
+      hardwareId: body.data.hardwareId ?? null,
+      label: name ?? undefined,
+    })
     if (!paired) throw new Error('Could not complete pairing.')
 
     return res.status(200).json({
       deviceId: paired.id,
       kind: paired.kind,
       eventId: paired.eventId,
+      // What this box is called, now and for ever. The Pi writes it down.
+      name: paired.label,
       // Shown once and never again; the Pi writes it to disk.
       token,
     })

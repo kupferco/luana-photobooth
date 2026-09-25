@@ -1,5 +1,7 @@
+import { randomUUID } from 'node:crypto'
 import { chown, mkdir, readFile, stat, unlink, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
+import { proposeDeviceName } from '@photobooth/shared'
 import type { PrinterStatus } from './printer'
 
 /**
@@ -241,19 +243,90 @@ export async function waitForApi(timeoutMs = 45_000): Promise<boolean> {
   return false
 }
 
-export async function pair(code: string): Promise<{ token: string; eventId: string | null }> {
+/** Where the name lives, next to the token and equally permanent. */
+const NAME_PATH = TOKEN_PATH.replace(/device-token$/, 'device-name')
+
+/**
+ * What this box is called.
+ *
+ * Written once, when the server confirms the name, and read from disk for
+ * ever after -- through unpairing, re-pairing and moving between accounts.
+ * It identifies the hardware, which is the thing someone is looking at when
+ * they wonder which of two printers has stopped.
+ */
+export async function deviceName(): Promise<string | null> {
+  return readFile(NAME_PATH, 'utf8')
+    .then((v) => v.trim() || null)
+    .catch(() => null)
+}
+
+export async function pair(
+  code: string,
+): Promise<{ token: string; eventId: string | null; name: string | null }> {
+  /*
+   * The serial identifies the box, not the party.
+   *
+   * With it the server can hand back the name this unit already had and
+   * update its existing row, instead of leaving another orphan behind every
+   * time someone sets it up again.
+   */
+  const hardwareId = await cpuSerial()
+
   const response = await fetch(`${BASE}/devices/pair`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ code, label: 'Raspberry Pi' }),
+    body: JSON.stringify({
+      code,
+      hardwareId,
+      // Only a suggestion. The server re-rolls it if another box got there
+      // first, and its answer is what gets written down.
+      proposedName: (await deviceName()) ?? proposeDeviceName(),
+    }),
   })
 
   const payload = (await response.json().catch(() => null)) as
-    | { token?: string; eventId?: string | null; error?: { message?: string } }
+    | { token?: string; eventId?: string | null; name?: string; error?: { message?: string } }
     | null
 
   if (!response.ok || !payload?.token) {
     throw new Error(payload?.error?.message ?? 'That pairing code was not accepted.')
   }
-  return { token: payload.token, eventId: payload.eventId ?? null }
+
+  if (payload.name) {
+    await mkdir(dirname(NAME_PATH), { recursive: true }).catch(() => {})
+    await writeFile(NAME_PATH, payload.name).catch(() => {})
+    log(`this printer is called ${payload.name}`)
+  }
+
+  return {
+    token: payload.token,
+    eventId: payload.eventId ?? null,
+    name: payload.name ?? null,
+  }
+}
+
+/**
+ * The CPU serial, which is stable for the life of the board.
+ *
+ * Falls back to the MAC address, then to a random id kept on disk, so a
+ * machine that is not a Pi still gets a stable identity rather than a new
+ * one every boot.
+ */
+async function cpuSerial(): Promise<string> {
+  const fromCpuinfo = await readFile('/proc/cpuinfo', 'utf8')
+    .then((text) => text.match(/^Serial\s*:\s*(\w+)$/m)?.[1])
+    .catch(() => undefined)
+
+  if (fromCpuinfo) return fromCpuinfo
+
+  const stored = await readFile(`${dirname(TOKEN_PATH)}/hardware-id`, 'utf8')
+    .then((v) => v.trim() || undefined)
+    .catch(() => undefined)
+
+  if (stored) return stored
+
+  const generated = randomUUID()
+  await mkdir(dirname(TOKEN_PATH), { recursive: true }).catch(() => {})
+  await writeFile(`${dirname(TOKEN_PATH)}/hardware-id`, generated).catch(() => {})
+  return generated
 }

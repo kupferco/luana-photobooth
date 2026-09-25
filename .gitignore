@@ -41,3 +41,4 @@ __pycache__
 
 # firebase deploy cache
 .firebase/
+infra/printer-card.generated.html

@@ -1,7 +1,13 @@
 import { and, desc, eq, inArray, isNull, lt, sql } from 'drizzle-orm'
-import { CLASSIC_3UP, type Template } from '@photobooth/shared'
+import {
+  CLASSIC_3UP,
+  isWellFormedDeviceName,
+  proposeDeviceName,
+  type Template,
+} from '@photobooth/shared'
 import { db } from './client'
 import {
+  deviceNames,
   devices,
   emailDeliveries,
   events,
@@ -254,11 +260,17 @@ export async function claimDeviceByPairingCode(code: string) {
   return row ?? null
 }
 
-export async function completePairing(deviceId: string, tokenHash: string) {
+export async function completePairing(
+  deviceId: string,
+  tokenHash: string,
+  extra?: { hardwareId?: string | null; label?: string },
+) {
   const [row] = await db
     .update(devices)
     .set({
       tokenHash,
+      ...(extra?.hardwareId !== undefined ? { hardwareId: extra.hardwareId } : {}),
+      ...(extra?.label ? { label: extra.label } : {}),
       // Burn the code: it is single use.
       pairingCode: null,
       pairingExpiresAt: null,
@@ -320,6 +332,59 @@ export async function clearUnclaimedPairings(
     )
     .returning()
   return removed.length
+}
+
+/**
+ * The permanent name for a physical box.
+ *
+ * Looked up by CPU serial, so it survives unpairing, re-pairing, reflashing
+ * and changing owner. A box asks for the name it generated; if that one is
+ * taken by different hardware the server re-rolls until it finds a free one,
+ * so two units can never share a name however many are in circulation.
+ *
+ * Re-rolling here rather than asking the device again keeps it to one round
+ * trip, which matters because the Pi is doing this seconds after joining an
+ * unfamiliar wifi.
+ */
+export async function claimDeviceName(
+  hardwareId: string,
+  proposed: string,
+): Promise<string> {
+  const [existing] = await db
+    .select()
+    .from(deviceNames)
+    .where(eq(deviceNames.hardwareId, hardwareId))
+    .limit(1)
+
+  if (existing) return existing.name
+
+  let candidate = isWellFormedDeviceName(proposed) ? proposed : proposeDeviceName()
+
+  // Ten attempts against 144,000 combinations: the chance of needing an
+  // eleventh is not worth the code to handle it, and the unique constraint
+  // is what actually guarantees correctness.
+  for (let attempt = 0; attempt < 10; attempt++) {
+    const [claimed] = await db
+      .insert(deviceNames)
+      .values({ name: candidate, hardwareId })
+      .onConflictDoNothing()
+      .returning()
+
+    if (claimed) return claimed.name
+    candidate = proposeDeviceName()
+  }
+
+  throw new Error('Could not find a free name for this printer.')
+}
+
+/** The device row this box already has at this tenant, if any. */
+export async function findDeviceByHardware(tenantId: string, hardwareId: string) {
+  const [row] = await db
+    .select()
+    .from(devices)
+    .where(and(eq(devices.tenantId, tenantId), eq(devices.hardwareId, hardwareId)))
+    .limit(1)
+  return row ?? null
 }
 
 /**

@@ -277,6 +277,13 @@ export const devices = pgTable(
       .references(() => tenants.id, { onDelete: 'cascade' }),
     eventId: uuid('event_id').references(() => events.id, { onDelete: 'set null' }),
     kind: deviceKind('kind').notNull(),
+    /**
+     * The Pi's CPU serial, for hardware this belongs to a box rather than a
+     * party. Lets a printer that is set up again update its own row instead
+     * of leaving a second one behind, which is how orphaned devices kept
+     * appearing. Null for booths: a phone is not our hardware.
+     */
+    hardwareId: text('hardware_id'),
     label: text('label'),
     pairingCode: text('pairing_code'),
     pairingExpiresAt: timestamp('pairing_expires_at', { withTimezone: true }),
@@ -293,8 +300,26 @@ export const devices = pgTable(
     uniqueIndex('devices_pairing_code_key').on(t.pairingCode),
     index('devices_tenant_idx').on(t.tenantId),
     index('devices_event_idx').on(t.eventId, t.kind),
+    index('devices_hardware_idx').on(t.tenantId, t.hardwareId),
   ],
 )
+
+/**
+ * Which physical box owns which name.
+ *
+ * Global, not per tenant: a name identifies a unit, and units get rented,
+ * sold and moved between accounts. Two boxes sharing a name is the thing
+ * this exists to prevent, and it has to hold across everyone.
+ *
+ * Keyed by the Pi's CPU serial, so the mapping survives unpairing,
+ * re-pairing, reflashing and changing hands. The name is generated on the
+ * device and claimed here; a clash is re-rolled server-side.
+ */
+export const deviceNames = pgTable('device_names', {
+  name: text('name').primaryKey(),
+  hardwareId: text('hardware_id').notNull().unique(),
+  claimedAt: timestamp('claimed_at', { withTimezone: true }).notNull().defaultNow(),
+})
 
 // ---------------------------------------------------------------------------
 // The party itself
