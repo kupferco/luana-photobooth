@@ -51,6 +51,7 @@ const EVENTS: Event[] = [
     templateId: 'tpl-classic',
     retentionUntil: retentionUntil(new Date(), DEFAULT_MONTAGE_RETENTION_DAYS).toISOString(),
     endedAt: null,
+    backgroundUrl: null,
   },
   {
     id: 'evt-draft',
@@ -61,6 +62,7 @@ const EVENTS: Event[] = [
     templateId: 'tpl-classic',
     retentionUntil: iso(108),
     endedAt: null,
+    backgroundUrl: null,
   },
   {
     // Close to deletion on purpose: this is the state the download prompt and
@@ -73,6 +75,7 @@ const EVENTS: Event[] = [
     templateId: 'tpl-classic',
     retentionUntil: iso(2),
     endedAt: iso(-88),
+    backgroundUrl: null,
   },
 ]
 
@@ -242,6 +245,7 @@ export const fixtureApi: PhotoboothApi = {
       templateId: 'tpl-classic',
       retentionUntil: retentionUntil(new Date(input.eventDate)).toISOString(),
       endedAt: null,
+      backgroundUrl: null,
     }
     EVENTS.unshift(event)
     SESSIONS[event.id] = []
@@ -287,6 +291,22 @@ export const fixtureApi: PhotoboothApi = {
   async listDevices() {
     await delay()
     return fixtureDevices.filter((d) => !removedDevices.has(d.id))
+  },
+
+  async backgroundUpload() {
+    await delay()
+    throw new ApiError(
+      'Uploading a background needs the real API. Set EXPO_PUBLIC_API_MODE=live.',
+      'fixtures_only',
+      400,
+    )
+  },
+
+  async setBackground(_tenantId, eventId) {
+    await delay()
+    const event = EVENTS.find((e) => e.id === eventId)
+    if (!event) throw new ApiError('Not found', 'not_found', 404)
+    return event
   },
 
   async listAllDevices() {

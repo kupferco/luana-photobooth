@@ -12,6 +12,7 @@ import {
   queuePrint,
   ensureShareToken,
   releaseEventDevices,
+  setEventBackground,
   softDeleteEvent,
   toTemplate,
   updateEvent,
@@ -19,8 +20,10 @@ import {
 import { eventJoinCode } from '../lib/codes'
 import { requireAuth, requireTenant } from '../middleware/auth'
 import { queueEmail } from '../email/queue'
+import { randomUUID } from 'node:crypto'
 import { env } from '../config/env'
-import { createReadUrl } from '../storage/gcs'
+import { createReadUrl, createUploadTicket, exists } from '../storage/gcs'
+import { backgroundPath } from '../storage/paths'
 import { downloadEventZip } from './download'
 
 export const eventRoutes: Router = Router()
@@ -44,7 +47,14 @@ const PatchBody = z.object({
 const TenantQuery = z.object({ tenantId: z.string().uuid() })
 
 /** Everything the owner's dashboard shows for one event. */
-function present(event: Awaited<ReturnType<typeof getEvent>>) {
+/**
+ * Async because the background needs signing.
+ *
+ * The stored path is never sent to a client: it names the bucket layout and
+ * is useless without credentials anyway. What goes out is a short-lived
+ * signed URL, which is enough to show a preview and expires on its own.
+ */
+async function present(event: Awaited<ReturnType<typeof getEvent>>) {
   if (!event) return null
   return {
     id: event.id,
@@ -55,6 +65,9 @@ function present(event: Awaited<ReturnType<typeof getEvent>>) {
     templateId: event.templateId,
     retentionUntil: event.retentionUntil.toISOString(),
     endedAt: event.endedAt?.toISOString() ?? null,
+    backgroundUrl: event.backgroundPath
+      ? await createReadUrl(event.backgroundPath, event.tenantId)
+      : null,
   }
 }
 
@@ -93,7 +106,7 @@ eventRoutes.post('/', async (req, res, next) => {
       ),
     })
 
-    return res.status(201).json({ event: present(event) })
+    return res.status(201).json({ event: await present(event) })
   } catch (e) {
     return next(e)
   }
@@ -135,7 +148,7 @@ eventRoutes.get('/:eventId', async (req, res, next) => {
     const template = templates.find((t) => t.id === event.templateId)
 
     return res.json({
-      event: present(event),
+      event: await present(event),
       template: template ? toTemplate(template) : null,
       shotsExpected: template ? shotCount(toTemplate(template)) : null,
     })
@@ -406,7 +419,7 @@ eventRoutes.patch('/:eventId', async (req, res, next) => {
       )
     }
 
-    return res.json({ event: present(event) })
+    return res.json({ event: await present(event) })
   } catch (e) {
     return next(e)
   }
@@ -418,6 +431,100 @@ eventRoutes.patch('/:eventId', async (req, res, next) => {
  * Defined before the generic routes below it only for readability; Express
  * matches on the full path, so ordering does not matter here.
  */
+const BackgroundBody = z.object({
+  tenantId: z.string().uuid(),
+  contentType: z.enum(['image/jpeg', 'image/png']),
+})
+
+/**
+ * Somewhere to put the artwork for this party.
+ *
+ * The bytes go straight to storage with a signed URL, the same way a booth
+ * uploads a photo -- a 4MB background has no business passing through Cloud
+ * Run twice. The event is pointed at it only once the upload has landed, so
+ * a failed upload leaves the previous background in place rather than a
+ * broken reference.
+ */
+eventRoutes.post('/:eventId/background/upload', async (req, res, next) => {
+  try {
+    const body = BackgroundBody.safeParse(req.body)
+    if (!body.success) {
+      return res.status(400).json({
+        error: { code: 'invalid_request', message: 'A JPEG or PNG is required.' },
+      })
+    }
+    requireTenant(req, body.data.tenantId)
+
+    const event = await getEvent(body.data.tenantId, req.params.eventId!)
+    if (!event) {
+      return res.status(404).json({ error: { code: 'not_found', message: 'Not found' } })
+    }
+
+    // A new id each time, so a replaced background cannot be served from a
+    // cache or a signed URL someone still holds.
+    const ext = body.data.contentType === 'image/png' ? 'png' : 'jpg'
+    const path = backgroundPath(body.data.tenantId, randomUUID(), ext)
+
+    return res.json(
+      await createUploadTicket(path, body.data.tenantId, body.data.contentType),
+    )
+  } catch (e) {
+    return next(e)
+  }
+})
+
+const SetBackgroundBody = z.object({
+  tenantId: z.string().uuid(),
+  /** Null removes it and goes back to the template's flat colour. */
+  path: z.string().max(400).nullable(),
+})
+
+/** Confirms the upload landed, or clears the background. */
+eventRoutes.put('/:eventId/background', async (req, res, next) => {
+  try {
+    const body = SetBackgroundBody.safeParse(req.body)
+    if (!body.success) {
+      return res.status(400).json({
+        error: { code: 'invalid_request', message: 'tenantId is required.' },
+      })
+    }
+    requireTenant(req, body.data.tenantId)
+
+    /*
+     * Check it is really there before pointing the event at it.
+     *
+     * Otherwise a failed or abandoned upload leaves every montage for the
+     * rest of the party trying to fetch a file that does not exist -- and
+     * the first anyone would know is a printed photo with no background.
+     */
+    if (body.data.path) {
+      if (!body.data.path.includes(`/t/${body.data.tenantId}/`)) {
+        return res.status(400).json({
+          error: { code: 'invalid_request', message: 'That is not your file.' },
+        })
+      }
+      if (!(await exists(body.data.path, body.data.tenantId))) {
+        return res.status(409).json({
+          error: { code: 'not_uploaded', message: 'That image did not finish uploading.' },
+        })
+      }
+    }
+
+    const event = await setEventBackground(
+      body.data.tenantId,
+      req.params.eventId!,
+      body.data.path,
+    )
+    if (!event) {
+      return res.status(404).json({ error: { code: 'not_found', message: 'Not found' } })
+    }
+
+    return res.json({ event: await present(event) })
+  } catch (e) {
+    return next(e)
+  }
+})
+
 eventRoutes.get('/:eventId/download', async (req, res, next) => {
   try {
     const query = TenantQuery.safeParse(req.query)

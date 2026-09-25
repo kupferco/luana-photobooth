@@ -172,6 +172,28 @@ export async function updateEvent(
 }
 
 /** Soft delete: gone from every UI at once, purged from GCS by the job. */
+/**
+ * Points an event at its background artwork, or clears it.
+ *
+ * The old file is not deleted here. Sessions already printed were composed
+ * with it and may be re-rendered; the retention job sweeps orphans when the
+ * event's photos go. Deleting eagerly to save a few hundred kilobytes would
+ * risk taking a picture out from under a montage someone is about to
+ * reprint.
+ */
+export async function setEventBackground(
+  tenantId: string,
+  eventId: string,
+  backgroundPath: string | null,
+) {
+  const [row] = await db
+    .update(events)
+    .set({ backgroundPath, updatedAt: new Date() })
+    .where(and(eq(events.tenantId, tenantId), eq(events.id, eventId)))
+    .returning()
+  return row ?? null
+}
+
 export async function softDeleteEvent(tenantId: string, eventId: string) {
   const [row] = await db
     .update(events)

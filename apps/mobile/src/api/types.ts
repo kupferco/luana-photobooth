@@ -27,6 +27,16 @@ export interface Event {
   templateId: string | null
   retentionUntil: string
   endedAt: string | null
+  /** Short-lived signed URL for previewing the artwork, if there is any. */
+  backgroundUrl: string | null
+}
+
+/** Artwork behind the photos. Null means the template's flat colour. */
+export interface BackgroundUpload {
+  url: string
+  contentType: string
+  path: string
+  expiresAt: string
 }
 
 export interface EventLiveStats {
@@ -86,6 +96,20 @@ export interface PhotoboothApi {
     tenantId: string,
     input: { name: string; eventDate: string },
   ): Promise<Event>
+  /**
+   * Somewhere to put this party's artwork.
+   *
+   * Two steps on purpose: the bytes go straight to storage, and the event is
+   * only pointed at them once they have landed. A failed upload then leaves
+   * the previous background in place rather than a broken reference.
+   */
+  backgroundUpload(
+    tenantId: string,
+    eventId: string,
+    contentType: 'image/jpeg' | 'image/png',
+  ): Promise<BackgroundUpload>
+  setBackground(tenantId: string, eventId: string, path: string | null): Promise<Event>
+
   setEventStatus(
     tenantId: string,
     eventId: string,

@@ -238,6 +238,15 @@ export const events = pgTable(
     templateId: uuid('template_id').references(() => templates.id, {
       onDelete: 'restrict',
     }),
+    /**
+     * Artwork drawn behind the photos, per event.
+     *
+     * Per event rather than per template: the layout is the same three
+     * rectangles every time, but every party wants its own look, and asking
+     * someone to make a template to change a picture would be absurd.
+     * Null renders the template's flat colour, which is white.
+     */
+    backgroundPath: text('background_path'),
     /** What the guest QR code encodes. Short, unique, case-insensitive. */
     joinCode: text('join_code').notNull(),
     status: eventStatus('status').notNull().default('draft'),

@@ -310,7 +310,27 @@ boothRoutes.post('/sessions/:sessionId/complete', async (req, res, next) => {
         rows.map((row) => download(row.gcsPath, tenantId)),
       )
 
-      const montage = await composeMontage({ template, shots: buffers })
+      /*
+       * The party's artwork, if it has any.
+       *
+       * Fetched per montage rather than cached: a background is a few
+       * hundred kilobytes against three photos, it is the same request the
+       * photos already make, and the owner may well change it mid-party
+       * after seeing the first print. Stale artwork would be worse than a
+       * fetch.
+       *
+       * A background that has gone missing must not stop the photo: the
+       * guest is standing there waiting, and a montage on white is far
+       * better than an error.
+       */
+      const background = event?.backgroundPath
+        ? await download(event.backgroundPath, tenantId).catch((e) => {
+            console.error('background could not be read; using the plain colour', e)
+            return undefined
+          })
+        : undefined
+
+      const montage = await composeMontage({ template, shots: buffers, background })
       const out = montagePath(scope)
       await upload(out, tenantId, montage)
 

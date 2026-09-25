@@ -126,7 +126,17 @@
     "addToEvent": "Add",
     "setUpNewPrinter": "Set up a new printer",
     "newPrinterOnly": "Only for a printer that has never been connected. One already on your wifi is added from the list above.",
-    "pairStep5": "Enter your wifi details and the code above."
+    "pairStep5": "Enter your wifi details and the code above.",
+    "background": "Background",
+    "backgroundHint": "Artwork behind the photos on every print. Landscape, 3:2 — 1800×1200 is ideal.",
+    "backgroundNone": "Plain white. Every print will look like this until you add one.",
+    "addBackground": "Choose a picture",
+    "changeBackground": "Change picture",
+    "removeBackground": "Remove",
+    "backgroundUploading": "Uploading…",
+    "backgroundFailed": "That picture could not be uploaded. Try again.",
+    "backgroundTooBig": "That picture is too large. Keep it under 10MB.",
+    "backgroundOnWeb": "Choosing a picture works in the browser. Open this event on a computer."
   },
   "retention": {
     "guest": "Your photos are saved until {date}.",

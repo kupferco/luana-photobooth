@@ -1,7 +1,7 @@
 import { daysRemaining } from '@photobooth/shared'
 import { router } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
-import { Pressable, Text, View } from 'react-native'
+import { Image, Platform, Pressable, Text, View } from 'react-native'
 import {
   api,
   type Device,
@@ -13,6 +13,7 @@ import { useLocale, useT } from '../../src/locale'
 import { useActiveEvent } from '../../src/event-context'
 import { useSession } from '../../src/session'
 import { copy } from '../../src/clipboard'
+import { pickImage } from '../../src/pickimage'
 import { saveZip } from '../../src/download'
 import { shareLink } from '../../src/share'
 import { useTheme } from '../../src/theme'
@@ -73,6 +74,8 @@ export default function EventTab() {
    * Open by default when nothing is paired, because then it *is* the point.
    */
   const [setupOpen, setSetupOpen] = useState<boolean | null>(null)
+  const [uploadingBg, setUploadingBg] = useState(false)
+  const [backgroundNote, setBackgroundNote] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
   const [endingConfirm, setEndingConfirm] = useState(false)
   const [ending, setEnding] = useState(false)
@@ -149,6 +152,55 @@ export default function EventTab() {
     },
     [tenantId, load],
   )
+
+  /**
+   * Pick a picture, put it in storage, then point the event at it.
+   *
+   * Two steps deliberately: the bytes go straight to storage rather than
+   * through the API, and the event only learns about the file once it has
+   * landed. An upload that fails halfway therefore leaves the previous
+   * background alone instead of pointing every print at nothing.
+   */
+  const chooseBackground = useCallback(async () => {
+    if (!tenantId || !event) return
+    setBackgroundNote(null)
+
+    const picked = await pickImage()
+    if (!picked) {
+      // Native returns null because there is no picker there yet; on the web
+      // it means the dialog was dismissed, which needs no comment.
+      if (Platform.OS !== 'web') setBackgroundNote(t('dashboard.backgroundOnWeb'))
+      return
+    }
+
+    // A phone photo can be 12MB and none of it survives being resized to
+    // 1800x1200. Refusing early beats a long upload and a timeout.
+    if (picked.blob.size > 10 * 1024 * 1024) {
+      setBackgroundNote(t('dashboard.backgroundTooBig'))
+      return
+    }
+
+    setUploadingBg(true)
+    try {
+      const ticket = await api.backgroundUpload(tenantId, event.id, picked.contentType)
+
+      const put = await fetch(ticket.url, {
+        method: 'PUT',
+        // Must match what was signed exactly, or storage rejects it.
+        headers: { 'content-type': ticket.contentType },
+        body: picked.blob,
+      })
+      if (!put.ok) throw new Error(`Upload failed (${put.status})`)
+
+      setEvent(await api.setBackground(tenantId, event.id, ticket.path))
+    } catch (err) {
+      setBackgroundNote(
+        err instanceof Error ? err.message : t('dashboard.backgroundFailed'),
+      )
+    } finally {
+      setUploadingBg(false)
+    }
+  }, [tenantId, event, t])
 
   useEffect(() => {
     void load()
@@ -268,6 +320,88 @@ export default function EventTab() {
           />
           {ready.length === 0 ? <Body muted>{t('dashboard.downloadEmpty')}</Body> : null}
           {downloadNote ? <Notice tone="warn">{downloadNote}</Notice> : null}
+        </Card>
+      ) : null}
+
+      {/*
+        * The party's look.
+        *
+        * Above the hardware because it is the thing guests actually see:
+        * every print carries it, and a party running on plain white is the
+        * most visible thing that can be wrong while everything technical is
+        * perfectly fine.
+        */}
+      {event.status !== 'ended' ? (
+        <Card>
+          <Label>{t('dashboard.background')}</Label>
+
+          {event.backgroundUrl ? (
+            <Image
+              source={{ uri: event.backgroundUrl }}
+              style={{
+                width: '100%',
+                aspectRatio: 3 / 2,
+                borderRadius: theme.radius.sm,
+                backgroundColor: theme.color.surface.sunken,
+              }}
+              resizeMode="cover"
+            />
+          ) : (
+            <View
+              style={{
+                width: '100%',
+                aspectRatio: 3 / 2,
+                borderRadius: theme.radius.sm,
+                backgroundColor: '#ffffff',
+                borderWidth: 1,
+                borderColor: theme.color.border.subtle,
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: 16,
+              }}
+            >
+              <Text
+                style={{
+                  color: '#888',
+                  fontSize: theme.fontSize.sm,
+                  textAlign: 'center',
+                }}
+              >
+                {t('dashboard.backgroundNone')}
+              </Text>
+            </View>
+          )}
+
+          <Body muted>{t('dashboard.backgroundHint')}</Body>
+          {backgroundNote ? <Notice tone="warn">{backgroundNote}</Notice> : null}
+
+          <Button
+            label={
+              uploadingBg
+                ? t('dashboard.backgroundUploading')
+                : event.backgroundUrl
+                  ? t('dashboard.changeBackground')
+                  : t('dashboard.addBackground')
+            }
+            variant="secondary"
+            busy={uploadingBg}
+            onPress={() => void chooseBackground()}
+          />
+
+          {event.backgroundUrl ? (
+            <Button
+              label={t('dashboard.removeBackground')}
+              variant="secondary"
+              onPress={async () => {
+                setBackgroundNote(null)
+                try {
+                  setEvent(await api.setBackground(tenantId!, event.id, null))
+                } catch (err) {
+                  setBackgroundNote(err instanceof Error ? err.message : String(err))
+                }
+              }}
+            />
+          ) : null}
         </Card>
       ) : null}
 

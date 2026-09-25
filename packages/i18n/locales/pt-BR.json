@@ -126,7 +126,17 @@
     "addToEvent": "Adicionar",
     "setUpNewPrinter": "Configurar uma impressora nova",
     "newPrinterOnly": "Só para uma impressora que nunca foi conectada. Uma que já está no seu wifi é adicionada pela lista acima.",
-    "pairStep5": "Digite os dados do seu wifi e o código acima."
+    "pairStep5": "Digite os dados do seu wifi e o código acima.",
+    "background": "Fundo",
+    "backgroundHint": "Arte atrás das fotos em cada impressão. Deitada, 3:2 — 1800×1200 é o ideal.",
+    "backgroundNone": "Branco liso. Toda impressão vai sair assim até você adicionar uma.",
+    "addBackground": "Escolher uma imagem",
+    "changeBackground": "Trocar imagem",
+    "removeBackground": "Remover",
+    "backgroundUploading": "Enviando…",
+    "backgroundFailed": "Não foi possível enviar essa imagem. Tente de novo.",
+    "backgroundTooBig": "Essa imagem é muito grande. Use menos de 10MB.",
+    "backgroundOnWeb": "Escolher uma imagem funciona no navegador. Abra este evento em um computador."
   },
   "retention": {
     "guest": "Suas fotos ficam guardadas até {date}.",

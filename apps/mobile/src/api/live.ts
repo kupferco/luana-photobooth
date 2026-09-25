@@ -1,5 +1,6 @@
 import { clearToken, readToken, writeToken } from './storage'
 import type {
+  BackgroundUpload,
   Device,
   Event,
   EventLiveStats,
@@ -290,6 +291,23 @@ export const liveApi: PhotoboothApi = {
       `/devices?tenantId=${encodeURIComponent(tenantId)}&eventId=${encodeURIComponent(eventId)}`,
     )
     return result.devices
+  },
+
+  async backgroundUpload(tenantId, eventId, contentType) {
+    return request<BackgroundUpload>(
+      'POST',
+      `/events/${eventId}/background/upload`,
+      { tenantId, contentType },
+    )
+  },
+
+  async setBackground(tenantId, eventId, path) {
+    const result = await request<{ event: Event }>(
+      'PUT',
+      `/events/${eventId}/background`,
+      { tenantId, path },
+    )
+    return result.event
   },
 
   async listAllDevices(tenantId) {
