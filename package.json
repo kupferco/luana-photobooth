@@ -14,6 +14,7 @@
   },
   "scripts": {
     "start": "node infra/dev.mjs",
+    "start:fresh": "rm -rf /tmp/metro-* \"${TMPDIR}\"metro-* apps/mobile/.expo/web/cache 2>/dev/null; node infra/dev.mjs",
     "server": "npm run dev --workspace @photobooth/api",
     "client": "npm run dev --workspace @photobooth/mobile",
     "client:fixtures": "EXPO_PUBLIC_API_MODE=fixtures npm run dev --workspace @photobooth/mobile",

@@ -65,6 +65,7 @@ no config here. Run it by hand with `npm run agent` if you need to.
 Other useful ones:
 
 ```bash
+npm run start:fresh       # same, but clears Metro's cache first
 npm run client:fixtures   # the app with fake data, no server needed
 npm run agent             # the print agent, on this machine
 npm run db:studio         # browse the database
@@ -184,7 +185,7 @@ Staging and prod share one database. That is deliberate for now and noted in
 | Pi unreachable, no setup network | It may be mid-onboarding. Wait 15 minutes and it puts itself back on your wifi |
 | Printer shows red in the app | It has stopped calling in. Check power and wifi |
 | `npm start` fails on a port | A stray dev server: `pkill -f "tsx watch"` |
-| Metro cannot find a new file | Stale cache: `rm -rf /tmp/metro-*` then `npm start` |
+| Metro cannot find a new file | Its file map was built before the file existed. `npm run start:fresh` |
 
 More detail, and the reasoning behind the awkward bits, is in
 [`docs/pi.md`](docs/pi.md).
