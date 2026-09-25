@@ -60,6 +60,7 @@ app.use((err: Error & { status?: number }, _req: Request, res: Response, _next: 
  * restarts.
  */
 const TRANSPORT_ERRORS = new Set([
+  // Node's own socket errnos.
   'EHOSTUNREACH',
   'ECONNRESET',
   'ECONNREFUSED',
@@ -68,14 +69,49 @@ const TRANSPORT_ERRORS = new Set([
   'ENETUNREACH',
   'ENETDOWN',
   'EAI_AGAIN',
+  'ENOTFOUND',
+  'EAGAIN',
+  /*
+   * postgres.js invents its own codes rather than passing the errno through,
+   * and they are not obviously distinguishable from a bug by shape alone.
+   * Leaving them out is how a first attempt at this still let a dropped
+   * database connection kill the API:
+   *
+   *   Error: write CONNECT_TIMEOUT ...neon.tech:5432
+   *       at connectTimedOut
+   *
+   * which is a laptop on bad wifi, not a fault worth ending the service for.
+   */
+  'CONNECT_TIMEOUT',
+  'CONNECTION_CLOSED',
+  'CONNECTION_ENDED',
+  'CONNECTION_DESTROYED',
+  'CONNECTION_CONNECT_TIMEOUT',
+  'IDLE_TIMEOUT',
 ])
 
 process.on('unhandledRejection', (reason) => {
-  const code = (reason as { code?: string })?.code
+  const err = reason as { code?: string; message?: string }
+  const code = err?.code
+
   if (code && TRANSPORT_ERRORS.has(code)) {
-    console.error(`transport error (${code}); continuing`, reason)
+    console.error(`transport error (${code}); continuing`)
     return
   }
+
+  /*
+   * A last net for codes nobody has met yet.
+   *
+   * The named list is the intent; this catches the case where a driver
+   * invents a code we have not seen. Narrow on purpose -- it wants both a
+   * code and wording that names a connection -- because the alternative is
+   * a process that survives real bugs in an unknown state.
+   */
+  if (code && /connect|connection|timeout|socket|network/i.test(`${code} ${err.message ?? ''}`)) {
+    console.error(`likely transport error (${code}); continuing:`, err.message)
+    return
+  }
+
   // Anything else is a real bug. Let it kill the process.
   throw reason
 })

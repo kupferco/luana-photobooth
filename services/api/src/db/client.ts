@@ -40,7 +40,9 @@ const sql = postgres(connectionString, {
   // Reconnect rather than sit on a socket the network has already forgotten.
   idle_timeout: 20,
   max_lifetime: 60 * 30,
-  connect_timeout: 10,
+  // Ten seconds was aggressive for a laptop on party wifi or a cold Neon
+  // endpoint, and every expiry became an unhandled rejection.
+  connect_timeout: 30,
   onnotice: () => {},
 })
 
