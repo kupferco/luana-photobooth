@@ -158,27 +158,38 @@ keep the rule exact.
 `--env-file`, so the dependency only added a CommonJS `require()` to an ESM
 bundle. The agent is 16 KB with no `node_modules` at all.
 
-## Setting one up from a phone, and its one sharp edge
+## Why the setup network is not a captive portal
+
+It was one, and the captive portal was the problem.
+
+A phone that decides a network is captive opens its own restricted webview --
+on iOS the Captive Network Assistant. That view closes the moment it is
+backgrounded, and iOS then drops a network it has judged to have no internet.
+So going to fetch a wifi password from a password manager lost the form and
+the network together. It is the single most likely thing anyone does during
+setup, and the mechanism was built to punish it.
+
+The setup network now answers the connectivity probes the way a working
+network would: the exact "Success" body for iOS and macOS, 204 for Android,
+"Microsoft Connect Test" for Windows. No sheet appears, nothing nags, and
+nothing switches away. The page is opened deliberately instead, by scanning
+the QR card that ships with the printer -- in an ordinary browser tab that
+survives being left.
+
+dnsmasq still answers every hostname with the Pi, which is what makes
+`http://photolu.local` work on that network with no mDNS and no IP address to
+type. The card is the same on every printer, so it is printed once:
+`npm run pi:card`.
+
+## Setting one up from a phone
 
 The captive portal works: join the setup network and the page opens by
 itself, because dnsmasq answers every hostname with the Pi's own address and
 the probe each platform makes therefore lands on us.
 
-What it cannot do is survive being left. On iOS the page is shown in the
-Captive Network Assistant, not Safari, and backgrounding it -- to fetch a
-wifi password from a password manager, for instance -- makes iOS drop a
-network it has already decided has no internet. The sheet closes and the
-form is gone.
-
-Nothing in the page can prevent that, so it warns instead. Two things make
-it a non-issue in practice:
-
-- **Have the wifi password to hand before starting.** Most of the time it is
-  the only thing anyone needs to go and look up.
-- **A laptop does not have this problem.** Joining the setup network on a Mac
-  keeps the page in a normal browser tab, and switching to a password manager
-  does not drop the network. For your own setup this is the easier route; the
-  phone flow matters for handing a Pi to someone else.
+Scan the card, fill the form, done. Because it is a normal tab, leaving it to
+look something up is safe -- which is what the captive version could not
+offer.
 
 Ethernet sidesteps the whole question where a venue offers it -- a Pi 3 has a
 socket, and onboarding is skipped entirely when it is already online.

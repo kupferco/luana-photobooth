@@ -94,7 +94,7 @@
     "downloadFailed": "O download não terminou. Tente de novo.",
     "connectPrinter": "Conectar impressora",
     "pairingCode": "Código de pareamento",
-    "pairingCodeHint": "O código vale 15 minutos e funciona uma vez. Volte para o seu wifi normal depois.",
+    "pairingCodeHint": "O código vale 15 minutos e funciona uma vez. A impressora entra no seu wifi e a rede de configuração some.",
     "pairingCodeExpired": "Esse código expirou. Gere um novo.",
     "printQueuedFor": "Esperando a impressora",
     "printSending": "Enviando para a impressora",
@@ -112,10 +112,10 @@
     "guestLinkNotYet": "Inicie o evento antes de enviar — até lá o link não abre.",
     "stopShort": "Parar",
     "unpairShort": "Remover",
-    "pairStep1": "Anote o nome e a senha do seu wifi. Você vai precisar deles no passo 5.",
+    "pairStep1": "Tenha o nome e a senha do seu wifi em mãos.",
     "pairStep2": "Ligue a caixa da impressora e ligue a impressora.",
-    "pairStep3": "Neste celular, entre na rede wifi que começa com “PhotoLu-Setup”. Ela não tem senha.",
-    "pairStep4": "Uma página de configuração abre sozinha. Se não abrir, acesse 192.168.4.1",
+    "pairStep3": "Neste celular, entre na rede wifi “PhotoLu-Setup”. Ela não tem senha.",
+    "pairStep4": "Escaneie o QR code na impressora, ou abra photolu.local",
     "tapToCopy": "Toque para copiar",
     "codeCopied": "Copiado",
     "movePrinter": "Usar uma impressora de outro evento",
@@ -126,7 +126,7 @@
     "addToEvent": "Adicionar",
     "setUpNewPrinter": "Configurar uma impressora nova",
     "newPrinterOnly": "Só para uma impressora que nunca foi conectada. Uma que já está no seu wifi é adicionada pela lista acima.",
-    "pairStep5": "Escolha seu wifi, digite a senha e cole o código acima."
+    "pairStep5": "Digite os dados do seu wifi e o código acima."
   },
   "retention": {
     "guest": "Suas fotos ficam guardadas até {date}.",

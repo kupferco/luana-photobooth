@@ -94,7 +94,7 @@
     "downloadFailed": "The download did not finish. Try again.",
     "connectPrinter": "Connect a printer",
     "pairingCode": "Pairing code",
-    "pairingCodeHint": "The code lasts 15 minutes and works once. Rejoin your normal wifi afterwards.",
+    "pairingCodeHint": "The code lasts 15 minutes and works once. The printer joins your wifi and the setup network disappears.",
     "pairingCodeExpired": "That code has expired. Make a new one.",
     "printQueuedFor": "Waiting for the printer",
     "printSending": "Sending to the printer",
@@ -112,10 +112,10 @@
     "guestLinkNotYet": "Start the event before sending this — until then the link will not open.",
     "stopShort": "Stop",
     "unpairShort": "Unpair",
-    "pairStep1": "Write down your wifi name and password. You will need them in step 5.",
+    "pairStep1": "Have your wifi name and password to hand.",
     "pairStep2": "Plug the printer box in and turn the printer on.",
-    "pairStep3": "On this phone, join the wifi network starting “PhotoLu-Setup”. It has no password.",
-    "pairStep4": "A setup page opens by itself. If it does not, go to 192.168.4.1",
+    "pairStep3": "On this phone, join the wifi network “PhotoLu-Setup”. It has no password.",
+    "pairStep4": "Scan the QR code on the printer, or open photolu.local",
     "tapToCopy": "Tap to copy",
     "codeCopied": "Copied",
     "movePrinter": "Use a printer from another event",
@@ -126,7 +126,7 @@
     "addToEvent": "Add",
     "setUpNewPrinter": "Set up a new printer",
     "newPrinterOnly": "Only for a printer that has never been connected. One already on your wifi is added from the list above.",
-    "pairStep5": "Choose your wifi, type its password, and paste the code above."
+    "pairStep5": "Enter your wifi details and the code above."
   },
   "retention": {
     "guest": "Your photos are saved until {date}.",

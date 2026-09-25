@@ -1,0 +1,73 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>PhotoLu printer setup card</title>
+<!--
+  The card that lives on the printer box.
+
+  Open this in a browser and print it. Cut out and stick on the Pi's case, or
+  keep it in the box with the printer.
+
+  It exists because of what a phone does with a captive network. iOS shows
+  such a page in a restricted webview that closes when backgrounded -- so
+  going to fetch a wifi password loses the form and drops the network. The
+  setup network therefore answers the connectivity probes normally, and this
+  QR is how the page gets opened instead: a tap, in a real browser tab you
+  can leave and come back to.
+
+  The URL is the same on every printer, so this is printed once and never
+  needs regenerating. http://photolu.local resolves because dnsmasq on the
+  setup network answers every name with the Pi itself.
+-->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  @page { margin: 12mm; }
+  body {
+    font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: #111; margin: 0; padding: 24px;
+    display: flex; justify-content: center;
+  }
+  .card {
+    width: 86mm; border: 1.5px solid #111; border-radius: 10px;
+    padding: 18px 20px 20px; text-align: center;
+  }
+  h1 { font-size: 17px; margin: 0 0 2px; letter-spacing: .2px; }
+  .sub { font-size: 12.5px; color: #555; margin: 0 0 14px; }
+  #qr { display: flex; justify-content: center; margin: 0 0 14px; }
+  #qr img, #qr canvas { display: block; }
+  ol { text-align: left; margin: 0; padding-left: 20px; font-size: 13px; }
+  li { margin-bottom: 7px; }
+  .net { font-weight: 700; }
+  .foot {
+    margin-top: 14px; padding-top: 10px; border-top: 1px solid #ddd;
+    font-size: 11.5px; color: #666;
+  }
+  @media print { body { padding: 0; } }
+</style>
+
+<div class="card">
+  <h1>Set up this photo booth printer</h1>
+  <p class="sub">You will need your wifi password.</p>
+
+  <div id="qr"></div>
+
+  <ol>
+    <li>Join the wifi network <span class="net">PhotoLu-Setup</span> — no password.</li>
+    <li>Scan this code, or open <span class="net">photolu.local</span></li>
+    <li>Enter your wifi details and the pairing code from the app.</li>
+  </ol>
+
+  <p class="foot">
+    The printer joins your wifi and this setup network disappears.
+    That is what success looks like.
+  </p>
+</div>
+
+<script>
+  // Same address on every printer, so this card is printed once.
+  new QRCode(document.getElementById('qr'), {
+    text: 'http://photolu.local',
+    width: 168,
+    height: 168,
+    correctLevel: QRCode.CorrectLevel.M,
+  })
+</script>

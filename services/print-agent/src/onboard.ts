@@ -189,48 +189,44 @@ async function handler(req: IncomingMessage, res: ServerResponse): Promise<void>
   const url = new URL(req.url ?? '/', 'http://setup.local')
 
   /*
-   * Captive-portal probes.
+   * Captive-portal probes, answered the way a working network would.
    *
-   * A phone decides whether a network has internet by fetching a known URL
-   * over plain HTTP and checking the answer is exactly what it expects.
-   * Getting the wrong answer is precisely what makes the "Sign in to
-   * network" sheet appear, so being wrong here is the whole feature.
+   * This is deliberately the opposite of hijacking them. A phone that thinks
+   * a network is captive opens its own restricted webview -- on iOS the
+   * Captive Network Assistant -- and that view dies the moment it is
+   * backgrounded, taking the half-filled form with it. Someone going to
+   * fetch their wifi password from a password manager loses everything, and
+   * iOS then drops the network for a known-good one.
    *
-   *   iOS/macOS  http://captive.apple.com/hotspot-detect.html
-   *              wants a body of exactly "<HTML>...Success...</HTML>"
-   *   Android    http://connectivitycheck.gstatic.com/generate_204
-   *              wants 204 with an empty body
-   *   Windows    http://www.msftconnecttest.com/connecttest.txt
-   *              wants the body "Microsoft Connect Test"
+   * Telling each platform what it wants to hear makes the setup network
+   * behave like any other: no sheet, no nagging, no switching away. The
+   * owner opens the page themselves by scanning the QR on the printer, in a
+   * real browser tab they can leave and come back to.
    *
-   * Two things must both be true. The request has to reach us at all, which
-   * needs dnsmasq answering every name with our own address -- pi-setup.sh
-   * installs that, and without it these handlers never run, because the
-   * lookup simply fails and the phone concludes there is no internet and
-   * says nothing.
-   *
-   * And the answer has to be wrong in the way each platform recognises. iOS
-   * gets the setup page itself, because its Captive Network Assistant shows
-   * whatever came back -- a redirect works less reliably there. Android and
-   * Windows get a redirect, because they want a specific status and then
-   * open the location they are handed.
+   * dnsmasq still answers every name with this box, which is what lets that
+   * QR point at http://photolu.local rather than an IP address.
    */
   const probe = url.pathname.toLowerCase()
 
   if (probe === '/hotspot-detect.html' || probe === '/library/test/success.html') {
-    send(res, 200, setupPage({ networks, error: lastError }))
+    // The exact body iOS and macOS compare against. Anything else and the
+    // sheet appears.
+    send(
+      res,
+      200,
+      '<HTML><HEAD><TITLE>Success</TITLE></HEAD><BODY>Success</BODY></HTML>',
+    )
     return
   }
 
-  if (
-    probe === '/generate_204' ||
-    probe === '/gen_204' ||
-    probe === '/ncsi.txt' ||
-    probe === '/connecttest.txt' ||
-    probe.startsWith('/redirect')
-  ) {
-    res.writeHead(302, { location: `http://${HOTSPOT_ADDRESS}/` })
-    res.end()
+  if (probe === '/generate_204' || probe === '/gen_204') {
+    // Android wants 204 and an empty body.
+    res.writeHead(204).end()
+    return
+  }
+
+  if (probe === '/ncsi.txt' || probe === '/connecttest.txt') {
+    send(res, 200, 'Microsoft Connect Test', 'text/plain')
     return
   }
 

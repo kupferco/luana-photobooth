@@ -71,11 +71,6 @@ export function setupPage(opts: {
       There is no way to stop that from inside the page, so the only honest
       thing is to say so before someone loses their work to it.
     -->
-    <p class="warn">
-      Have your wifi password ready before you start. Leaving this screen —
-      even to open a password manager — disconnects the photo booth network
-      and you will have to begin again.
-    </p>
 
     ${error ? `<p class="error">${escape(error)}</p>` : ''}
 
