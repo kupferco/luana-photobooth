@@ -42,6 +42,7 @@ npm run pi:status     # power, wifi, agent, pairing, printer, recent logs
 | `services/print-agent/` | Runs on the Pi. Holds a connection outwards and prints what it is told |
 | [`packages/shared/`](packages/shared/) | Montage geometry, wire types, retention rules — shared by all of the above |
 | [`docs/architecture.md`](docs/architecture.md) | What was decided, and why |
+| [`docs/backgrounds.md`](docs/backgrounds.md) | Event artwork: what ships, and what was left for later |
 
 ## Running it locally
 
