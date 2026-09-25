@@ -46,6 +46,40 @@ app.use((err: Error & { status?: number }, _req: Request, res: Response, _next: 
   })
 })
 
+/*
+ * A transport failure must not take the service down.
+ *
+ * An idle database socket losing its route surfaced as an unhandled
+ * rejection and killed the process -- the entire API gone because one TLS
+ * read failed. On Cloud Run that is a cold start for the next guest; locally
+ * it is a dev server that dies while you are looking at something else.
+ *
+ * Deliberately narrow: only errors that are plainly transport-level are
+ * swallowed, and they are logged. A genuine bug still crashes, because a
+ * process that keeps running in an unknown state is worse than one that
+ * restarts.
+ */
+const TRANSPORT_ERRORS = new Set([
+  'EHOSTUNREACH',
+  'ECONNRESET',
+  'ECONNREFUSED',
+  'ETIMEDOUT',
+  'EPIPE',
+  'ENETUNREACH',
+  'ENETDOWN',
+  'EAI_AGAIN',
+])
+
+process.on('unhandledRejection', (reason) => {
+  const code = (reason as { code?: string })?.code
+  if (code && TRANSPORT_ERRORS.has(code)) {
+    console.error(`transport error (${code}); continuing`, reason)
+    return
+  }
+  // Anything else is a real bug. Let it kill the process.
+  throw reason
+})
+
 app.listen(env.PORT, () => {
   console.log(`API listening on :${env.PORT} (${env.NODE_ENV})`)
 })
