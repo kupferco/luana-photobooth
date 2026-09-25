@@ -247,6 +247,22 @@ export default function EventTab() {
 
   const ready = sessions.filter((s) => s.status === 'ready')
   const open = setupOpen ?? devices.length === 0
+
+  /**
+   * What the "right now" line calls a piece of hardware.
+   *
+   * One of a kind gets named. Several cannot be named on one line, so it
+   * says how many -- better than naming the first and quietly implying it is
+   * the only one.
+   */
+  const hardwareLabel = (kind: 'booth' | 'agent') => {
+    const of = devices.filter((d) => d.kind === kind)
+    const generic = kind === 'booth' ? t('dashboard.booth') : t('dashboard.printer')
+
+    if (of.length === 0) return generic
+    if (of.length === 1) return deviceDisplayName(of[0]!, 0, t)
+    return `${generic} ×${of.length}`
+  }
   const expiring = daysRemaining(new Date(event.retentionUntil))
 
   return (
@@ -262,12 +278,14 @@ export default function EventTab() {
             <Stat label={t('dashboard.inQueue')} value={String(stats.queueDepth)} />
             <Stat label={t('dashboard.photosTaken')} value={String(stats.sessionsToday)} />
           </Row>
-          <Health label={t('dashboard.booth')} ok={stats.boothOnline} />
+          {/* Named, so "not connected" says which thing. With two of them a
+              single line cannot name both, so it counts instead. */}
+          <Health label={hardwareLabel('booth')} ok={stats.boothOnline} />
           {/* Ready means ready to print, which 'unknown' is not: a Pi that is
               online with no printer attached was reporting "Ready" and would
               have been believed right up until someone pressed Print. */}
           <Health
-            label={t('dashboard.printer')}
+            label={hardwareLabel('agent')}
             ok={
               stats.agentOnline &&
               (stats.printer?.state === 'idle' || stats.printer?.state === 'printing')
@@ -822,19 +840,7 @@ function DeviceRow({
   const t = useT()
 
   const isBooth = device.kind === 'booth'
-  /*
-   * Numbered for display, not just at creation.
-   *
-   * Devices made before numbering existed are still called "Booth" and
-   * "Printer", and two rows with the same name make the stop button a coin
-   * flip. A name someone actually chose is left alone; the generic defaults
-   * are replaced with a position, which is what the owner is looking for
-   * when deciding which of two phones to stop.
-   */
-  const generic = !device.label || device.label === 'Booth' || device.label === 'Printer'
-  const name = generic
-    ? `${isBooth ? t('dashboard.booth') : t('dashboard.printer')} ${index + 1}`
-    : device.label
+  const name = deviceDisplayName(device, index, t)
 
   const silentFor = device.lastSeenAt ? Date.now() - new Date(device.lastSeenAt).getTime() : null
   const printer = device.printerState
@@ -978,6 +984,33 @@ function Stat({ label, value }: { label: string; value: string }) {
       <Label>{label}</Label>
     </View>
   )
+}
+
+/**
+ * What to call a device.
+ *
+ * A name someone chose wins. Otherwise a printer uses the name its own
+ * hardware was given -- buttery-feast-sherbet identifies the box on the
+ * table, which is the whole point of it -- and a booth gets a number,
+ * because it is somebody's phone for one evening and will be a different
+ * phone next time.
+ *
+ * Shared by the health rows and the setup list so the same printer is never
+ * called two different things on one screen.
+ */
+function deviceDisplayName(
+  device: Device,
+  index: number,
+  t: ReturnType<typeof useT>,
+): string {
+  const generic =
+    !device.label ||
+    device.label === 'Booth' ||
+    device.label === 'Printer' ||
+    device.label === 'Raspberry Pi'
+
+  if (!generic) return device.label!
+  return `${device.kind === 'booth' ? t('dashboard.booth') : t('dashboard.printer')} ${index + 1}`
 }
 
 /**
