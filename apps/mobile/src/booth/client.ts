@@ -137,6 +137,15 @@ export const booth = {
    */
   print: (sessionId: string) =>
     call<{ id: string; status: string }>('POST', `/booth/sessions/${sessionId}/print`),
+
+  /**
+   * Throw the photo away, for someone who does not like it.
+   *
+   * Refused by the server for a guest-started session, for the same reason
+   * printing is: that photo is not the booth's to act on.
+   */
+  discard: (sessionId: string) =>
+    call<void>('DELETE', `/booth/sessions/${sessionId}`),
 }
 
 /**

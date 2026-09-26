@@ -178,6 +178,8 @@
     "scanToTrigger": "Scan to start from your own phone",
     "orEnterCode": "or use code {code}",
     "printSent": "Sent to the printer",
+    "delete": "Delete this photo",
+    "deleteConfirm": "Tap again to delete",
     "stoppedByOwner": "This booth was stopped from the event. Start it again to carry on.",
     "wrongEvent": "This phone was set up for “{event}”. Use it for this event instead?"
   },

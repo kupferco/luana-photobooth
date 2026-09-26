@@ -87,6 +87,19 @@ export default function Booth() {
     null,
   )
   const [printState, setPrintState] = useState<'idle' | 'sending' | 'sent'>('idle')
+
+  /**
+   * Deleting asks twice, on the button itself.
+   *
+   * The whole review screen is tap-anywhere-to-continue, so a single-tap
+   * delete sitting in the middle of it would eventually catch someone who
+   * meant to dismiss. A dialog would be the usual answer and is the wrong
+   * one here: there is a queue behind this person, and the booth is a phone
+   * on a tripod nobody wants to stand and read.
+   */
+  const [deleteState, setDeleteState] = useState<'idle' | 'confirm' | 'deleting'>(
+    'idle',
+  )
   const [confirmExit, setConfirmExit] = useState(false)
   /**
    * Set when the owner stopped this booth from their phone.
@@ -323,6 +336,7 @@ export default function Booth() {
     })
     setFinished(null)
     setPrintState('idle')
+    setDeleteState('idle')
     setPhase({ kind: 'idle' })
   }, [])
 
@@ -339,6 +353,27 @@ export default function Booth() {
       setPrintState('idle')
     }
   }, [finished, printState])
+
+  const discardFinished = useCallback(async () => {
+    if (!finished || deleteState === 'deleting') return
+
+    if (deleteState === 'idle') {
+      setDeleteState('confirm')
+      return
+    }
+
+    setDeleteState('deleting')
+    try {
+      await booth.discard(finished.id)
+    } catch {
+      // Same reasoning as a failed print: nobody here can act on a dialog.
+      // The photo stays, and the owner can delete it from the gallery.
+    }
+    // Either way the booth goes back to waiting. Leaving someone's photo on
+    // screen after they asked for it to go is the worse failure, and on the
+    // happy path it saves them a second tap to dismiss.
+    reset()
+  }, [finished, deleteState, reset])
 
   const startLocal = useCallback(async () => {
     if (running.current) return
@@ -534,8 +569,11 @@ export default function Booth() {
           {/* Only for a session started here. A guest who triggered from
               their own phone prints from there, and printing it at the booth
               as well would produce copies nobody asked for. */}
+          {/* `canPrint` is the server saying this session started here, so it
+              gates deleting too: the next person at the booth must not be
+              able to throw away the photo of whoever was before them. */}
           {finished?.canPrint ? (
-            <View style={{ width: '60%', maxWidth: 360 }}>
+            <View style={{ width: '60%', maxWidth: 360, gap: 10 }}>
               <Button
                 label={
                   printState === 'sent' ? t('booth.printSent') : t('dashboard.print')
@@ -543,6 +581,20 @@ export default function Booth() {
                 busy={printState === 'sending'}
                 disabled={printState === 'sent'}
                 onPress={() => void printFinished()}
+              />
+
+              {/* No retake here -- tapping again is a retake, and a second
+                  word for it would only be something else to read. No share
+                  either: typing an address on a tripod holds the queue. */}
+              <Button
+                label={
+                  deleteState === 'confirm'
+                    ? t('booth.deleteConfirm')
+                    : t('booth.delete')
+                }
+                variant={deleteState === 'confirm' ? 'danger' : 'secondary'}
+                busy={deleteState === 'deleting'}
+                onPress={() => void discardFinished()}
               />
             </View>
           ) : null}

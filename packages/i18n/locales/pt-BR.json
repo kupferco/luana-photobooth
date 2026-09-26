@@ -178,6 +178,8 @@
     "scanToTrigger": "Escaneie para tirar a foto pelo seu celular",
     "orEnterCode": "ou use o código {code}",
     "printSent": "Enviado para a impressora",
+    "delete": "Apagar esta foto",
+    "deleteConfirm": "Toque de novo para apagar",
     "stoppedByOwner": "Esta cabine foi encerrada pelo evento. Inicie de novo para continuar.",
     "wrongEvent": "Este celular estava configurado para “{event}”. Usar neste evento?"
   },

@@ -178,6 +178,51 @@ boothRoutes.post('/sessions/:sessionId/print', async (req, res, next) => {
   }
 })
 
+/**
+ * Throw this photo away, from the booth.
+ *
+ * The one thing a guest who walked up to the booth cannot do for themselves.
+ * They can have another go by tapping again, and they would not want to
+ * share from a phone strapped to a tripod with a queue behind them -- but if
+ * they dislike the photo, this is their only way to be rid of it, and asking
+ * them to find the owner afterwards is not one.
+ *
+ * Same ownership rule as printing: a guest who triggered from their own
+ * phone decides there. Otherwise the next person at the booth could delete
+ * the photo of whoever was before them.
+ *
+ * A soft delete, like the guest's own: it leaves the gallery and the
+ * retention job collects it, rather than tearing rows out from under a print
+ * job that may still be running.
+ */
+boothRoutes.delete('/sessions/:sessionId', async (req, res, next) => {
+  try {
+    const { tenantId } = boothEvent(req)
+    const session = await getSession(tenantId, req.params.sessionId!)
+
+    if (!session) {
+      return res.status(404).json({ error: { code: 'not_found', message: 'Not found' } })
+    }
+    if (session.origin !== 'booth') {
+      return res.status(403).json({
+        error: {
+          code: 'guest_owned',
+          message: 'This photo belongs to the guest who started it.',
+        },
+      })
+    }
+
+    // Deliberately not conditional on the status. A photo the guest does not
+    // want should go whether it finished composing, failed halfway, or is
+    // already at the printer.
+    await updateSession(tenantId, session.id, { deletedAt: new Date() })
+
+    return res.status(204).end()
+  } catch (e) {
+    return next(e)
+  }
+})
+
 /** The booth takes a queued session and starts its countdown. */
 boothRoutes.post('/sessions/:sessionId/claim', async (req, res, next) => {
   try {
