@@ -11,7 +11,7 @@
       "resizeMode": "contain",
       "backgroundColor": "#f5c518"
     },
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
@@ -35,7 +35,6 @@
       "bundler": "metro",
       "output": "single",
       "favicon": "./assets/favicon.png",
-      "themeColor": "#f5c518",
       "description": "Photo booth for parties."
     },
     "plugins": [

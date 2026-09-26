@@ -196,12 +196,29 @@ export function CameraView({
       playsInline
       muted
       style={{
+        background: '#000', // true black behind it: a camera convention
+        transform: mirrorPreview ? 'scaleX(-1)' : undefined,
+        ...flatStyle,
+
+        /*
+         * Re-asserted after the caller's style, not before it.
+         *
+         * The preview fills the screen and is cropped to do it, rather than
+         * fitting inside and leaving bars down the sides. A booth is looked
+         * at from across a room, and a letterboxed one reads as broken.
+         *
+         * The cost is that the edges of the frame are not visible in the
+         * preview, so what is captured is slightly wider than what was on
+         * screen. That is the right way round: nobody is cut off who looked
+         * fine, only included who did not know they were.
+         *
+         * Last so that a caller passing a layout style -- which is the only
+         * reason this component takes one -- cannot accidentally turn the
+         * fill off.
+         */
         width: '100%',
         height: '100%',
         objectFit: 'cover',
-        background: '#000',  // true black: letterbox bars, not a themed surface
-        transform: mirrorPreview ? 'scaleX(-1)' : undefined,
-        ...flatStyle,
       }}
     />
   )

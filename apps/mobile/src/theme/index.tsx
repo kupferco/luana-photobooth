@@ -4,11 +4,12 @@ import photoboothLight from '@dk/ui-tokens/themes/photobooth.light.json'
 import {
   createContext,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
 } from 'react'
-import { useColorScheme, type TextStyle } from 'react-native'
+import { Platform, useColorScheme, type TextStyle } from 'react-native'
 
 /**
  * Theme access for the app.
@@ -55,7 +56,38 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     }
   }, [resolved, appearance])
 
+  usePaintDocument(value.theme.color.surface.base)
+
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
+}
+
+/**
+ * Paints the parts of the window the app cannot reach.
+ *
+ * Saved to a home screen there is no browser chrome, so the status bar and
+ * the home indicator sit directly against the app -- and they are coloured
+ * by the document, not by anything React renders. Left alone they stay the
+ * default white, which a dark app wears as two bright bands.
+ *
+ * The document has its own colour for the first paint, from a media query.
+ * That follows the phone, and this follows the app: someone who has set
+ * Appearance to dark on a light phone should not get a white status bar.
+ * Both `theme-color` tags are written rather than the matching one, so
+ * whichever the browser picks agrees with the app either way.
+ *
+ * Web only, and a no-op everywhere else: on a real build the status bar is
+ * the operating system's and is set from the native config.
+ */
+function usePaintDocument(background: string): void {
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof document === 'undefined') return
+
+    for (const meta of document.querySelectorAll('meta[name="theme-color"]')) {
+      meta.setAttribute('content', background)
+    }
+    document.documentElement.style.backgroundColor = background
+    document.body.style.backgroundColor = background
+  }, [background])
 }
 
 function useThemeState(): ThemeState {
