@@ -36,7 +36,7 @@ ENV NODE_ENV=production
 # Two packages are not bundled: sharp ships platform-specific binaries, and
 # @google-cloud/storage resolves auth plugins at runtime. Everything else is
 # inside dist/index.js.
-RUN printf '{"name":"photolu-api","private":true,"type":"module"}' > package.json \
+RUN printf '{"name":"lumina-api","private":true,"type":"module"}' > package.json \
  && npm install sharp@^0.33.5 @google-cloud/storage@^8.2.0 \
       --omit=dev --no-package-lock --no-audit --no-fund \
  && npm cache clean --force

@@ -1,6 +1,8 @@
 [
   {
     "origin": [
+      "https://luminabooth.web.app",
+      "https://lumina-staging.web.app",
       "https://photolu.web.app",
       "https://photolu-staging.web.app",
       "https://photolu.firebaseapp.com",
@@ -10,8 +12,17 @@
       "http://localhost:8083",
       "http://localhost:19006"
     ],
-    "method": ["GET", "PUT", "HEAD"],
-    "responseHeader": ["Content-Type", "Content-Length", "ETag", "x-goog-resumable"],
+    "method": [
+      "GET",
+      "PUT",
+      "HEAD"
+    ],
+    "responseHeader": [
+      "Content-Type",
+      "Content-Length",
+      "ETag",
+      "x-goog-resumable"
+    ],
     "maxAgeSeconds": 3600
   }
 ]

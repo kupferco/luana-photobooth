@@ -20,7 +20,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-TARGET="${1:-${PI_HOST:-photolu@photolu.local}}"
+TARGET="${1:-${PI_HOST:-lumina@lumina.local}}"
 REMOTE_DIR="/opt/photobooth"
 REMOTE_USER="$(ssh "$TARGET" whoami)"
 
@@ -92,7 +92,7 @@ echo "==> Making the setup network open its own page"
 # NetworkManager reads this directory for the dnsmasq it runs behind a
 # shared connection, so it applies to our hotspot and to nothing else.
 sudo mkdir -p /etc/NetworkManager/dnsmasq-shared.d
-sudo tee /etc/NetworkManager/dnsmasq-shared.d/photolu-captive.conf >/dev/null <<'DNSMASQ'
+sudo tee /etc/NetworkManager/dnsmasq-shared.d/lumina-captive.conf >/dev/null <<'DNSMASQ'
 # Every lookup resolves to the Pi while the setup network is up.
 address=/#/192.168.4.1
 # There is no upstream to ask, and waiting for one to time out is what makes

@@ -12,7 +12,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-TARGET="${1:-${PI_HOST:-photolu@photolu.local}}"
+TARGET="${1:-${PI_HOST:-lumina@lumina.local}}"
 CARD="$ROOT/infra/printer-card.html"
 OUT="$ROOT/infra/printer-card.generated.html"
 

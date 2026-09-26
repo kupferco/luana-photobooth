@@ -35,7 +35,7 @@ const log = (...args: unknown[]) =>
  * An absolute path, deliberately not one relative to the home directory.
  * Onboarding has to run as root -- it reconfigures the network and binds
  * port 80 -- while the agent runs as the login user, so `homedir()` meant
- * `/root/.photobooth` for the writer and `/home/photolu/.photobooth` for the
+ * `/root/.photobooth` for the writer and `/home/lumina/.photobooth` for the
  * reader. Pairing then succeeded in every visible way, the dashboard showed
  * the printer as connected, and the agent sat saying "not paired yet" with
  * the token forty lines away in another user's home, mode 0600.
@@ -297,7 +297,7 @@ export async function deviceName(): Promise<string | null> {
  * confirms it; on the rare clash it hands back a different one, and by then
  * the hotspot has done its job.
  *
- * Without this, three printers in one room all advertised "PhotoLu-Setup"
+ * Without this, three printers in one room all advertised the same setup
  * and nobody could tell which was which.
  */
 export async function localDeviceName(): Promise<string> {

@@ -21,7 +21,23 @@ const run = promisify(execFile)
 const IFACE = process.env.WIFI_INTERFACE ?? 'wlan0'
 
 /** The connection NetworkManager creates for our hotspot. */
-export const HOTSPOT_CONNECTION = 'photolu-setup'
+export const HOTSPOT_CONNECTION = 'lumina-setup'
+
+/**
+ * What this profile used to be called, before the rename.
+ *
+ * A Pi set up under the old name still has a `photolu-setup` profile on
+ * disk, and nothing removes it on its own. It has to be accounted for in
+ * both directions: left in place it is an 802-11-wireless profile, so
+ * `savedNetworks()` would report it as a saved network and the agent would
+ * conclude the box already has wifi and skip onboarding entirely -- on a
+ * box whose only network is its own access point.
+ */
+const LEGACY_HOTSPOT_CONNECTIONS = ['photolu-setup']
+
+/** Our hotspot profile under any name it has ever had. */
+const isOurHotspot = (name: string): boolean =>
+  name === HOTSPOT_CONNECTION || LEGACY_HOTSPOT_CONNECTIONS.includes(name)
 
 /**
  * The address the setup page is served on.
@@ -42,14 +58,14 @@ export interface Network {
 /**
  * The setup network is named after the box.
  *
- * Three printers in one room all advertising "PhotoLu-Setup" is a guessing
- * game, and the point of giving each unit a permanent name is that the thing
- * on the table and the thing on screen are obviously the same. The card
- * taped to the box says which network to join.
+ * Three printers in one room all advertising one shared setup name is a
+ * guessing game, and the point of giving each unit a permanent name is that
+ * the thing on the table and the thing on screen are obviously the same. The
+ * card taped to the box says which network to join.
  *
- * No "PhotoLu" prefix: an SSID is capped at 32 bytes and the longest name
- * reaches 29, so the prefix would not fit -- and a truncated name would stop
- * matching the card, which is the one thing it must not do.
+ * No brand prefix: an SSID is capped at 32 bytes and the longest name reaches
+ * 29, so a prefix would not fit -- and a truncated name would stop matching
+ * the card, which is the one thing it must not do.
  */
 export async function hotspotSsid(): Promise<string> {
   return (await localDeviceName()).slice(0, 32)
@@ -71,7 +87,7 @@ export async function isOnline(): Promise<boolean> {
     const active = await run('nmcli', ['-t', '-f', 'NAME', 'connection', 'show', '--active'])
     const hosting = active.stdout
       .split('\n')
-      .some((name) => name.trim() === HOTSPOT_CONNECTION)
+      .some((name) => isOurHotspot(name.trim()))
     if (hosting) return false
 
     const { stdout } = await run('nmcli', ['-t', '-f', 'STATE', 'general'])
@@ -88,7 +104,7 @@ export async function savedNetworks(): Promise<string[]> {
     .split('\n')
     .filter(Boolean)
     .map((line) => line.split(':'))
-    .filter(([name, type]) => type === '802-11-wireless' && name !== HOTSPOT_CONNECTION)
+    .filter(([name, type]) => type === '802-11-wireless' && !isOurHotspot(name!))
     .map(([name]) => name!)
 }
 
@@ -169,8 +185,11 @@ export async function scan(): Promise<Network[]> {
 export async function startHotspot(): Promise<string> {
   const ssid = await hotspotSsid()
 
-  // A half-made profile from a failed attempt would collide with this one.
-  await run('nmcli', ['connection', 'delete', HOTSPOT_CONNECTION]).catch(() => {})
+  // A half-made profile from a failed attempt would collide with this one,
+  // and so would one left behind under the old name.
+  for (const name of [HOTSPOT_CONNECTION, ...LEGACY_HOTSPOT_CONNECTIONS]) {
+    await run('nmcli', ['connection', 'delete', name]).catch(() => {})
+  }
 
   await run('nmcli', [
     'connection', 'add',
@@ -200,8 +219,10 @@ export async function rejoin(connectionName: string): Promise<void> {
 }
 
 export async function stopHotspot(): Promise<void> {
-  await run('nmcli', ['connection', 'down', HOTSPOT_CONNECTION]).catch(() => {})
-  await run('nmcli', ['connection', 'delete', HOTSPOT_CONNECTION]).catch(() => {})
+  for (const name of [HOTSPOT_CONNECTION, ...LEGACY_HOTSPOT_CONNECTIONS]) {
+    await run('nmcli', ['connection', 'down', name]).catch(() => {})
+    await run('nmcli', ['connection', 'delete', name]).catch(() => {})
+  }
 }
 
 export type JoinResult =

@@ -10,14 +10,14 @@
 
 set -euo pipefail
 
-TARGET="${1:-${PI_HOST:-photolu@photolu.local}}"
+TARGET="${1:-${PI_HOST:-lumina@lumina.local}}"
 
 if ! ssh -o BatchMode=yes -o ConnectTimeout=8 "$TARGET" true 2>/dev/null; then
   echo "Cannot reach $TARGET."
   echo
   echo "  - Is it powered up? A steady red light means power, green means the card."
   echo "  - On the same network as this Mac?"
-  echo "  - If it was mid-onboarding it may be advertising PhotoLu-Setup-XXXX instead."
+  echo "  - If it was mid-onboarding it may be advertising its own name as a wifi network instead."
   exit 1
 fi
 

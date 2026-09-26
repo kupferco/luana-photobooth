@@ -15,11 +15,24 @@ import type { NextFunction, Request, Response } from 'express'
  */
 
 const ALLOWED = new Set([
+  'https://luminabooth.web.app',
+  'https://lumina-staging.web.app',
+  'https://photobooth.kupfer.co',
+  // The guest page is its own origin, and the only one strangers load.
+  'https://lumina-guest.web.app',
+  'https://lumina-guest-staging.web.app',
+
+  /*
+   * The old photolu.* sites, from before the rename.
+   *
+   * Still here because a share link is a URL someone already has -- in a
+   * message thread, on a phone that has not been opened since the party.
+   * Removing these would break those links to save nothing. The Firebase
+   * sites behind them have to stay up for the same reason.
+   */
   'https://photolu.web.app',
   'https://photolu-staging.web.app',
   'https://photolu.firebaseapp.com',
-  'https://photobooth.kupfer.co',
-  // The guest page is its own origin, and the only one strangers load.
   'https://photolu-guest.web.app',
   'https://photolu-guest-staging.web.app',
 ])

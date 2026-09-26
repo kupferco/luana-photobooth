@@ -30,7 +30,7 @@
 
 set -euo pipefail
 
-TARGET="${1:-${PI_HOST:-photolu@photolu.local}}"
+TARGET="${1:-${PI_HOST:-lumina@lumina.local}}"
 PRINTER_NAME="${PRINTER_NAME:-Canon_SELPHY_CP1500}"
 
 STAGE="$(mktemp)"

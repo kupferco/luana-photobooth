@@ -60,7 +60,7 @@ start by reading the agent's code.
 and needs no toolchain, no `npm install` and no workspace, so a deploy is a
 copy and a restart. That is what makes iterating on it bearable.
 
-Set `PI_HOST` if the Pi is not `photolu@photolu.local`:
+Set `PI_HOST` if the Pi is not `lumina@lumina.local`:
 
 ```bash
 export PI_HOST=pi@192.168.1.50
@@ -71,18 +71,18 @@ export PI_HOST=pi@192.168.1.50
 Nothing here is guessed — but it is written against a Pi I have not seen, so
 expect one or two surprises.
 
-1. **Flash Raspberry Pi OS Lite (64-bit).** Set the hostname to `photolu`,
+1. **Flash Raspberry Pi OS Lite (64-bit).** Set the hostname to `lumina`,
    enable SSH and enter the wifi details in Imager, so it comes up on the
    network with no screen.
 
-2. **Check you can reach it:** `ssh photolu@photolu.local`
+2. **Check you can reach it:** `ssh lumina@lumina.local`
 
 3. **`npm run pi:setup`** — installs Node 22, CUPS and the systemd unit, and
    prints what it found first.
 
 4. **Plug in the SELPHY and confirm CUPS sees it:**
    ```bash
-   ssh photolu@photolu.local 'lpstat -p'
+   ssh lumina@lumina.local 'lpstat -p'
    ```
    If it is missing, add it through CUPS: `sudo lpadmin -p Canon_SELPHY_CP1500
    -E -v usb://Canon/CP1500 -m everywhere`. The exact URI comes from
@@ -93,7 +93,7 @@ expect one or two surprises.
 
 6. **Pair it.** Create an event in the app, generate a pairing code, then:
    ```bash
-   ssh photolu@photolu.local \
+   ssh lumina@lumina.local \
      'cd /opt/photobooth && node --env-file=.env dist/pair.js ABC123'
    ```
    The token lands in `~/.photobooth/device-token`, outside the deploy
@@ -177,7 +177,7 @@ the QR card that ships with the printer -- in an ordinary browser tab that
 survives being left.
 
 dnsmasq still answers every hostname with the Pi, which is what makes
-`http://photolu.local` work on that network with no mDNS and no IP address to
+`http://lumina.local` work on that network with no mDNS and no IP address to
 type. The card is the same on every printer, so it is printed once:
 `npm run pi:card`.
 
@@ -220,17 +220,20 @@ in a box has two problems, and only one of them is pairing:
 
 **1. Wifi provisioning, with pairing folded in.** Built -- see below.
 
-The hotspot must name which box it is: `PhotoLu-Setup-A7F3`, the suffix
-taken from the Pi's CPU serial and printed on the case. Two Pis in one room
-both broadcasting `PhotoLu-Setup` would be indistinguishable. It is a label,
-not a credential -- the pairing code is still what authorises anything.
+The hotspot must name which box it is, so it broadcasts the unit's own
+permanent name -- `popcorn-sherbet-dance` -- and nothing else. No brand
+prefix: an SSID caps at 32 bytes, the longest name reaches 29, and a
+truncated name would stop matching the card taped to the box, which is the
+one thing it must not do. Two Pis in one room both broadcasting one shared
+setup name would be indistinguishable. It is a label, not a credential --
+the pairing code is still what authorises anything.
 
 A fresh Pi has no credentials, so it is on no network, so it can be reached
 at no address. The way out is the one every headless device uses:
 
-1. No wifi saved, so the Pi starts its own access point -- `PhotoLu-Setup`.
+1. No wifi saved, so the Pi starts its own access point, named after itself.
 2. The owner joins it from their phone. A captive portal opens, or they
-   visit `192.168.4.1` -- not `photolu.local`, which needs a network that
+   visit `192.168.4.1` -- not `lumina.local`, which needs a network that
    does not exist yet.
 3. One form: choose your wifi and enter its password, and paste the pairing
    code from the app.
@@ -259,8 +262,8 @@ restricted webview that closes unpredictably and is poor at JavaScript,
 Android may warn about no internet and offer to leave, and some phones drop
 back to mobile data on a network that cannot reach anything. Implement the
 detection endpoints so it appears when it can, keep the page plain HTML with
-no clever scripting, and print **"join PhotoLu-Setup-XXXX, then open
-192.168.4.1"** on the box. The typed address is the path that always works;
+no clever scripting, and print **"join <the name on this box>, then open
+192.168.4.1"** on the card. The typed address is the path that always works;
 the popup is a convenience.
 
 **2. The Pi prints its own claim code.** A nicety.

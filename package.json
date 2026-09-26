@@ -39,7 +39,7 @@
     "pi:printer": "bash infra/pi-printer.sh",
     "pi:card": "bash infra/pi-card.sh",
     "pi:status": "bash infra/pi-status.sh",
-    "pi:logs": "ssh ${PI_HOST:-photolu@photolu.local} journalctl -u photobooth-agent -f",
+    "pi:logs": "ssh ${PI_HOST:-lumina@lumina.local} journalctl -u photobooth-agent -f",
     "agent": "npm run dev --workspace @photobooth/print-agent",
     "secrets:push": "bash infra/push-secrets.sh",
     "logs:staging": "gcloud run services logs tail photolu-api-staging --project photolu --region europe-west2",

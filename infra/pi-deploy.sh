@@ -4,7 +4,7 @@
 #
 #   infra/pi-deploy.sh [user@host]
 #
-# Defaults to $PI_HOST, or photolu@photolu.local.
+# Defaults to $PI_HOST, or lumina@lumina.local.
 #
 # Sends built output, not source: the Pi runs one bundled file and needs no
 # toolchain, no npm install and no workspace. A deploy is a copy and a
@@ -13,7 +13,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-TARGET="${1:-${PI_HOST:-photolu@photolu.local}}"
+TARGET="${1:-${PI_HOST:-lumina@lumina.local}}"
 REMOTE_DIR="/opt/photobooth"
 
 echo "==> Building the agent"

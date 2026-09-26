@@ -82,7 +82,7 @@ the SELPHY.
 **1. Flash the card.** Raspberry Pi Imager → Raspberry Pi OS (64-bit). Before
 writing, open the settings gear and set:
 
-- hostname `photolu`
+- hostname `lumina`
 - a username and password (you will need the password for every step below)
 - your wifi, so it comes up on the network the first time
 - **enable SSH**
@@ -141,7 +141,7 @@ code and five steps. The short version:
 1. Have your wifi name and password to hand.
 2. Power the printer box on.
 3. Join the wifi network named after the printer (it is on the card).
-4. Scan the QR on the card, or open `photolu.local`.
+4. Scan the QR on the card, or open `lumina.local`.
 5. Enter your wifi details and the code.
 
 A printer that is **already set up** does not broadcast anything — it is on

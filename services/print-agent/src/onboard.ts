@@ -204,7 +204,7 @@ async function handler(req: IncomingMessage, res: ServerResponse): Promise<void>
    * real browser tab they can leave and come back to.
    *
    * dnsmasq still answers every name with this box, which is what lets that
-   * QR point at http://photolu.local rather than an IP address.
+   * QR point at http://lumina.local rather than an IP address.
    */
   const probe = url.pathname.toLowerCase()
 

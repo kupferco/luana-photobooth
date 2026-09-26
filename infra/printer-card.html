@@ -1,6 +1,6 @@
 <!doctype html>
 <meta charset="utf-8">
-<title>PhotoLu printer setup card</title>
+<title>Lumina printer setup card</title>
 <!--
   The card that lives on the printer box.
 
@@ -15,7 +15,7 @@
   can leave and come back to.
 
   The URL is the same on every printer, so this is printed once and never
-  needs regenerating. http://photolu.local resolves because dnsmasq on the
+  needs regenerating. http://lumina.local resolves because dnsmasq on the
   setup network answers every name with the Pi itself.
 -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -60,7 +60,7 @@
 
   <ol>
     <li>Join the wifi network named above — no password.</li>
-    <li>Scan this code, or open <span class="net">photolu.local</span></li>
+    <li>Scan this code, or open <span class="net">lumina.local</span></li>
     <li>Enter your wifi details and the pairing code from the app.</li>
   </ol>
 
@@ -73,7 +73,7 @@
 <script>
   // Same address on every printer, so this card is printed once.
   new QRCode(document.getElementById('qr'), {
-    text: 'http://photolu.local',
+    text: 'http://lumina.local',
     width: 168,
     height: 168,
     correctLevel: QRCode.CorrectLevel.M,

@@ -289,4 +289,4 @@ Hosting is a global CDN; no region applies.
 - App Store submission: $99/yr, and a camera app uploading photographs of
   minors will attract review questions. Not on the phase-1 path.
 - `photobooth.kupfer.co` not yet pointed at Hosting; running on
-  `photolu.web.app` meanwhile.
+  `luminabooth.web.app` meanwhile.
