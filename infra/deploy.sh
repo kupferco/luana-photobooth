@@ -13,9 +13,12 @@
 #   npm run deploy:front:prod       client only -> prod
 #   npm run deploy:back:staging     API only -> staging
 #
-# Deploying to prod asks for confirmation, unless CONFIRM=yes is set. There is
-# a real party running on prod; an accidental deploy mid-event is a bad way to
-# find out the difference between the two.
+# Prod does not ask for confirmation. It did, and the prompt was removed on
+# purpose: the only users are the family, so a mistaken deploy costs a redeploy
+# rather than someone's party. Put it back the day that stops being true.
+#
+# Each step prints the environment and the URL it is deploying to before it
+# does anything, which is what the prompt was really for.
 
 set -euo pipefail
 
@@ -41,14 +44,6 @@ case "$ENVS" in
   both)    ENV_LIST=(staging prod) ;;
   *) echo "Environment must be staging, prod or both — got '$ENVS'." >&2; exit 2 ;;
 esac
-
-confirm_prod() {
-  [[ "${CONFIRM:-}" == "yes" ]] && return 0
-  echo
-  echo "  About to deploy $TARGET to PRODUCTION ($(cfg prod webUrl))."
-  read -r -p "  Type 'prod' to continue: " answer
-  [[ "$answer" == "prod" ]] || { echo "  Cancelled."; exit 1; }
-}
 
 # gcloud's env-var separator is changed to | with the ^|^ prefix, because
 # RESEND_FROM contains a comma. Not @, which the address in it also contains.
@@ -116,7 +111,7 @@ deploy_front() {
 }
 
 for env in "${ENV_LIST[@]}"; do
-  [[ "$env" == "prod" ]] && confirm_prod
+  [[ "$env" == "prod" ]] && echo && echo "==> PRODUCTION ($(cfg prod webUrl))"
 
   case "$TARGET" in
     back)  deploy_back "$env" ;;
