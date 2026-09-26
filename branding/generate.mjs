@@ -19,6 +19,7 @@
  * - The splash keeps its transparency, because Expo draws it on the splash
  *   background colour itself.
  */
+import { existsSync } from 'node:fs'
 import { mkdir } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -26,6 +27,16 @@ import sharp from 'sharp'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const SOURCE = join(here, 'logo', 'logo-source.png')
+
+/**
+ * The favicon's own artwork, when there is any.
+ *
+ * Optional: without it the favicon is cut from the main mark (FAVICON_CROP).
+ * With it, it is drawn separately -- which is the only way to get a figure
+ * that overlaps its neighbours in the full logo, since no rectangle contains
+ * all of one and none of the others.
+ */
+const FAVICON_SOURCE = join(here, 'logo', 'favicon-source.png')
 const LOGO = join(here, 'logo')
 const ASSETS = join(here, '..', 'apps', 'mobile', 'assets')
 
@@ -57,6 +68,12 @@ const INK_THRESHOLD = Number(process.env.INK ?? 110)
  * Fractions of the trimmed mark: `x` and `y` are the top-left corner, `w`
  * and `h` the size, all 0-1. `null` uses the whole mark.
  *
+ * Only used when there is no favicon-source.png. Cropping works when a
+ * figure stands clear of its neighbours; in this logo none of them do --
+ * the middle girl's hair runs into the afro on one side and under the
+ * sombrero brim on the other, so every rectangle around her either cuts her
+ * hair or brings in the hat. That is what the separate artwork is for.
+ *
  * To find a region, run `npm run branding` and open
  * branding/logo/favicon-picker.png -- it is the mark under a labelled grid.
  * Nothing in this script knows what any shape is, so the numbers have to
@@ -64,14 +81,7 @@ const INK_THRESHOLD = Number(process.env.INK ?? 110)
  */
 const FAVICON_CROP = process.env.CROP
   ? (([x, y, w, h]) => ({ x, y, w, h }))(process.env.CROP.split(',').map(Number))
-  : // The girl in the middle: her hair, the heart glasses and the smile.
-    //
-    // It stops where it does because the three figures overlap. Her hair runs
-    // straight into the afro on one side and under the sombrero brim on the
-    // other, so a wider crop does not get more of her hair -- it gets the hat.
-    // The top is inside her fringe for the same reason a 48px icon wants
-    // anything: the fewer things in it, the more pixels each one gets.
-    { x: 0.345, y: 0.06, w: 0.33, h: 0.52 }
+  : null
 
 /**
  * The logo, cropped to its own edges and centred on a square.
@@ -92,8 +102,8 @@ const FAVICON_CROP = process.env.CROP
  * jagged: a pixel at the threshold is half there, one well below it is
  * solid.
  */
-async function inkOnly() {
-  const { data, info } = await sharp(SOURCE)
+async function inkOnly(file = SOURCE) {
+  const { data, info } = await sharp(file)
     .ensureAlpha()
     .raw()
     .toBuffer({ resolveWithObject: true })
@@ -281,10 +291,15 @@ await write(join(ASSETS, 'splash-icon.png'), await square(1024, 0.6, TRANSPARENT
  * so it sits on the brand colour like the app icon.
  *
  * At 48px the full scene is three faces' worth of line work in a space that
- * fits one, and it reads as a grey smudge. It shows one face instead --
- * see FAVICON_CROP.
+ * fits one, and it reads as a grey smudge. It shows one face instead: from
+ * logo/favicon-source.png if that exists, otherwise cut from the main mark
+ * at FAVICON_CROP.
  */
-const faviconMark = FAVICON_CROP ? await detail(FAVICON_CROP) : await mark()
+const faviconMark = existsSync(FAVICON_SOURCE)
+  ? await sharp(await inkOnly(FAVICON_SOURCE)).trim().toBuffer()
+  : FAVICON_CROP
+    ? await detail(FAVICON_CROP)
+    : await mark()
 await write(join(ASSETS, 'favicon.png'), await square(48, 0.8, BRAND, faviconMark), {
   flatten: true,
 })
@@ -301,8 +316,10 @@ await write(join(LOGO, 'favicon-picker.png'), await picker(), { flatten: true })
 
 console.log(`\nInk threshold: ${INK_THRESHOLD}. Too much left? INK=90 npm run branding`)
 console.log(
-  FAVICON_CROP
-    ? `Favicon region: ${Object.values(FAVICON_CROP).join(', ')}. Check favicon-preview.png.`
-    : 'Favicon: the whole mark. Pick a region in favicon-picker.png, then CROP=x,y,w,h npm run branding',
+  existsSync(FAVICON_SOURCE)
+    ? 'Favicon: its own artwork, branding/logo/favicon-source.png. Check favicon-preview.png.'
+    : FAVICON_CROP
+      ? `Favicon region: ${Object.values(FAVICON_CROP).join(', ')}. Check favicon-preview.png.`
+      : 'Favicon: the whole mark. Pick a region in favicon-picker.png, then CROP=x,y,w,h npm run branding',
 )
 console.log('Check branding/logo/preview-on-white.png — nothing here can tell you it looks wrong.\n')

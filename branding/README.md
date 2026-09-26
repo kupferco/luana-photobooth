@@ -35,36 +35,40 @@ stay smooth rather than jagged.
 filter judges darkness, not meaning — so if an unwanted element has a black
 outline, it survives, and the fix is to remove it from the source artwork.
 
-### Choosing what the favicon shows
+### The favicon
 
-The mark is one wide connected drawing of three figures, and at 48px all of
-it together turns to grey soup in a tab strip. So the favicon shows a single
-region instead — by default the girl in the middle: her hair, the heart
-glasses and the smile.
+The mark is three figures side by side. At 48px all of it together is a grey
+smudge, so the favicon shows one face: the girl in the middle.
 
-To use a different region:
+It has **its own artwork**, `logo/favicon-source.png`, drawn as a complete
+head. That file is the whole configuration — drop a new one in, run
+`npm run branding`, and the favicon follows it. Delete it and the build
+falls back to cropping the main mark.
 
-```bash
-npm run branding                      # then open logo/favicon-picker.png
-CROP=0.38,0.12,0.24,0.62 npm run branding   # x, y, width, height (0–1)
-```
+It needs separate artwork rather than a crop because the three figures
+overlap: her hair runs into the afro on one side and under the sombrero brim
+on the other. Every rectangle around her either cuts her hair or brings in
+the hat, so there is no crop that gets her whole head and nothing else.
 
-`favicon-picker.png` is the mark under a labelled 6×4 grid — A1 top-left to
-F4 bottom-right. Find the region you want, convert the cells to fractions
-(each column is 0.167 wide, each row 0.25 tall), and pass them as `CROP`.
-The region is trimmed back to its own edges afterwards, so it does not have
-to be tight.
-
-Check the result in `logo/favicon-preview.png`, which is the same crop at
+Check the result in `logo/favicon-preview.png`, which is the same image at
 240px. The 48px file is too small to judge.
 
-Once a region is settled, replace the `FAVICON_CROP` default in
-`generate.mjs` with the literal so it survives without the env var.
+#### Falling back to a crop
 
-**Why the current one stops where it does.** The three figures overlap: her
-hair runs into the afro on one side and under the sombrero brim on the
-other. A wider crop does not get more of her hair, it gets the hat. So the
-region is as much of her as exists separately, and no more.
+If a logo ever does have a figure standing clear of its neighbours, the
+favicon can be cut straight out of the main mark instead:
+
+```bash
+npm run branding                            # then open logo/favicon-picker.png
+CROP=0.34,0.06,0.33,0.52 npm run branding   # x, y, width, height (0-1)
+```
+
+`favicon-picker.png` is the mark under a labelled 6x4 grid, A1 top-left to
+F4 bottom-right, for naming roughly where to look. Judge the result from
+`favicon-preview.png`, not from the grid — positions read off a rendered
+image are not accurate enough to crop by.
+
+Only used when there is no `favicon-source.png`.
 
 ## What gets built
 
@@ -77,7 +81,7 @@ region is as much of her as exists separately, and no more.
 | `assets/android-icon-background.png` | 1024² | no | Flat brand colour behind it |
 | `assets/android-icon-monochrome.png` | 1024² | yes | Silhouette, for Android themed icons |
 | `assets/splash-icon.png` | 1024² | yes | Drawn on the splash background |
-| `assets/favicon.png` | 48² | **no** | Browser tab |
+| `assets/favicon.png` | 48² | **no** | Browser tab — built from `logo/favicon-source.png` |
 | `logo/favicon-preview.png` | 240² | no | The favicon crop, big enough to judge |
 | `logo/favicon-picker.png` | 900² | no | The mark under a labelled grid, for choosing a crop |
 
