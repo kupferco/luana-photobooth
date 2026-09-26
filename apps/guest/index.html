@@ -7,6 +7,16 @@
     <!-- Nothing here should ever be indexed: every URL is somebody's photos. -->
     <meta name="robots" content="noindex, nofollow" />
     <title>Lumina</title>
+
+    <!--
+      The tab icon and the home-screen icon. iOS reads apple-touch-icon and
+      ignores the manifest's icons, so both have to be here or a saved page
+      gets a screenshot instead of a logo.
+    -->
+    <link rel="icon" type="image/png" sizes="48x48" href="/icons/favicon-48.png" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="apple-mobile-web-app-title" content="Lumina" />
   </head>
   <body>
     <div id="root"></div>

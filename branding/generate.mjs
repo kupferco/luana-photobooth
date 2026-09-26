@@ -39,6 +39,8 @@ const SOURCE = join(here, 'logo', 'logo-source.png')
 const FAVICON_SOURCE = join(here, 'logo', 'favicon-source.png')
 const LOGO = join(here, 'logo')
 const ASSETS = join(here, '..', 'apps', 'mobile', 'assets')
+const WEB = join(here, '..', 'apps', 'mobile', 'public', 'icons')
+const GUEST_WEB = join(here, '..', 'apps', 'guest', 'public', 'icons')
 
 /** amber.500 — the same yellow as the primary button. */
 const BRAND = '#f5c518'
@@ -308,6 +310,44 @@ await write(join(ASSETS, 'favicon.png'), await square(48, 0.8, BRAND, faviconMar
 await write(join(LOGO, 'favicon-preview.png'), await square(240, 0.8, BRAND, faviconMark), {
   flatten: true,
 })
+
+/*
+ * Icons for "Add to Home Screen".
+ *
+ * Without these a saved page gets no icon at all: iOS uses a screenshot of
+ * whatever was on screen, and Android draws the first letter in a circle.
+ * The app icon above does not cover it -- a web page is asked for its icons
+ * by <link> and by the manifest, and neither had one.
+ *
+ * Two shapes, because the platforms crop differently:
+ *
+ * - The plain ones are shown as-is. iOS rounds the corners itself, so an
+ *   already-rounded icon would come out doubly so.
+ * - The maskable ones may be cut to a circle, and the guarantee is only the
+ *   middle 80%. They get the same generous padding as the Android adaptive
+ *   icon, for the same reason.
+ *
+ * All flattened onto the brand colour: iOS fills transparency with black.
+ */
+for (const [dir, label] of [[WEB, 'app'], [GUEST_WEB, 'guest']]) {
+  // 180 is what iOS asks for; it downsamples from there for every other slot.
+  await write(join(dir, 'apple-touch-icon.png'), await square(180, 0.72, BRAND), {
+    flatten: true,
+  })
+  for (const size of [192, 512]) {
+    await write(join(dir, `icon-${size}.png`), await square(size, 0.72, BRAND), {
+      flatten: true,
+    })
+    await write(join(dir, `icon-${size}-maskable.png`), await square(size, 0.58, BRAND), {
+      flatten: true,
+    })
+  }
+  // The tab icon, alongside the .ico Expo builds from assets/favicon.png.
+  await write(join(dir, 'favicon-48.png'), await square(48, 0.8, BRAND, faviconMark), {
+    flatten: true,
+  })
+  void label
+}
 
 // Big, on white and on the brand colour, so the result can be judged at a
 // glance rather than by opening eight files.

@@ -34,7 +34,9 @@
     "web": {
       "bundler": "metro",
       "output": "single",
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "themeColor": "#f5c518",
+      "description": "Photo booth for parties."
     },
     "plugins": [
       "expo-router",
