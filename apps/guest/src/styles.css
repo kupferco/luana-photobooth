@@ -83,7 +83,15 @@ p {
   font-weight: 700;
 }
 
-button {
+:is(button, .button) {
+  /* Also .button, for the save link: it has to be an anchor so a phone
+     offers "save to photos", but it should not look like body text. */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  text-decoration: none;
+  box-sizing: border-box;
   font: inherit;
   font-size: var(--text-md);
   font-weight: 600;
@@ -97,26 +105,26 @@ button {
   cursor: pointer;
 }
 
-button:active {
+:is(button, .button):active {
   background: var(--actionSecondary-bgPressed);
 }
 
-button.primary {
+:is(button, .button).primary {
   background: var(--action-bg);
   color: var(--action-fg);
   border-color: transparent;
 }
 
-button.primary:active {
+:is(button, .button).primary:active {
   background: var(--action-bgPressed);
 }
 
-button.big {
+:is(button, .button).big {
   min-height: 64px;
   font-size: var(--text-lg);
 }
 
-button.quiet {
+:is(button, .button).quiet {
   background: none;
   border: none;
   color: var(--text-secondary);
@@ -167,4 +175,35 @@ button[disabled] {
   .spinner {
     animation-duration: 3s;
   }
+}
+
+/*
+ * Who made this.
+ *
+ * A shared photo travels: it is forwarded, saved, and opened weeks later by
+ * people who were never at the party and have never heard of any of this.
+ * One quiet line is the only thing on the page that says what it is.
+ *
+ * Deliberately under the retention note rather than beside the photo. The
+ * picture is why they opened the link.
+ */
+.made-with {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-5);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  text-decoration: none;
+}
+
+.made-with:hover {
+  color: var(--text-primary);
+}
+
+.made-with img {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  display: block;
 }

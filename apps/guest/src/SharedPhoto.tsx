@@ -5,6 +5,15 @@ import { api, type SharedPhoto as Shared } from './api'
 type Translator = ReturnType<typeof createTranslator>
 
 /**
+ * Where "Made with Lumina" goes.
+ *
+ * The app for now, because it is where someone who followed the link would
+ * sign up. A marketing page would be a better answer and is one env var
+ * away when there is one.
+ */
+const SITE_URL = import.meta.env.VITE_SITE_URL ?? 'https://luminabooth.web.app'
+
+/**
  * One photo, shared by whoever was at the party.
  *
  * Reached from a link in a message or an email, by someone who was not
@@ -75,6 +84,14 @@ export function SharedPhoto({ token, t }: { token: string; t: Translator }) {
           })}
         </p>
       ) : null}
+
+      {/* The only thing on the page that says what made this. A shared photo
+          is forwarded to people who were not at the party, so this is the
+          one place the link can travel to someone who has never heard of it. */}
+      <a className="made-with" href={SITE_URL} target="_blank" rel="noreferrer">
+        <img src="/icons/favicon-48.png" alt="" />
+        {t('shared.madeWith')}
+      </a>
     </main>
   )
 }
