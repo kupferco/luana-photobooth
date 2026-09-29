@@ -122,14 +122,44 @@ export default function Booth() {
   /**
    * How wide the montage can be and still leave room for what sits under it.
    *
-   * `reserved` is the caption, code and hint plus their gaps. The montage is
-   * 3:2, so the height left over caps the width at 1.5x it.
+   * `reserved` is the height of everything below it plus the gaps. The
+   * montage is 3:2, so the height left over caps the width at 1.5x it.
+   *
+   * The floor is low on purpose. A booth is a phone in landscape on a
+   * tripod, so the short side is around 390pt, and the review screen is the
+   * tallest thing this app draws: get the reserve wrong and the montage is
+   * clipped by the top of the window rather than shrunk, because the column
+   * is centred rather than scrolled.
    */
   const montageWidth = (reserved: number) =>
     Math.max(
-      180,
+      // Low enough that the shortest screen a booth plausibly runs on -- an
+      // SE in landscape, 375pt -- shrinks rather than clips.
+      120,
       Math.min(width * 0.55, (height - reserved) * (3 / 2), 520),
     )
+
+  /*
+   * What the review screen puts under the montage, added up.
+   *
+   * Derived rather than one tuned number, because it changed the moment a
+   * second button was added: the reserve stayed at the figure that fitted
+   * one, and the montage started overflowing the top of the screen. Counting
+   * the pieces means the next thing added to this screen is accounted for by
+   * changing the list rather than by noticing the bug.
+   *
+   * Approximate by design -- it decides how much to shrink a picture, and a
+   * few points either way is invisible.
+   */
+  const GAP = 10
+  const BUTTON = 52 // Button's minHeight
+  const doneReserved =
+    12 * 2 + // the column's own vertical padding
+    30 + GAP + // "Here it is"
+    (finished?.canPrint ? (BUTTON + GAP) * 2 : 0) + // print, then delete
+    (lastCode ? 52 + GAP : 0) + // the label and the code under it
+    20 + // "Tap to continue"
+    16 // the tilt, which makes the card taller than it measures
 
   // --- pairing ------------------------------------------------------------
 
@@ -560,7 +590,7 @@ export default function Booth() {
             <MontagePreview
               template={template}
               shotUris={template.cells.map((_, i) => shots[i]?.previewUri ?? null)}
-              width={montageWidth(200)}
+              width={montageWidth(doneReserved)}
             />
           </View>
 
