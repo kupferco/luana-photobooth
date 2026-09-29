@@ -3,6 +3,7 @@ import { authRoutes } from './auth/routes'
 import { agentRoutes } from './agent/routes'
 import { boothRoutes } from './booth/routes'
 import { deviceRoutes } from './devices/routes'
+import { memberRoutes } from './members/routes'
 import { eventRoutes } from './events/routes'
 import { sessionRoutes } from './sessions/routes'
 import { env, isProduction } from './config/env'
@@ -26,6 +27,8 @@ app.get('/health', (_req, res) => {
 app.use('/auth', authRoutes)
 app.use('/events', eventRoutes)
 app.use('/devices', deviceRoutes)
+// Mounted at /tenants, above the catch-all session routes.
+app.use('/tenants', memberRoutes)
 app.use('/booth', boothRoutes)
 app.use('/agent', agentRoutes)
 app.use('/', sessionRoutes)

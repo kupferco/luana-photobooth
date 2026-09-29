@@ -84,6 +84,16 @@ export interface GallerySession {
   emailedTo: string | null
 }
 
+/** Someone who can run this account's parties. */
+export interface Member {
+  userId: string
+  email: string
+  name: string | null
+  role: 'owner' | 'admin' | 'staff'
+  joinedAt: string
+  isYou: boolean
+}
+
 export interface PhotoboothApi {
   // Auth
   requestCode(email: string): Promise<{ sent: true }>
@@ -120,6 +130,18 @@ export interface PhotoboothApi {
     eventId: string,
     status: Event['status'],
   ): Promise<Event>
+
+  // People
+  /**
+   * Who can help, and whether this account lets you change that.
+   *
+   * `canManage` comes from the server rather than being inferred from a role
+   * here, so the rule lives in one place -- the place that enforces it.
+   */
+  listMembers(tenantId: string): Promise<{ members: Member[]; canManage: boolean }>
+  /** Invites by email. Already a member is a success, not an error. */
+  addMember(tenantId: string, email: string): Promise<{ member: Member; created: boolean }>
+  removeMember(tenantId: string, userId: string): Promise<void>
 
   // Dashboard
   eventStats(tenantId: string, eventId: string): Promise<EventLiveStats>

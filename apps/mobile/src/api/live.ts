@@ -1,5 +1,6 @@
 import { clearToken, readToken, writeToken } from './storage'
 import type {
+  Member,
   BackgroundUpload,
   Device,
   Event,
@@ -291,6 +292,28 @@ export const liveApi: PhotoboothApi = {
       `/devices?tenantId=${encodeURIComponent(tenantId)}&eventId=${encodeURIComponent(eventId)}`,
     )
     return result.devices
+  },
+
+  async listMembers(tenantId) {
+    return request<{ members: Member[]; canManage: boolean }>(
+      'GET',
+      `/tenants/${encodeURIComponent(tenantId)}/members`,
+    )
+  },
+
+  async addMember(tenantId, email) {
+    return request<{ member: Member; created: boolean }>(
+      'POST',
+      `/tenants/${encodeURIComponent(tenantId)}/members`,
+      { email },
+    )
+  },
+
+  async removeMember(tenantId, userId) {
+    await request<void>(
+      'DELETE',
+      `/tenants/${encodeURIComponent(tenantId)}/members/${encodeURIComponent(userId)}`,
+    )
   },
 
   async setRetakes(tenantId, eventId, retakesAllowed) {

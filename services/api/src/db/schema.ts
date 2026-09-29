@@ -70,6 +70,7 @@ export const emailKind = pgEnum('email_kind', [
   'signin_code',
   'guest_photos',
   'retention_warning',
+  'invite',
 ])
 export const emailStatus = pgEnum('email_status', ['queued', 'sent', 'failed'])
 

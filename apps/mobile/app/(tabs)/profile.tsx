@@ -1,6 +1,7 @@
 import { locales, type Locale } from '@dk/i18n'
 import { router } from 'expo-router'
 import { useLocale, useT } from '../../src/locale'
+import { PeopleCard } from '../../src/people/PeopleCard'
 import { useSession } from '../../src/session'
 import { useAppearance, type Appearance } from '../../src/theme'
 import { Body, Button, Card, Label, Screen } from '../../src/ui'
@@ -14,7 +15,7 @@ export default function Profile() {
   const t = useT()
   const { locale, setLocale } = useLocale()
   const { appearance, setAppearance } = useAppearance()
-  const { user, signOut } = useSession()
+  const { user, tenantId, signOut } = useSession()
 
   const appearances: Appearance[] = ['system', 'light', 'dark']
 
@@ -26,6 +27,8 @@ export default function Profile() {
           <Body muted>{t('app.name')}</Body>
         </Card>
       ) : null}
+
+      {tenantId ? <PeopleCard tenantId={tenantId} /> : null}
 
       <Card>
         <Label>{t('profile.language')}</Label>

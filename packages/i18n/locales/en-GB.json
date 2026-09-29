@@ -254,6 +254,25 @@
     "light": "Light",
     "dark": "Dark"
   },
+  "people": {
+    "title": "Who can help",
+    "hint": "They sign in with their own email. Nothing to share, nothing to remember.",
+    "emailLabel": "Add someone by email",
+    "invite": "Add them",
+    "invited": "Added {email}. They can sign in now.",
+    "alreadyThere": "{email} already has access.",
+    "inviteFailed": "Could not add them. Check the address and try again.",
+    "remove": "Remove",
+    "removeConfirm": "Tap again",
+    "removeFailed": "Could not remove them.",
+    "you": "you",
+    "ownerOnly": "Only the account owner can change who has access.",
+    "role": {
+      "owner": "Owner",
+      "admin": "Can run parties",
+      "staff": "Helper"
+    }
+  },
   "event": {
     "none": "No event selected.",
     "noneHint": "Create one, or pick one from Home.",

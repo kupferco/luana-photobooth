@@ -254,6 +254,25 @@
     "light": "Claro",
     "dark": "Escuro"
   },
+  "people": {
+    "title": "Quem pode ajudar",
+    "hint": "Cada pessoa entra com o próprio email. Nada para compartilhar, nada para lembrar.",
+    "emailLabel": "Adicionar alguém por email",
+    "invite": "Adicionar",
+    "invited": "{email} foi adicionado. Já pode entrar.",
+    "alreadyThere": "{email} já tem acesso.",
+    "inviteFailed": "Não foi possível adicionar. Confira o endereço e tente de novo.",
+    "remove": "Remover",
+    "removeConfirm": "Toque de novo",
+    "removeFailed": "Não foi possível remover.",
+    "you": "você",
+    "ownerOnly": "Só o dono da conta pode mudar quem tem acesso.",
+    "role": {
+      "owner": "Dono",
+      "admin": "Pode gerenciar festas",
+      "staff": "Ajudante"
+    }
+  },
   "event": {
     "none": "Nenhum evento selecionado.",
     "noneHint": "Crie um evento ou escolha um na tela de Início.",

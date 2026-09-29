@@ -1,6 +1,7 @@
 import { DEFAULT_MONTAGE_RETENTION_DAYS, retentionUntil } from '@photobooth/shared'
 import { clearToken, readToken, writeToken } from './storage'
 import type {
+  Member,
   Device,
   Event,
   EventLiveStats,
@@ -107,6 +108,34 @@ const STATS: Record<string, EventLiveStats> = {
     printer: null,
   },
 }
+
+/**
+ * Two people, because a list of one tells you nothing about a list.
+ *
+ * The helper has never signed in, which is the normal state for somebody
+ * invited an hour ago and the one the row has to read sensibly in: there is
+ * no name to show, only the address it was sent to.
+ */
+const fixtureMembers: Member[] = [
+  {
+    userId: FIXTURE_USER.id,
+    email: FIXTURE_USER.email,
+    name: 'Daniel',
+    role: 'owner',
+    joinedAt: iso(-120),
+    isYou: true,
+  },
+  {
+    userId: '00000000-0000-4000-8000-0000000000u2',
+    email: 'ana@example.com',
+    name: null,
+    role: 'admin',
+    joinedAt: iso(0),
+    isYou: false,
+  },
+]
+
+const removedMembers = new Set<string>()
 
 const fixtureDevices: Device[] = [
   {
@@ -319,6 +348,36 @@ export const fixtureApi: PhotoboothApi = {
     const event = EVENTS.find((e) => e.id === eventId)
     if (!event) throw new ApiError('Not found', 'not_found', 404)
     return event
+  },
+
+  async listMembers() {
+    await delay()
+    return {
+      members: fixtureMembers.filter((m) => !removedMembers.has(m.userId)),
+      canManage: true,
+    }
+  },
+
+  async addMember(_tenantId, email) {
+    await delay()
+    const existing = fixtureMembers.find((m) => m.email === email)
+    if (existing) return { member: existing, created: false }
+
+    const member: Member = {
+      userId: `u-${Date.now()}`,
+      email,
+      name: null,
+      role: 'admin',
+      joinedAt: new Date().toISOString(),
+      isYou: false,
+    }
+    fixtureMembers.push(member)
+    return { member, created: true }
+  },
+
+  async removeMember(_tenantId, userId) {
+    await delay()
+    removedMembers.add(userId)
   },
 
   async listAllDevices() {

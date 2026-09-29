@@ -2,7 +2,7 @@ import { eq } from 'drizzle-orm'
 import { Resend } from 'resend'
 import { env } from '../config/env'
 import { db } from '../db/client'
-import { emailDeliveries } from '../db/schema'
+import { emailDeliveries, emailKind } from '../db/schema'
 
 /**
  * Every outbound email is a row first and a send second.
@@ -22,7 +22,12 @@ export const MAX_ATTEMPTS = 5
 
 interface QueueEmail {
   to: string
-  kind: 'signin_code' | 'guest_photos' | 'retention_warning'
+  /*
+   * Taken from the column's own enum rather than written out again. The two
+   * lists were separate and drifted the first time a kind was added: the
+   * database accepted the new value and this signature did not.
+   */
+  kind: (typeof emailKind.enumValues)[number]
   subject: string
   text: string
   tenantId?: string

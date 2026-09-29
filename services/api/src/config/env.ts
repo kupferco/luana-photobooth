@@ -14,7 +14,7 @@ const EnvSchema = z.object({
 
   RESEND_API_KEY: z.string().min(1),
   /** Must be on a domain verified in Resend, or sends fail silently-ish. */
-  RESEND_FROM: z.string().default('Photo Booth <noreply@kupfer.co>'),
+  RESEND_FROM: z.string().default('Lumina <noreply@kupfer.co>'),
 
   /** At least 32 bytes. Generate with: openssl rand -base64 48 */
   JWT_SECRET: z.string().min(32),
@@ -29,6 +29,13 @@ const EnvSchema = z.object({
    * answer per environment.
    */
   GUEST_URL: z.string().url().default('http://localhost:5173'),
+
+  /**
+   * Where the owner app lives, for emails that ask someone to sign in.
+   *
+   * Not GUEST_URL: that is the page a partygoer opens, and it has no way in.
+   */
+  APP_URL: z.string().url().default('http://localhost:8083'),
 
   PORT: z.coerce.number().int().positive().default(8080),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
