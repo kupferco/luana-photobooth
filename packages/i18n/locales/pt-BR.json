@@ -256,7 +256,7 @@
   },
   "people": {
     "title": "Quem pode ajudar",
-    "hint": "Cada pessoa entra com o próprio email. Nada para compartilhar, nada para lembrar.",
+    "hint": "Cada pessoa entra com o próprio email. Por enquanto, quem for adicionado aqui pode gerenciar todas as festas desta conta, inclusive as que ainda não existem.",
     "emailLabel": "Adicionar alguém por email",
     "invite": "Adicionar",
     "invited": "{email} foi adicionado. Já pode entrar.",

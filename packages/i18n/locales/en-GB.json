@@ -256,7 +256,7 @@
   },
   "people": {
     "title": "Who can help",
-    "hint": "They sign in with their own email. Nothing to share, nothing to remember.",
+    "hint": "They sign in with their own email. For now anyone added here can run every party on this account, including ones not yet created.",
     "emailLabel": "Add someone by email",
     "invite": "Add them",
     "invited": "Added {email}. They can sign in now.",
