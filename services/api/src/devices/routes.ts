@@ -1,0 +1,352 @@
+import { createHash } from 'node:crypto'
+import { Router } from 'express'
+import { z } from 'zod'
+import {
+  claimDeviceByPairingCode,
+  claimDeviceName,
+  clearUnclaimedPairings,
+  findDeviceByHardware,
+  completePairing,
+  createDevice,
+  getEvent,
+  listDevices,
+  moveDevice,
+  nextDeviceLabel,
+  revokeDevice,
+} from '../db/repo'
+import { deviceToken, isWellFormedCode, normaliseCode, pairingCode } from '../lib/codes'
+import { requireAuth, requireEventAccess, requireTenant } from '../middleware/auth'
+
+export const deviceRoutes: Router = Router()
+
+/** Device tokens are random, so SHA-256 is right: nothing to brute-force. */
+export const hashDeviceToken = (token: string) =>
+  createHash('sha256').update(token).digest('hex')
+
+const PAIRING_TTL_MINUTES = 15
+
+// ---------------------------------------------------------------------------
+// Pairing, unauthenticated. The code is the credential.
+// ---------------------------------------------------------------------------
+
+const PairBody = z.object({
+  code: z.string().min(4).max(16),
+  label: z.string().max(80).optional(),
+  /** The Pi's CPU serial: which box this is, as opposed to which party. */
+  hardwareId: z.string().min(4).max(64).optional(),
+  /** A name it generated for itself. The server decides if it may keep it. */
+  proposedName: z.string().max(60).optional(),
+})
+
+/**
+ * A Raspberry Pi claiming itself.
+ *
+ * Unauthenticated on purpose: a headless box has no human to sign in. The
+ * short code is the credential, which is why it lives fifteen minutes, is
+ * single use, and is burned the moment it is spent.
+ */
+deviceRoutes.post('/pair', async (req, res, next) => {
+  try {
+    const body = PairBody.safeParse(req.body)
+    if (!body.success) {
+      return res.status(400).json({
+        error: { code: 'invalid_request', message: 'Enter the pairing code.' },
+      })
+    }
+
+    const code = normaliseCode(body.data.code)
+    if (!isWellFormedCode(code)) {
+      return res.status(400).json({
+        error: { code: 'invalid_code', message: 'That pairing code is not valid.' },
+      })
+    }
+
+    const device = await claimDeviceByPairingCode(code)
+
+    // One answer for "no such code", "already claimed" and "expired": a
+    // stranger should not be able to probe for codes that exist.
+    const expired =
+      !device ||
+      !device.pairingExpiresAt ||
+      device.pairingExpiresAt.getTime() < Date.now()
+
+    if (expired) {
+      return res.status(400).json({
+        error: {
+          code: 'invalid_code',
+          message: 'That pairing code is not valid or has expired.',
+        },
+      })
+    }
+
+    /*
+     * Give the box its permanent name, and reuse the row it already has.
+     *
+     * Without the hardware id every setup left another device row behind:
+     * the old one still "paired" to some past event, the new one alongside
+     * it, and no way for the owner to tell which black case was which. The
+     * serial is the box; the row is just where we keep notes about it.
+     */
+    let name: string | undefined
+    if (body.data.hardwareId) {
+      name = await claimDeviceName(
+        body.data.hardwareId,
+        body.data.proposedName ?? '',
+      )
+
+      const previous = await findDeviceByHardware(device.tenantId, body.data.hardwareId)
+      if (previous && previous.id !== device.id) {
+        // This box has been set up here before. Retire the row the pairing
+        // code created and keep the one people already recognise.
+        await revokeDevice(device.tenantId, previous.id)
+      }
+    }
+
+    const token = deviceToken()
+    const paired = await completePairing(device.id, hashDeviceToken(token), {
+      hardwareId: body.data.hardwareId ?? null,
+      label: name ?? undefined,
+    })
+    if (!paired) throw new Error('Could not complete pairing.')
+
+    return res.status(200).json({
+      deviceId: paired.id,
+      kind: paired.kind,
+      eventId: paired.eventId,
+      // What this box is called, now and for ever. The Pi writes it down.
+      name: paired.label,
+      // Shown once and never again; the Pi writes it to disk.
+      token,
+    })
+  } catch (e) {
+    return next(e)
+  }
+})
+
+// ---------------------------------------------------------------------------
+// Everything below needs an owner signed in.
+// ---------------------------------------------------------------------------
+
+deviceRoutes.use(requireAuth)
+
+const TenantQuery = z.object({ tenantId: z.string().uuid() })
+
+const CreatePairingBody = z.object({
+  tenantId: z.string().uuid(),
+  eventId: z.string().uuid().optional(),
+  label: z.string().max(80).optional(),
+})
+
+/** Mint a pairing code for a Pi. The owner reads it out and types it there. */
+deviceRoutes.post('/pairing-code', async (req, res, next) => {
+  try {
+    const body = CreatePairingBody.safeParse(req.body)
+    if (!body.success) {
+      return res.status(400).json({
+        error: { code: 'invalid_request', message: 'tenantId is required.' },
+      })
+    }
+    // Setting up the printer is the job, so a helper can do it -- for the
+    // party they were invited to.
+    if (body.data.eventId) {
+      await requireEventAccess(req, body.data.tenantId, body.data.eventId)
+    } else {
+      requireTenant(req, body.data.tenantId)
+    }
+
+    if (body.data.eventId) {
+      const event = await getEvent(body.data.tenantId, body.data.eventId)
+      if (!event) {
+        return res.status(404).json({ error: { code: 'not_found', message: 'Not found' } })
+      }
+    }
+
+    /*
+     * One outstanding code per event. Asking for another replaces the last,
+     * rather than leaving a dead row behind that says "waiting for the
+     * pairing code" and never stops saying it.
+     */
+    if (body.data.eventId) {
+      await clearUnclaimedPairings(body.data.tenantId, body.data.eventId)
+    }
+
+    const code = pairingCode()
+    const device = await createDevice(body.data.tenantId, {
+      eventId: body.data.eventId ?? null,
+      kind: 'agent',
+      label:
+        body.data.label ??
+        (await nextDeviceLabel(body.data.tenantId, body.data.eventId ?? null, 'agent')),
+      pairingCode: code,
+      pairingExpiresAt: new Date(Date.now() + PAIRING_TTL_MINUTES * 60_000),
+    })
+
+    return res.status(201).json({
+      deviceId: device.id,
+      code,
+      expiresAt: device.pairingExpiresAt?.toISOString(),
+    })
+  } catch (e) {
+    return next(e)
+  }
+})
+
+const ClaimBoothBody = z.object({
+  tenantId: z.string().uuid(),
+  eventId: z.string().uuid(),
+  label: z.string().max(80).optional(),
+})
+
+/**
+ * The tripod phone claiming itself as the booth.
+ *
+ * No pairing code needed: booth and owner are one app, so this phone is
+ * already signed in as someone with a membership. That is the whole reason
+ * the two were merged into one app.
+ */
+deviceRoutes.post('/booth', async (req, res, next) => {
+  try {
+    const body = ClaimBoothBody.safeParse(req.body)
+    if (!body.success) {
+      return res.status(400).json({
+        error: { code: 'invalid_request', message: 'tenantId and eventId are required.' },
+      })
+    }
+    await requireEventAccess(req, body.data.tenantId, body.data.eventId)
+
+    const event = await getEvent(body.data.tenantId, body.data.eventId)
+    if (!event) {
+      return res.status(404).json({ error: { code: 'not_found', message: 'Not found' } })
+    }
+
+    const token = deviceToken()
+    const device = await createDevice(body.data.tenantId, {
+      eventId: body.data.eventId,
+      kind: 'booth',
+      label:
+        body.data.label ??
+        (await nextDeviceLabel(body.data.tenantId, body.data.eventId, 'booth')),
+      tokenHash: hashDeviceToken(token),
+    })
+
+    return res.status(201).json({ deviceId: device.id, token })
+  } catch (e) {
+    return next(e)
+  }
+})
+
+deviceRoutes.get('/', async (req, res, next) => {
+  try {
+    const query = TenantQuery.safeParse(req.query)
+    if (!query.success) {
+      return res.status(400).json({
+        error: { code: 'invalid_request', message: 'tenantId is required.' },
+      })
+    }
+    const eventId = typeof req.query.eventId === 'string' ? req.query.eventId : undefined
+
+    // Asking about one party is something a helper may do; asking about the
+    // account's whole kit is not, and that is the call that answers "your
+    // printers" on the dashboard.
+    if (eventId) {
+      await requireEventAccess(req, query.data.tenantId, eventId)
+    } else {
+      requireTenant(req, query.data.tenantId)
+    }
+
+    const rows = await listDevices(query.data.tenantId, eventId)
+
+    return res.json({
+      devices: rows.map((d) => ({
+        id: d.id,
+        kind: d.kind,
+        label: d.label,
+        eventId: d.eventId,
+        paired: Boolean(d.tokenHash),
+        // Never the code itself once spent; only whether one is outstanding.
+        pairingPending: Boolean(d.pairingCode),
+        lastSeenAt: d.lastSeenAt?.toISOString() ?? null,
+        printerState: d.printerState,
+      })),
+    })
+  } catch (e) {
+    return next(e)
+  }
+})
+
+const MoveBody = z.object({
+  tenantId: z.string().uuid(),
+  eventId: z.string().uuid(),
+})
+
+/**
+ * Point an existing printer at another event.
+ *
+ * The hotspot flow exists for a printer nobody can reach. One already on the
+ * network and paired to this tenant needs none of it -- no code, no setup
+ * page, no swapping wifi. It is the same box; only the party changed.
+ */
+deviceRoutes.patch('/:deviceId', async (req, res, next) => {
+  try {
+    const body = MoveBody.safeParse(req.body)
+    if (!body.success) {
+      return res.status(400).json({
+        error: { code: 'invalid_request', message: 'tenantId and eventId are required.' },
+      })
+    }
+    requireTenant(req, body.data.tenantId)
+
+    const event = await getEvent(body.data.tenantId, body.data.eventId)
+    if (!event) {
+      return res.status(404).json({ error: { code: 'not_found', message: 'Not found' } })
+    }
+
+    const device = await moveDevice(
+      body.data.tenantId,
+      req.params.deviceId!,
+      body.data.eventId,
+    )
+    if (!device) {
+      return res.status(404).json({ error: { code: 'not_found', message: 'Not found' } })
+    }
+
+    return res.status(204).end()
+  } catch (e) {
+    return next(e)
+  }
+})
+
+/**
+ * Stop a booth, or unpair a printer.
+ *
+ * The owner needs this for a reason that has nothing to do with ending the
+ * event: the phone on the tripod is running out of battery, or it is someone
+ * else's phone and they want it back. Ending the event to free the phone
+ * would close the party; this frees the phone and leaves the party running.
+ *
+ * Deleting the row is the revocation -- see revokeDevice. The booth phone
+ * finds out on its next poll, gets a 401, and shows the owner's normal
+ * screens again rather than a dead booth.
+ */
+deviceRoutes.delete('/:deviceId', async (req, res, next) => {
+  try {
+    const query = TenantQuery.safeParse(req.query)
+    if (!query.success) {
+      return res.status(400).json({
+        error: { code: 'invalid_request', message: 'tenantId is required.' },
+      })
+    }
+    requireTenant(req, query.data.tenantId)
+
+    const device = await revokeDevice(query.data.tenantId, req.params.deviceId!)
+    if (!device) {
+      // 404 rather than 403 for another tenant's device: the answer is the
+      // same whether it does not exist or is simply not theirs.
+      return res.status(404).json({ error: { code: 'not_found', message: 'Not found' } })
+    }
+
+    return res.status(204).end()
+  } catch (e) {
+    return next(e)
+  }
+})

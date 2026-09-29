@@ -1,0 +1,462 @@
+import { createHash } from 'node:crypto'
+import {
+  retentionNotice,
+  retentionNoticeFull,
+  shotCount,
+  type SessionView,
+} from '@photobooth/shared'
+import { Router } from 'express'
+import { z } from 'zod'
+import {
+  createSession,
+  getEvent,
+  getSharedSession,
+  getLiveEventByJoinCode,
+  countPrints,
+  getSessionByCode,
+  getTemplate,
+  listDevices,
+  queuePrint,
+  retakeSession,
+  toTemplate,
+  updateSession,
+} from '../db/repo'
+import { guestToken, isWellFormedCode, normaliseCode, sessionCode } from '../lib/codes'
+import {
+  advanceQueue,
+  confirmTurn,
+  MAX_CONFIRM_MISSES,
+  MAX_QUEUE_DEPTH,
+} from '../queue'
+import { createReadUrl } from '../storage/gcs'
+
+export const sessionRoutes: Router = Router()
+
+/** The guest's URL token is a credential, so only its hash is stored. */
+export const hashGuestToken = (token: string) =>
+  createHash('sha256').update(token).digest('hex')
+
+// ---------------------------------------------------------------------------
+// Arriving from the QR code. No account, no sign-in: the join code is enough.
+// ---------------------------------------------------------------------------
+
+/**
+ * What the guest page shows before anyone taps anything: which party this is,
+ * how many shots to expect, how long the photos are kept.
+ *
+ * Both retention lines come from the event's single retentionUntil value, so
+ * the guest page, booth screen, QR card and emails cannot disagree about the
+ * date even where they differ in wording.
+ */
+/**
+ * How many prints one guest may ask for.
+ *
+ * A SELPHY cassette holds a limited number of sheets and a party runs out of
+ * them long before it runs out of guests. The owner can print more from the
+ * dashboard; this only caps what a guest can do unattended.
+ */
+const MAX_GUEST_PRINTS = 2
+
+/** A booth that has not called in for half a minute is not there. */
+const BOOTH_ONLINE_MS = 30_000
+
+async function isBoothOnline(tenantId: string, eventId: string): Promise<boolean> {
+  const devices = await listDevices(tenantId, eventId)
+  return devices.some(
+    (d) =>
+      d.kind === 'booth' &&
+      d.lastSeenAt !== null &&
+      Date.now() - d.lastSeenAt.getTime() < BOOTH_ONLINE_MS,
+  )
+}
+
+sessionRoutes.get('/join/:joinCode', async (req, res, next) => {
+  try {
+    const code = normaliseCode(req.params.joinCode ?? '')
+    if (!isWellFormedCode(code)) {
+      return res.status(404).json({ error: { code: 'not_found', message: 'Not found' } })
+    }
+
+    const event = await getLiveEventByJoinCode(code)
+    if (!event) {
+      return res.status(404).json({
+        error: { code: 'not_found', message: 'That party is not running.' },
+      })
+    }
+
+    const template = event.templateId
+      ? await getTemplate(event.tenantId, event.templateId)
+      : null
+
+    const state = await advanceQueue(
+      event.tenantId,
+      event.id,
+      await isBoothOnline(event.tenantId, event.id),
+    )
+
+    return res.json({
+      event: {
+        name: event.name,
+        joinCode: event.joinCode,
+        retentionUntil: event.retentionUntil.toISOString(),
+        // Short for a header, full for beside the email field. The guest page
+        // decides which moment it is; the date behind both is the same value.
+        retentionNotice: retentionNotice(event.retentionUntil),
+        retentionNoticeFull: retentionNoticeFull(event.retentionUntil),
+      },
+      shotsExpected: template ? shotCount(toTemplate(template)) : 3,
+      queueDepth: state.queue.length,
+      boothOnline: await isBoothOnline(event.tenantId, event.id),
+    })
+  } catch (e) {
+    return next(e)
+  }
+})
+
+/**
+ * A guest taps Start.
+ *
+ * Returns a short code and a secret token. The token goes in their URL and is
+ * the only credential for that session -- the link *is* the access, which is
+ * how someone with no account comes back to their photos later.
+ */
+sessionRoutes.post('/join/:joinCode/sessions', async (req, res, next) => {
+  try {
+    const code = normaliseCode(req.params.joinCode ?? '')
+    if (!isWellFormedCode(code)) {
+      return res.status(404).json({ error: { code: 'not_found', message: 'Not found' } })
+    }
+
+    const event = await getLiveEventByJoinCode(code)
+    if (!event) {
+      return res.status(404).json({
+        error: { code: 'not_found', message: 'That party is not running.' },
+      })
+    }
+
+    const state = await advanceQueue(
+      event.tenantId,
+      event.id,
+      await isBoothOnline(event.tenantId, event.id),
+    )
+
+    // One booth, one camera, one person in front of it. A deeper queue means
+    // something is stuck, not that people are patiently waiting.
+    if (state.queue.length >= MAX_QUEUE_DEPTH) {
+      return res.status(429).json({
+        error: {
+          code: 'queue_full',
+          message: 'There is a queue at the booth. Try again in a moment.',
+        },
+      })
+    }
+
+    const template = event.templateId
+      ? await getTemplate(event.tenantId, event.templateId)
+      : null
+    const shotsExpected = template ? shotCount(toTemplate(template)) : 3
+
+    const token = guestToken()
+    const session = await createSession(event.tenantId, {
+      eventId: event.id,
+      code: sessionCode(),
+      guestTokenHash: hashGuestToken(token),
+      shotsExpected,
+      origin: 'guest',
+    })
+
+    return res.status(201).json({
+      code: session.code,
+      token,
+      queuePosition: state.queue.length,
+      shotsExpected,
+      retentionUntil: event.retentionUntil.toISOString(),
+    })
+  } catch (e) {
+    return next(e)
+  }
+})
+
+// ---------------------------------------------------------------------------
+// Polling. Called every couple of seconds while a session runs.
+// ---------------------------------------------------------------------------
+
+const TokenQuery = z.object({ token: z.string().min(1) })
+
+/**
+ * The guest's view of their own session.
+ *
+ * This is what `subscribeToSession` polls. Deliberately small and cheap: a
+ * session changes state about three times in a minute, which is why this is
+ * polled rather than pushed -- see docs/architecture.md.
+ */
+/**
+ * A shared photo, for anyone holding the link.
+ *
+ * Unauthenticated by design -- the token is the authorisation, which is why
+ * it is long and random. It grants exactly one thing: looking. No deleting,
+ * no printing, no seeing anything else from the party.
+ *
+ * The image URL is signed briefly and fetched fresh each time, so the link
+ * itself never carries credentials and cannot be replayed once the photos
+ * are gone.
+ */
+sessionRoutes.get('/p/:shareToken', async (req, res, next) => {
+  try {
+    const session = await getSharedSession(req.params.shareToken!)
+
+    if (!session?.montagePath) {
+      return res.status(404).json({
+        error: { code: 'not_found', message: 'This photo is no longer available.' },
+      })
+    }
+
+    // The session carries its tenant, so this stays inside the usual
+    // tenant-scoped accessor rather than adding a way around it.
+    const event = await getEvent(session.tenantId, session.eventId)
+
+    return res.json({
+      montageUrl: await createReadUrl(session.montagePath, session.tenantId),
+      eventName: event?.name ?? null,
+      // The party's own date, not when the shutter went: someone opening
+      // this weeks later wants to know which night it was, and a booth run
+      // past midnight would otherwise date half the photos to the next day.
+      eventDate: event?.eventDate ? new Date(event.eventDate).toISOString() : null,
+      retentionUntil: event?.retentionUntil?.toISOString() ?? null,
+      takenAt: session.createdAt.toISOString(),
+    })
+  } catch (e) {
+    return next(e)
+  }
+})
+
+sessionRoutes.get('/sessions/:code', async (req, res, next) => {
+  try {
+    const query = TokenQuery.safeParse(req.query)
+    if (!query.success) {
+      return res.status(404).json({ error: { code: 'not_found', message: 'Not found' } })
+    }
+
+    const session = await getSessionByCode(normaliseCode(req.params.code ?? ''))
+
+    // Wrong token and no such session give the same answer, so the code space
+    // cannot be probed.
+    if (!session || session.guestTokenHash !== hashGuestToken(query.data.token)) {
+      return res.status(404).json({ error: { code: 'not_found', message: 'Not found' } })
+    }
+
+    const event = await getEvent(session.tenantId, session.eventId)
+    if (!event) {
+      return res.status(404).json({ error: { code: 'not_found', message: 'Not found' } })
+    }
+
+    const printed = (await countPrints(session.tenantId, session.id)) > 0
+    const boothOnline = await isBoothOnline(session.tenantId, session.eventId)
+    const state = await advanceQueue(session.tenantId, session.eventId, boothOnline)
+    const position = state.queue.findIndex((s) => s.id === session.id)
+    const isHead = state.head?.id === session.id
+
+    const view: SessionView = {
+      code: session.code,
+      status: session.status,
+      queuePosition: session.status === 'queued' ? Math.max(0, position) : null,
+      montageUrl: session.montagePath
+        ? await createReadUrl(session.montagePath, session.tenantId)
+        : null,
+      shotCount: session.shotsExpected,
+      shotsTaken: session.shotsTaken,
+      print: printed
+        ? { status: 'queued' as const, queuePosition: null }
+        : null,
+      boothOnline,
+      yourTurn:
+        isHead && state.awaitingConfirmation
+          ? {
+              msLeft: state.confirmMsLeft ?? 0,
+              missesLeft: Math.max(0, MAX_CONFIRM_MISSES - state.head!.confirmMisses),
+            }
+          : null,
+      error: session.error,
+      retakesLeft: Math.max(0, event.retakesAllowed - session.retakeCount),
+      retentionUntil: event.retentionUntil.toISOString(),
+    }
+
+    return res.json(view)
+  } catch (e) {
+    return next(e)
+  }
+})
+
+/**
+ * The guest says they are ready.
+ *
+ * This is one tap and it is both the confirmation and the trigger: there is
+ * no separate "start" afterwards, because being ready and wanting to go are
+ * the same thing when you are standing in front of a booth.
+ */
+sessionRoutes.post('/sessions/:code/confirm', async (req, res, next) => {
+  try {
+    const query = TokenQuery.safeParse(req.query)
+    if (!query.success) {
+      return res.status(404).json({ error: { code: 'not_found', message: 'Not found' } })
+    }
+
+    const session = await getSessionByCode(normaliseCode(req.params.code ?? ''))
+    if (!session || session.guestTokenHash !== hashGuestToken(query.data.token)) {
+      return res.status(404).json({ error: { code: 'not_found', message: 'Not found' } })
+    }
+
+    const result = await confirmTurn(session.tenantId, session.eventId, session.id)
+
+    if (result === 'not_your_turn') {
+      return res.status(409).json({
+        error: { code: 'not_your_turn', message: 'It is not your turn yet.' },
+      })
+    }
+
+    return res.status(202).json({ confirmed: true })
+  } catch (e) {
+    return next(e)
+  }
+})
+
+/**
+ * The guest prints their own photo.
+ *
+ * Authorised by the token in their link, like everything else they can do.
+ * Capped, because a print is a sheet of paper and a party has a finite
+ * supply -- one enthusiastic guest should not be able to empty the cassette
+ * from their phone.
+ */
+sessionRoutes.post('/sessions/:code/print', async (req, res, next) => {
+  try {
+    const query = TokenQuery.safeParse(req.query)
+    if (!query.success) {
+      return res.status(404).json({ error: { code: 'not_found', message: 'Not found' } })
+    }
+
+    const session = await getSessionByCode(normaliseCode(req.params.code ?? ''))
+    if (!session || session.guestTokenHash !== hashGuestToken(query.data.token)) {
+      return res.status(404).json({ error: { code: 'not_found', message: 'Not found' } })
+    }
+    if (session.status !== 'ready' || !session.montagePath) {
+      return res.status(409).json({
+        error: { code: 'not_ready', message: 'Your photo is not finished yet.' },
+      })
+    }
+
+    const already = await countPrints(session.tenantId, session.id)
+    if (already >= MAX_GUEST_PRINTS) {
+      return res.status(429).json({
+        error: {
+          code: 'print_limit',
+          message: 'That is already printing. Ask the host if you need another.',
+        },
+      })
+    }
+
+    const job = await queuePrint(session.tenantId, {
+      sessionId: session.id,
+      requestedBy: 'guest',
+    })
+
+    return res.status(202).json({ id: job.id, status: job.status })
+  } catch (e) {
+    return next(e)
+  }
+})
+
+/**
+ * The guest deleting their own photos.
+ *
+ * On every guest link, on purpose: it is the single thing that most changes
+ * how this feels to a parent at someone else's party. Soft delete here; the
+ * objects go with the retention job.
+ */
+/**
+ * "I don't like it — let me try again."
+ *
+ * Deletes the photo and hands the guest a fresh session at the front of the
+ * queue, so they can walk straight back to the booth. Capped per event,
+ * because a booth someone can hold indefinitely is a booth nobody else gets
+ * to use.
+ *
+ * Returns a new code and token: the old session is gone, and so is anything
+ * that pointed at it, including links already shared.
+ */
+sessionRoutes.post('/sessions/:code/retake', async (req, res, next) => {
+  try {
+    const query = TokenQuery.safeParse(req.query)
+    if (!query.success) {
+      return res.status(404).json({ error: { code: 'not_found', message: 'Not found' } })
+    }
+
+    const session = await getSessionByCode(normaliseCode(req.params.code ?? ''))
+    if (!session || session.guestTokenHash !== hashGuestToken(query.data.token)) {
+      return res.status(404).json({ error: { code: 'not_found', message: 'Not found' } })
+    }
+
+    const event = await getEvent(session.tenantId, session.eventId)
+    if (!event || event.status !== 'live') {
+      return res.status(409).json({
+        error: { code: 'not_live', message: 'That party has finished.' },
+      })
+    }
+
+    if (session.retakeCount >= event.retakesAllowed) {
+      return res.status(409).json({
+        error: {
+          code: 'no_retakes_left',
+          message: 'You have used your retake. Scan the code again for another go.',
+        },
+      })
+    }
+
+    const token = guestToken()
+    const next_ = await retakeSession(
+      session.tenantId,
+      {
+        id: session.id,
+        eventId: session.eventId,
+        code: session.code,
+        retakeCount: session.retakeCount,
+        shotsExpected: session.shotsExpected,
+      },
+      { code: sessionCode(), guestTokenHash: hashGuestToken(token) },
+    )
+
+    // The same shape as starting a session, so the guest page can swap one
+    // for the other without a second code path.
+    return res.status(201).json({
+      code: next_.code,
+      token,
+      // They were just at the booth; the retake is placed ahead of whoever
+      // is waiting, so they are next.
+      queuePosition: 0,
+      shotsExpected: next_.shotsExpected,
+      retentionUntil: event.retentionUntil.toISOString(),
+      retakesLeft: event.retakesAllowed - next_.retakeCount,
+    })
+  } catch (e) {
+    return next(e)
+  }
+})
+
+sessionRoutes.delete('/sessions/:code', async (req, res, next) => {
+  try {
+    const query = TokenQuery.safeParse(req.query)
+    if (!query.success) {
+      return res.status(404).json({ error: { code: 'not_found', message: 'Not found' } })
+    }
+
+    const session = await getSessionByCode(normaliseCode(req.params.code ?? ''))
+    if (!session || session.guestTokenHash !== hashGuestToken(query.data.token)) {
+      return res.status(404).json({ error: { code: 'not_found', message: 'Not found' } })
+    }
+
+    await updateSession(session.tenantId, session.id, { deletedAt: new Date() })
+    return res.status(204).end()
+  } catch (e) {
+    return next(e)
+  }
+})

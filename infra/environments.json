@@ -1,0 +1,29 @@
+{
+  "_comment": "One GCP project, two of everything inside it. Separate projects would isolate more cleanly but double the setup and the billing lines for what is, for now, one person deploying. Revisit if this takes real customers.",
+  "project": "photolu",
+  "region": "europe-west2",
+  "environments": {
+    "staging": {
+      "service": "photolu-api-staging",
+      "hostingSite": "lumina-staging",
+      "hostingTarget": "staging",
+      "apiUrl": "https://photolu-api-staging-194349492339.europe-west2.run.app",
+      "webUrl": "https://lumina-staging.web.app",
+      "minInstances": 0,
+      "secretSuffix": "staging",
+      "guestTarget": "guest-staging",
+      "guestUrl": "https://lumina-guest-staging.web.app"
+    },
+    "prod": {
+      "service": "photolu-api-prod",
+      "hostingSite": "luminabooth",
+      "hostingTarget": "prod",
+      "apiUrl": "https://photolu-api-prod-194349492339.europe-west2.run.app",
+      "webUrl": "https://luminabooth.web.app",
+      "minInstances": 1,
+      "secretSuffix": "prod",
+      "guestTarget": "guest",
+      "guestUrl": "https://lumina-guest.web.app"
+    }
+  }
+}

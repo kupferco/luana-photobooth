@@ -1,0 +1,24 @@
+{
+  "projects": {
+    "default": "photolu"
+  },
+  "targets": {
+    "photolu": {
+      "hosting": {
+        "prod": [
+          "luminabooth"
+        ],
+        "staging": [
+          "lumina-staging"
+        ],
+        "guest": [
+          "lumina-guest"
+        ],
+        "guest-staging": [
+          "lumina-guest-staging"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}

@@ -1,0 +1,18 @@
+{
+  "lifecycle": {
+    "rule": [
+      {
+        "action": { "type": "Delete" },
+        "condition": { "age": 90, "matchesPrefix": ["raw/"] }
+      },
+      {
+        "action": { "type": "Delete" },
+        "condition": { "age": 400, "matchesPrefix": ["out/"] }
+      },
+      {
+        "action": { "type": "Delete" },
+        "condition": { "daysSinceNoncurrentTime": 7, "isLive": false }
+      }
+    ]
+  }
+}

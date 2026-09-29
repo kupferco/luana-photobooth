@@ -1,0 +1,54 @@
+{
+  "expo": {
+    "name": "Lumina",
+    "slug": "photobooth",
+    "version": "0.1.0",
+    "scheme": "photobooth",
+    "orientation": "default",
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#f5c518"
+    },
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "co.kupfer.photobooth",
+      "infoPlist": {
+        "NSCameraUsageDescription": "The photo booth uses the camera to take your party photos.",
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "co.kupfer.photobooth",
+      "adaptiveIcon": {
+        "backgroundColor": "#f5c518",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single",
+      "favicon": "./assets/favicon.png",
+      "description": "Photo booth for parties."
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "The photo booth uses the camera to take your party photos."
+        }
+      ],
+      "expo-secure-store"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

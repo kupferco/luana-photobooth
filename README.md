@@ -1,249 +1,201 @@
-# Luana Photo Booth
+# Photo Booth
 
-Luana Photo Booth is a DIY photo booth application designed for events, allowing users to capture photos, compose a final layout, and print directly using a connected printer. It supports both testing and real printing modes.
+A self-serve party photo booth: a phone on a tripod takes the photos, a
+Raspberry Pi prints them, and guests trigger it from their own phones by
+scanning a QR code. Built to be set up by whoever bought the kit, without
+anyone technical in the room.
 
----
+Guests can print their montage, keep a link to it, and delete it. Owners get
+a gallery of the whole party and can download everything before it expires.
 
-## Features
+> The original single-machine version, which ran at Luana's party on
+> 13 September 2025, is archived in [`v1/`](v1/) and tagged
+> `v1-luana-2025-09`. It still works, and is the fallback.
 
-- **Photo Capture**: Captures individual snapshots from a video feed.
-- **Composed Layout**: Generates a final composed image with customizable layouts.
-- **Printing Options**: Allows direct printing to a configured printer or saving a processed image for testing.
-- **Fullscreen Mode**: Enables fullscreen mode for an immersive photo booth experience.
-- **User-Friendly Interface**: Intuitive buttons for capturing, saving, and printing photos.
+## Start here
 
----
+| I want to... | Go to |
+|---|---|
+| Run it on this machine | [Running it locally](#running-it-locally) |
+| **Set up a brand new Raspberry Pi** | [Setting up a Raspberry Pi from scratch](#setting-up-a-raspberry-pi-from-scratch) |
+| Connect a printer to a party | [Pairing a printer to a party](#pairing-a-printer-to-a-party) |
+| Run a party today | [On the day](#on-the-day) |
+| Ship a change | [Deploying](#deploying) |
+| Work out why something is broken | [When something is wrong](#when-something-is-wrong) |
 
-## Components
+The four commands that do almost everything to a Pi:
 
-### 1. **Frontend (JavaScript)**
-   - **`script.js`**:
-     - Manages photo capture, layout composition, and sending data to the backend.
-     - Stores the composed image in a global variable (`composedImageBase64`) for easy access.
-     - Communicates with the backend for saving photos and printing.
-   - **Key Functions**:
-     - `composeFinalImage()`: Generates the final composed image.
-     - `savePhotos(composedImage)`: Sends individual snapshots and the composed image to the backend for saving.
-     - `printBtn Event Listener`: Sends the composed image to the `/print` endpoint for printing.
-
-### 2. **Backend (Python - Flask)**
-   - **`server.py`**:
-     - Provides endpoints for saving photos, printing, and handling data from the frontend.
-     - **Endpoints**:
-       - `/save_photos`: Saves snapshots and the composed image to the archive and root folder.
-       - `/print`: Sends the composed image to the printer or simulates printing in test mode.
-   - **Integration**:
-     - Uses the `print_photo.py` module for processing and printing images.
-
-### 3. **Image Processing and Printing (Python)**
-   - **`print_photo.py`**:
-     - Handles image resizing, optional grayscale conversion, and printing.
-     - Supports real printing or test output mode.
-
----
-
-## Setup
-
-### Prerequisites
-- Python 3.x
-- Node.js (for frontend dependencies if needed)
-- Flask
-- OpenCV (`cv2`)
-- Printer with `lp` command support (e.g., Canon SELPHY CP1500)
-
-### Installation
-
-1. Clone the Repository:
-   ```bash
-   git clone <repository-url>
-   cd luana-photobooth
-   ```
-
-2. Install Python Dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-3. Start the Server:
-   ```bash
-   python3 server.py
-   ```
-
-4. Open the Frontend:
-   - Access the photo booth interface in a browser at `http://<server-ip>:8083`.
-
----
-
-## Usage
-
-### Photo Booth Workflow
-1. **Start the Application**:
-   - Click **Start** to begin the photo session.
-
-2. **Capture Photos**:
-   - The system takes snapshots with a countdown and generates a composed layout.
-
-3. **Save Photos**:
-   - Photos are saved via the `/save_photos` endpoint:
-     - Individual snapshots in a timestamped archive folder.
-     - The composed image as `composed_image.jpg` (archived) and `last_composed_image.jpg` (root).
-
-4. **Print Photos**:
-   - Clicking **Print** sends the composed image to the `/print` endpoint.
-   - The image is either printed directly or saved as `processed_image.jpg` in test mode.
-
----
-
-## Endpoints
-
-### `/save_photos` (POST)
-**Description**: Saves snapshots and the composed image.
-
-**Payload**:
-```json
-{
-    "photos": ["base64_image_1", "base64_image_2", "base64_image_3"],
-    "composed_image": "base64_composed_image"
-}
-```
-
-**Response**:
-- **Success**:
-  ```json
-  { "success": true, "folder": "<saved_folder_path>" }
-  ```
-- **Failure**:
-  ```json
-  { "success": false, "message": "<error_message>" }
-  ```
-
----
-
-### `/print` (POST)
-**Description**: Prints or simulates printing of the composed image.
-
-**Payload**:
-```json
-{
-    "snapshot": "base64_composed_image"
-}
-```
-
-**Response**:
-- **Success**:
-  ```json
-  { "success": true }
-  ```
-- **Failure**:
-  ```json
-  { "success": false, "error": "<error_message>" }
-  ```
-
----
-
-## Configuration
-
-### Testing Mode
-Run the server in testing mode to skip actual printing:
 ```bash
-python3 server.py --test-mode
+npm run pi:setup      # once per Pi: Node, CUPS, services, DNS, sudo rule
+npm run pi:deploy     # build and copy the agent. Seconds.
+npm run pi:printer    # driver, JPEG decoder, CUPS queue for the SELPHY
+npm run pi:status     # power, wifi, agent, pairing, printer, recent logs
 ```
 
-### Printer Configuration
-Set your printer name in `server.py` and `print_photo.py`:
-```python
-printer_name = "Canon_SELPHY_CP1500"
-```
+## Layout
 
----
+| Path | What |
+|---|---|
+| [`apps/mobile/`](apps/mobile/) | Expo app — the owner's control panel, and booth mode on the tripod phone |
+| `apps/guest/` | Small Vite page guests reach by QR. No install, ever |
+| `services/api/` | Cloud Run API: Express, Drizzle → Neon Postgres, `sharp`, Resend |
+| `services/print-agent/` | Runs on the Pi. Holds a connection outwards and prints what it is told |
+| [`packages/shared/`](packages/shared/) | Montage geometry, wire types, retention rules — shared by all of the above |
+| [`docs/architecture.md`](docs/architecture.md) | What was decided, and why |
+| [`docs/backgrounds.md`](docs/backgrounds.md) | Event artwork: what ships, and what was left for later |
+| [`branding/`](branding/) | The logo, and the script that builds every icon from it |
 
-## Files and Directories
+## Running it locally
 
-- **`server.py`**: Main Flask server.
-- **`script.js`**: Frontend logic.
-- **`print_photo.py`**: Handles image processing and printing.
-- **`static/`**: Contains the frontend assets (e.g., `background.jpg`).
-- **`last_composed_image.jpg`**: Most recent composed image (root).
-- **`ARCHIVE_DIR/`**: Timestamped archives of saved photos.
-
----
-
-## Troubleshooting
-
-### Issue: Printer Not Responding
-- Verify printer name with:
-  ```bash
-  lpstat -p
-  ```
-- Ensure `lp` is installed:
-  ```bash
-  sudo apt install cups
-  ```
-
-### Issue: Images Not Saving
-- Check server logs for errors.
-- Ensure the payload from the frontend contains valid base64-encoded images.
-
----
-
-## Managing the Print Queue
-To monitor or manage the queue, you can use the following commands:
-
-### View Pending Jobs:
 ```bash
-lpstat -o
-```
-**Example Output**:
-```
-SELPHY-1   username   1024   Thu 11 Jan 2025 14:25:33
+npm install
+npm start
 ```
 
-### Cancel a Job
-Use the job ID from `lpstat -o` to cancel the job:
+That starts three things and prints their addresses:
+
+| | |
+|---|---|
+| **Booth** | `localhost:8083/booth` — must be localhost, the camera needs a secure context |
+| **Guest** | `<your-lan-ip>:5173/<CODE>` — the LAN address, so a phone can reach it |
+| **API** | `<your-lan-ip>:8080` |
+
+The print agent is deliberately **not** started: it belongs on the Pi and has
+no config here. Run it by hand with `npm run agent` if you need to.
+
+Other useful ones:
+
 ```bash
-cancel <job-id>
+npm run start:fresh       # same, but clears Metro's cache first
+npm run client:fixtures   # the app with fake data, no server needed
+npm run agent             # the print agent, on this machine
+npm run db:studio         # browse the database
+npm run logs:staging      # tail the deployed API
 ```
 
-### Clear the Queue
-To cancel all pending jobs for a specific printer:
+## Setting up a Raspberry Pi from scratch
+
+You need: a Pi 3 or better, a good 5V supply (**at least 3A** — a phone
+charger will brown it out), a micro-SD card, and a USB-A to USB-C cable for
+the SELPHY.
+
+**1. Flash the card.** Raspberry Pi Imager → Raspberry Pi OS (64-bit). Before
+writing, open the settings gear and set:
+
+- hostname `lumina`
+- a username and password (you will need the password for every step below)
+- your wifi, so it comes up on the network the first time
+- **enable SSH**
+
+**2. Install everything.** Boot the Pi, wait a minute, then:
+
 ```bash
-cancel -a Canon_SELPHY_CP1500
+npm run pi:setup
 ```
 
-### Disable Printing Temporarily
-If you want to prevent jobs from being sent to the printer when it becomes available:
+Node, CUPS, both systemd services, the token directory, the captive-portal
+DNS config and a narrow sudoers rule. Asks for the Pi password once. Safe to
+re-run — it skips whatever is already there.
+
+**3. Deploy the agent.**
+
 ```bash
-cupsdisable Canon_SELPHY_CP1500
+npm run pi:deploy      # build, copy, restart. A few seconds.
 ```
 
-### Re-enable Printing
-Re-enable printing later with:
+**4. Set the printer up.** Plug the SELPHY into a Pi USB port with the
+USB-A → USB-C cable and turn it on, then:
+
 ```bash
-cupsenable Canon_SELPHY_CP1500
+npm run pi:printer
 ```
 
----
+This installs a Gutenprint new enough to know the CP1500 (Debian's own is
+from 2022 and does not), a JPEG decoder, masks `ipp-usb` so it stops stealing
+the printer, and adds the CUPS queue.
 
-## Example Usage
+**5. Print the card.**
 
-### Process only (no printing):
 ```bash
-python3 print_photo.py --output test_image.jpg --resize 0.8
+npm run pi:card
 ```
 
-### Process and print:
+Opens a card in your browser — **print it on paper**, cut it out, tape it to
+the box. It carries the QR and the printer's own name.
+
+**6. Check it.**
+
 ```bash
-python3 print_photo.py --print
+npm run pi:status
 ```
 
-### Custom Resize, Grayscale, and Print:
+Power, wifi, agent, pairing, printer, and the last few log lines. Run this
+first whenever anything seems wrong. `healthy (0x0)` under Power means the
+supply is fine; anything else and suspect the supply before the software.
+
+## Pairing a printer to a party
+
+In the app: open the event → **Setup** → **Set up a new printer**. You get a
+code and five steps. The short version:
+
+1. Have your wifi name and password to hand.
+2. Power the printer box on.
+3. Join the wifi network named after the printer (it is on the card).
+4. Scan the QR on the card, or open `lumina.local`.
+5. Enter your wifi details and the code.
+
+A printer that is **already set up** does not broadcast anything — it is on
+your wifi and has nothing to offer. Add it from **Your printers** in the same
+Setup section, one tap, no code.
+
+Ending a party releases its printers back to that list and stops its booths.
+
+## On the day
+
+1. Create the event, **start** it (the guest link does nothing until you do).
+2. Add the printer from **Your printers**.
+3. On the tripod phone: **Use this phone as the booth**. Keep it plugged in.
+4. Load paper. Check `npm run pi:status` says the printer is idle.
+5. Share the guest link, or let people scan the QR on the booth screen.
+
+Watch the two dots on the event screen. Green is fine, amber means online but
+not ready to print, red means it has stopped answering.
+
+**The dashboard cannot tell you the paper has run out** until a print
+actually fails — CUPS reports an empty SELPHY as idle. Check the cassette
+yourself.
+
+## Deploying
+
 ```bash
-python3 print_photo.py --resize 0.8 --grayscale --print
+npm run deploy              # both, to staging
+npm run deploy:prod         # both, to prod (asks first)
+npm run deploy:front:prod   # app and guest page only
+npm run deploy:back:staging # API only
 ```
 
----
+Staging and prod share one database. That is deliberate for now and noted in
+[`docs/architecture.md`](docs/architecture.md).
 
-## Future Enhancements
-- Add support for multiple layout templates.
-- Allow users to send the composed image to their emails or mobiles
+## When something is wrong
 
+| Symptom | Look here |
+|---|---|
+| Anything at all with the Pi | `npm run pi:status` — power first |
+| Printer not found | `npm run pi:printer` again; it is safe to re-run |
+| Pi unreachable, no setup network | It may be mid-onboarding. Wait 15 minutes and it puts itself back on your wifi |
+| Printer shows red in the app | It has stopped calling in. Check power and wifi |
+| `npm start` fails on a port | A stray dev server: `pkill -f "tsx watch"` |
+| Metro cannot find a new file | Its file map was built before the file existed. `npm run start:fresh` |
+
+More detail, and the reasoning behind the awkward bits, is in
+[`docs/pi.md`](docs/pi.md).
+
+## Retention
+
+Photographs are deleted on a schedule, and the date is shown to guests before
+they are photographed — on the booth screen, on the guest page and on the QR
+card. Raw frames last 30 days, finished montages 90. Guests can delete their
+own photos from their link at any time, which also kills every link they
+shared. See [`packages/shared/src/retention.ts`](packages/shared/src/retention.ts),
+which is the single place it is computed.

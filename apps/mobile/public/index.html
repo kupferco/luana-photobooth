@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<!--
+  The document every web page is served inside.
+
+  Expo fills this in at export time, substituting the title and language
+  placeholders below and appending the bundle's script and style tags at the
+  end of the head element.
+
+  Careful: it substitutes the FIRST match of each, so nothing in this file
+  may repeat a placeholder or close the head element early -- including
+  prose in a comment. Writing them out here once cost a build: the title
+  and every injected script went into the comment instead of the document.
+
+  It exists because Expo's own template has no icons in it, which is why
+  "Add to Home Screen" produced a blank tile -- a saved page is asked for
+  its icon through link tags and the manifest, and neither existed. The
+  native app icon has nothing to do with it: that is compiled into a build
+  the browser never sees.
+
+  Note that app/+html.tsx is NOT the way to do this here. That is only used
+  when rendering statically, and this app exports as a single page.
+-->
+<html lang="%LANG_ISO_CODE%">
+  <head>
+    <meta charset="utf-8" />
+    <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, shrink-to-fit=no, viewport-fit=cover"
+    />
+    <title>%WEB_TITLE%</title>
+
+    <!-- Android and desktop read the icons from here. -->
+    <link rel="manifest" href="/manifest.json" />
+
+    <!--
+      iOS ignores the manifest's icons and reads this one instead, so it has
+      to be stated separately or the home screen falls back to a screenshot
+      of whatever was on screen when the page was saved.
+    -->
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="48x48" href="/icons/favicon-48.png" />
+
+    <!-- Otherwise the tile is labelled with the page title, which is longer. -->
+    <meta name="apple-mobile-web-app-title" content="Lumina" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+
+    <!--
+      The colour behind the status bar and the home indicator, which are
+      outside anything the app renders. Saved to a home screen there is no
+      browser chrome to hide them, so left unset they stay white and a dark
+      app has two glaring bands.
+
+      These are the first paint only, and follow the phone rather than the
+      app: the theme provider overwrites them from the resolved theme, which
+      is what makes the in-app appearance setting reach this far. Values are
+      color.surface.base in the two token themes; the provider is what keeps
+      them honest if those ever change.
+    -->
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f4f4f5" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0b0b0d" />
+
+    <!-- The `react-native-web` recommended style reset: https://necolas.github.io/react-native-web/docs/setup/#root-element -->
+    <style id="expo-reset">
+      /* These styles make the body full-height */
+      html,
+      body {
+        height: 100%;
+        /* Matches the theme-color above; see the note there. */
+        background-color: #f4f4f5;
+      }
+      @media (prefers-color-scheme: dark) {
+        html,
+        body {
+          background-color: #0b0b0d;
+        }
+      }
+      /* These styles disable body scrolling if you are using <ScrollView> */
+      body {
+        overflow: hidden;
+      }
+      /* These styles make the root element full-height */
+      #root {
+        display: flex;
+        height: 100%;
+        flex: 1;
+      }
+    </style>
+  </head>
+
+  <body>
+    <noscript>
+      You need to enable JavaScript to run this app.
+    </noscript>
+    <!-- The root element for your Expo app. -->
+    <div id="root"></div>
+  </body>
+</html>

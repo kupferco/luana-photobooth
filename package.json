@@ -1,0 +1,54 @@
+{
+  "name": "photobooth",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "npm@11.5.1",
+  "description": "Multi-tenant photo booth: Expo app (owner + booth mode), web guest page, Cloud Run API, Raspberry Pi print agent.",
+  "workspaces": [
+    "apps/*",
+    "services/*",
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node infra/dev.mjs",
+    "start:fresh": "rm -rf /tmp/metro-* \"${TMPDIR}\"metro-* apps/mobile/.expo/web/cache 2>/dev/null; node infra/dev.mjs",
+    "server": "npm run dev --workspace @photobooth/api",
+    "client": "npm run dev --workspace @photobooth/mobile",
+    "client:fixtures": "EXPO_PUBLIC_API_MODE=fixtures npm run dev --workspace @photobooth/mobile",
+    "guest": "VITE_API_URL=http://localhost:8080 npm run dev --workspace @photobooth/guest",
+    "build": "turbo run build",
+    "typecheck": "turbo run typecheck",
+    "db:generate": "npm run db:generate --workspace @photobooth/api",
+    "db:migrate": "npm run db:migrate --workspace @photobooth/api",
+    "db:studio": "npm run db:studio --workspace @photobooth/api",
+    "deploy": "bash infra/deploy.sh both staging",
+    "deploy:staging": "bash infra/deploy.sh both staging",
+    "deploy:prod": "bash infra/deploy.sh both prod",
+    "deploy:both": "bash infra/deploy.sh both both",
+    "deploy:front:staging": "bash infra/deploy.sh front staging",
+    "deploy:front:prod": "bash infra/deploy.sh front prod",
+    "deploy:front:both": "bash infra/deploy.sh front both",
+    "deploy:back:staging": "bash infra/deploy.sh back staging",
+    "deploy:back:prod": "bash infra/deploy.sh back prod",
+    "deploy:back:both": "bash infra/deploy.sh back both",
+    "pi:setup": "bash infra/pi-setup.sh",
+    "pi:deploy": "bash infra/pi-deploy.sh",
+    "pi:printer": "bash infra/pi-printer.sh",
+    "pi:card": "bash infra/pi-card.sh",
+    "pi:status": "bash infra/pi-status.sh",
+    "pi:logs": "ssh ${PI_HOST:-lumina@lumina.local} journalctl -u photobooth-agent -f",
+    "agent": "npm run dev --workspace @photobooth/print-agent",
+    "secrets:push": "bash infra/push-secrets.sh",
+    "logs:staging": "gcloud run services logs tail photolu-api-staging --project photolu --region europe-west2",
+    "logs:prod": "gcloud run services logs tail photolu-api-prod --project photolu --region europe-west2",
+    "clean": "rm -rf node_modules apps/*/node_modules services/*/node_modules packages/*/node_modules",
+    "branding": "node branding/generate.mjs"
+  },
+  "devDependencies": {
+    "turbo": "^2.3.3",
+    "typescript": "^5.7.2"
+  }
+}

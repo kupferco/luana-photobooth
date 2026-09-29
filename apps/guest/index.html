@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0b0b0d" />
+    <!-- Nothing here should ever be indexed: every URL is somebody's photos. -->
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Lumina</title>
+
+    <!--
+      The tab icon and the home-screen icon. iOS reads apple-touch-icon and
+      ignores the manifest's icons, so both have to be here or a saved page
+      gets a screenshot instead of a logo.
+    -->
+    <link rel="icon" type="image/png" sizes="48x48" href="/icons/favicon-48.png" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="apple-mobile-web-app-title" content="Lumina" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <!--
+      Not black-translucent: that puts the page under the status bar, and
+      only the bottom inset is padded for. The theme-color above is what
+      colours the bar.
+    -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
