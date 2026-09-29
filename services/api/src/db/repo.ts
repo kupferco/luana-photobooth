@@ -888,9 +888,27 @@ export async function ensureShareToken(
   if (!existing) return null
   if (existing.shareToken) return existing.shareToken
 
-  // Long enough not to be guessable: this is the only thing protecting a
-  // photograph of someone's child from anyone who tries a few URLs.
-  const token = randomBytes(18).toString('base64url')
+  /*
+   * Not the session's own code, which is the obvious thing to reach for and
+   * is wrong twice over.
+   *
+   * The code is 5 characters from a 28-letter alphabet: 17 million, about
+   * 24 bits, and globally unique -- so every code that exists is somebody's
+   * photograph, and the whole space can be swept in two days at 100
+   * requests a second. It is also not secret. It is shown on the booth in
+   * front of the room, and printed in the owner's gallery, precisely so a
+   * guest can tell which montage is theirs.
+   *
+   * This page has no sign-in: the URL is the authorisation. So it needs a
+   * credential, not an identifier. 96 bits, which is a UUID's worth and
+   * beyond any amount of guessing, in 16 characters -- a third shorter than
+   * the 144-bit token this replaces, which was longer than it needed to be
+   * and made an ugly link and a dense QR for nothing.
+   *
+   * Only new tokens are shorter. Links already sent keep working, because
+   * the token is stored rather than derived.
+   */
+  const token = randomBytes(12).toString('base64url')
 
   const [updated] = await db
     .update(sessions)
