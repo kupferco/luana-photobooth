@@ -15,7 +15,7 @@ import type { NextFunction, Request, Response } from 'express'
  */
 
 const ALLOWED = new Set([
-  'https://luminabooth.web.app',
+  'https://luminabooth-app.web.app',
   'https://lumina-staging.web.app',
   'https://photobooth.kupfer.co',
   // The guest page is its own origin, and the only one strangers load.
@@ -30,6 +30,7 @@ const ALLOWED = new Set([
    * Removing these would break those links to save nothing. The Firebase
    * sites behind them have to stay up for the same reason.
    */
+  'https://luminabooth.web.app', // the app's old home, now the landing page
   'https://photolu.web.app',
   'https://photolu-staging.web.app',
   'https://photolu.firebaseapp.com',

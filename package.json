@@ -45,7 +45,8 @@
     "logs:staging": "gcloud run services logs tail photolu-api-staging --project photolu --region europe-west2",
     "logs:prod": "gcloud run services logs tail photolu-api-prod --project photolu --region europe-west2",
     "clean": "rm -rf node_modules apps/*/node_modules services/*/node_modules packages/*/node_modules",
-    "branding": "node branding/generate.mjs"
+    "branding": "node branding/generate.mjs",
+    "deploy:landing": "npm run build --workspace @photobooth/landing && firebase deploy --only hosting:site --project photolu"
   },
   "devDependencies": {
     "turbo": "^2.3.3",

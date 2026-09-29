@@ -7,9 +7,9 @@ type Translator = ReturnType<typeof createTranslator>
 /**
  * Where "Made with Lumina" goes.
  *
- * The app for now, because it is where someone who followed the link would
- * sign up. A marketing page would be a better answer and is one env var
- * away when there is one.
+ * The landing page, which is what a stranger following this link should
+ * meet: it explains what made the photo they are looking at. It used to be
+ * the app, because there was no landing page.
  */
 const SITE_URL = import.meta.env.VITE_SITE_URL ?? 'https://luminabooth.web.app'
 

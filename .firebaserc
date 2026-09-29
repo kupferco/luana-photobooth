@@ -6,7 +6,7 @@
     "photolu": {
       "hosting": {
         "prod": [
-          "luminabooth"
+          "luminabooth-app"
         ],
         "staging": [
           "lumina-staging"
@@ -16,6 +16,9 @@
         ],
         "guest-staging": [
           "lumina-guest-staging"
+        ],
+        "site": [
+          "luminabooth"
         ]
       }
     }

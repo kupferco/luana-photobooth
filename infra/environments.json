@@ -16,10 +16,10 @@
     },
     "prod": {
       "service": "photolu-api-prod",
-      "hostingSite": "luminabooth",
+      "hostingSite": "luminabooth-app",
       "hostingTarget": "prod",
       "apiUrl": "https://photolu-api-prod-194349492339.europe-west2.run.app",
-      "webUrl": "https://luminabooth.web.app",
+      "webUrl": "https://luminabooth-app.web.app",
       "minInstances": 1,
       "secretSuffix": "prod",
       "guestTarget": "guest",

@@ -42,6 +42,8 @@ const ASSETS = join(here, '..', 'apps', 'mobile', 'assets')
 const WEB = join(here, '..', 'apps', 'mobile', 'public', 'icons')
 const GUEST_WEB = join(here, '..', 'apps', 'guest', 'public', 'icons')
 const GUEST_BRAND = join(here, '..', 'apps', 'guest', 'public', 'brand')
+const SITE_WEB = join(here, '..', 'apps', 'landing', 'public', 'icons')
+const SITE_BRAND = join(here, '..', 'apps', 'landing', 'public', 'brand')
 
 /** amber.500 — the same yellow as the primary button. */
 const BRAND = '#f5c518'
@@ -352,11 +354,20 @@ await write(join(LOGO, 'favicon-preview.png'), await square(240, 0.8, BRAND, fav
  *
  * All flattened onto the brand colour: iOS fills transparency with black.
  */
-// For the guest page, which is nearly black.
-await write(join(GUEST_BRAND, 'logo-light.png'), await tinted(640, '#ffffff'))
-await write(join(LOGO, 'logo-light.png'), await tinted(640, '#ffffff'))
+// For the guest page and the landing page, both of which are nearly black.
+const light = await tinted(640, '#ffffff')
+await write(join(GUEST_BRAND, 'logo-light.png'), light)
+await write(join(SITE_BRAND, 'logo-light.png'), light)
+await write(join(LOGO, 'logo-light.png'), light)
 
-for (const [dir, label] of [[WEB, 'app'], [GUEST_WEB, 'guest']]) {
+// What a link to the landing page unfurls as in a message. Flattened onto
+// the brand colour because a transparent mark lands on whatever colour the
+// chat app happens to use, which is usually white and sometimes black.
+await write(join(SITE_BRAND, 'logo-on-brand.png'), await square(1024, 0.72, BRAND), {
+  flatten: true,
+})
+
+for (const [dir, label] of [[WEB, 'app'], [GUEST_WEB, 'guest'], [SITE_WEB, 'landing']]) {
   // 180 is what iOS asks for; it downsamples from there for every other slot.
   await write(join(dir, 'apple-touch-icon.png'), await square(180, 0.72, BRAND), {
     flatten: true,
