@@ -8,6 +8,7 @@ import {
   getEvent,
   getSession,
   listEvents,
+  listEventsForUser,
   listTemplates,
   queuePrint,
   ensureShareToken,
@@ -18,7 +19,8 @@ import {
   updateEvent,
 } from '../db/repo'
 import { eventJoinCode } from '../lib/codes'
-import { requireAuth, requireTenant } from '../middleware/auth'
+import { requireAuth, requireEventAccess, requireTenant } from '../middleware/auth'
+import { addEventMember, listEventMembers, removeEventMember } from '../members/repo'
 import { queueEmail } from '../email/queue'
 import { randomUUID } from 'node:crypto'
 import { env } from '../config/env'
@@ -50,6 +52,7 @@ const PatchBody = z.object({
 })
 
 const TenantQuery = z.object({ tenantId: z.string().uuid() })
+const OptionalTenantQuery = z.object({ tenantId: z.string().uuid().optional() })
 
 /** Everything the owner's dashboard shows for one event. */
 /**
@@ -63,6 +66,9 @@ async function present(event: Awaited<ReturnType<typeof getEvent>>) {
   if (!event) return null
   return {
     id: event.id,
+    // Sent because the client can no longer assume one account: someone
+    // helping with a single party has no membership to read it from.
+    tenantId: event.tenantId,
     name: event.name,
     eventDate: event.eventDate.toISOString(),
     status: event.status,
@@ -118,17 +124,33 @@ eventRoutes.post('/', async (req, res, next) => {
   }
 })
 
+/**
+ * Every party the caller can see.
+ *
+ * `tenantId` is optional, and leaving it off is the normal case. Someone
+ * invited to help with one party belongs to no account, so there is no
+ * tenant for them to ask about -- requiring one made their list empty and
+ * there was nothing they could pass to fix it.
+ *
+ * Passing one still narrows to that account, which is what an owner of
+ * several wants.
+ */
 eventRoutes.get('/', async (req, res, next) => {
   try {
-    const query = TenantQuery.safeParse(req.query)
+    const query = OptionalTenantQuery.safeParse(req.query)
     if (!query.success) {
       return res.status(400).json({
-        error: { code: 'invalid_request', message: 'tenantId is required.' },
+        error: { code: 'invalid_request', message: 'That is not a tenant id.' },
       })
     }
-    requireTenant(req, query.data.tenantId)
 
-    const rows = await listEvents(query.data.tenantId)
+    const rows = query.data.tenantId
+      ? (requireTenant(req, query.data.tenantId),
+        await listEvents(query.data.tenantId))
+      : await listEventsForUser(
+          req.auth!.userId,
+          req.auth!.memberships.map((m) => m.tenantId),
+        )
     /*
      * Promise.all, because present is async now.
      *
@@ -152,7 +174,7 @@ eventRoutes.get('/:eventId', async (req, res, next) => {
         error: { code: 'invalid_request', message: 'tenantId is required.' },
       })
     }
-    requireTenant(req, query.data.tenantId)
+    await requireEventAccess(req, query.data.tenantId, req.params.eventId!)
 
     const event = await getEvent(query.data.tenantId, req.params.eventId!)
     if (!event) {
@@ -181,7 +203,7 @@ eventRoutes.get('/:eventId/stats', async (req, res, next) => {
         error: { code: 'invalid_request', message: 'tenantId is required.' },
       })
     }
-    requireTenant(req, query.data.tenantId)
+    await requireEventAccess(req, query.data.tenantId, req.params.eventId!)
 
     const event = await getEvent(query.data.tenantId, req.params.eventId!)
     if (!event) {
@@ -206,7 +228,7 @@ eventRoutes.get('/:eventId/sessions', async (req, res, next) => {
         error: { code: 'invalid_request', message: 'tenantId is required.' },
       })
     }
-    requireTenant(req, query.data.tenantId)
+    await requireEventAccess(req, query.data.tenantId, req.params.eventId!)
 
     const event = await getEvent(query.data.tenantId, req.params.eventId!)
     if (!event) {
@@ -254,7 +276,7 @@ eventRoutes.post('/:eventId/sessions/:sessionId/print', async (req, res, next) =
         error: { code: 'invalid_request', message: 'tenantId is required.' },
       })
     }
-    const membership = requireTenant(req, query.data.tenantId)
+    const membership = await requireEventAccess(req, query.data.tenantId, req.params.eventId!)
 
     const session = await getSession(query.data.tenantId, req.params.sessionId!)
     if (!session || session.eventId !== req.params.eventId) {
@@ -292,7 +314,7 @@ eventRoutes.post('/:eventId/sessions/:sessionId/share-link', async (req, res, ne
         error: { code: 'invalid_request', message: 'tenantId is required.' },
       })
     }
-    requireTenant(req, query.data.tenantId)
+    await requireEventAccess(req, query.data.tenantId, req.params.eventId!)
 
     const session = await getSession(query.data.tenantId, req.params.sessionId!)
     if (!session || session.eventId !== req.params.eventId) {
@@ -343,7 +365,7 @@ eventRoutes.post('/:eventId/sessions/:sessionId/email', async (req, res, next) =
         error: { code: 'invalid_email', message: 'That does not look like an email address.' },
       })
     }
-    requireTenant(req, query.data.tenantId)
+    await requireEventAccess(req, query.data.tenantId, req.params.eventId!)
 
     const session = await getSession(query.data.tenantId, req.params.sessionId!)
     if (!session || session.eventId !== req.params.eventId) {
@@ -404,7 +426,7 @@ eventRoutes.patch('/:eventId', async (req, res, next) => {
         error: { code: 'invalid_request', message: 'Nothing valid to change.' },
       })
     }
-    requireTenant(req, query.data.tenantId)
+    await requireEventAccess(req, query.data.tenantId, req.params.eventId!)
 
     // Closing the party stamps endedAt, which is what triggers the
     // download-everything prompt in the app.
@@ -468,7 +490,7 @@ eventRoutes.post('/:eventId/background/upload', async (req, res, next) => {
         error: { code: 'invalid_request', message: 'A JPEG or PNG is required.' },
       })
     }
-    requireTenant(req, body.data.tenantId)
+    await requireEventAccess(req, body.data.tenantId, req.params.eventId!)
 
     const event = await getEvent(body.data.tenantId, req.params.eventId!)
     if (!event) {
@@ -503,7 +525,7 @@ eventRoutes.put('/:eventId/background', async (req, res, next) => {
         error: { code: 'invalid_request', message: 'tenantId is required.' },
       })
     }
-    requireTenant(req, body.data.tenantId)
+    await requireEventAccess(req, body.data.tenantId, req.params.eventId!)
 
     /*
      * Check it is really there before pointing the event at it.
@@ -548,7 +570,7 @@ eventRoutes.get('/:eventId/download', async (req, res, next) => {
         error: { code: 'invalid_request', message: 'tenantId is required.' },
       })
     }
-    requireTenant(req, query.data.tenantId)
+    await requireEventAccess(req, query.data.tenantId, req.params.eventId!)
 
     return await downloadEventZip(res, query.data.tenantId, req.params.eventId!)
   } catch (e) {
@@ -574,6 +596,139 @@ eventRoutes.delete('/:eventId', async (req, res, next) => {
     }
     // Soft delete only: it leaves every UI immediately, and the retention job
     // purges the objects from GCS behind it.
+    return res.status(204).end()
+  } catch (e) {
+    return next(e)
+  }
+})
+
+/* -------------------------------------------------------------------------
+ * Who is helping with this one party.
+ *
+ * Only an account member may change the list. A helper can run the party
+ * they were invited to and nothing else -- letting them invite further
+ * people would quietly turn a single favour into a growing guest list on
+ * somebody else's account.
+ * ---------------------------------------------------------------------- */
+
+function requireAccountMember(
+  req: Parameters<Parameters<Router['get']>[1]>[0],
+  tenantId: string,
+) {
+  return requireTenant(req, tenantId)
+}
+
+eventRoutes.get('/:eventId/members', async (req, res, next) => {
+  try {
+    const query = TenantQuery.safeParse(req.query)
+    if (!query.success) {
+      return res.status(400).json({
+        error: { code: 'invalid_request', message: 'tenantId is required.' },
+      })
+    }
+    // A helper may see who else is helping; only an account member may edit.
+    const access = await requireEventAccess(
+      req,
+      query.data.tenantId,
+      req.params.eventId!,
+    )
+
+    return res.json({
+      members: (await listEventMembers(req.params.eventId!)).map((m) => ({
+        userId: m.userId,
+        email: m.email,
+        name: m.name,
+        role: m.role,
+        joinedAt: m.joinedAt.toISOString(),
+        isYou: m.userId === req.auth!.userId,
+      })),
+      canManage: access.role !== 'helper',
+    })
+  } catch (e) {
+    return next(e)
+  }
+})
+
+const EventInviteBody = z.object({
+  tenantId: z.string().uuid(),
+  email: z.string().trim().toLowerCase().email(),
+})
+
+eventRoutes.post('/:eventId/members', async (req, res, next) => {
+  try {
+    const body = EventInviteBody.safeParse(req.body)
+    if (!body.success) {
+      return res.status(400).json({
+        error: {
+          code: 'invalid_request',
+          message: 'Enter the email address they will sign in with.',
+        },
+      })
+    }
+    requireAccountMember(req, body.data.tenantId)
+
+    const event = await getEvent(body.data.tenantId, req.params.eventId!)
+    if (!event) {
+      return res.status(404).json({ error: { code: 'not_found', message: 'Not found' } })
+    }
+
+    const { member, created } = await addEventMember(
+      body.data.tenantId,
+      event.id,
+      body.data.email,
+    )
+
+    if (created) {
+      /*
+       * No link with a token in it, for the same reason the account invite
+       * has none: they sign in with their own address and the party is
+       * simply there. Nothing here expires or can be forwarded into
+       * somebody else's access.
+       */
+      await queueEmail({
+        to: member.email,
+        kind: 'invite',
+        tenantId: body.data.tenantId,
+        subject: `${req.auth!.email} asked you to help with ${event.name}`,
+        text: [
+          `${req.auth!.email} has asked you to help run ${event.name} on Lumina.`,
+          '',
+          `Sign in at ${env.APP_URL} with this address (${member.email}) and it will be there.`,
+          '',
+          'There is no password. You enter your email, it sends you a six-digit code, and that is it.',
+          '',
+          'You will see this party only -- nothing else on their account.',
+        ].join('\n'),
+      })
+    }
+
+    return res.status(created ? 201 : 200).json({
+      member: {
+        userId: member.userId,
+        email: member.email,
+        name: member.name,
+        role: member.role,
+        joinedAt: member.joinedAt.toISOString(),
+        isYou: member.userId === req.auth!.userId,
+      },
+      created,
+    })
+  } catch (e) {
+    return next(e)
+  }
+})
+
+eventRoutes.delete('/:eventId/members/:userId', async (req, res, next) => {
+  try {
+    const query = TenantQuery.safeParse(req.query)
+    if (!query.success) {
+      return res.status(400).json({
+        error: { code: 'invalid_request', message: 'tenantId is required.' },
+      })
+    }
+    requireAccountMember(req, query.data.tenantId)
+
+    await removeEventMember(req.params.eventId!, req.params.userId!)
     return res.status(204).end()
   } catch (e) {
     return next(e)

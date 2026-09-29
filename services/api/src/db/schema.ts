@@ -278,6 +278,44 @@ export const events = pgTable(
 )
 
 /**
+ * Someone invited to help with one party.
+ *
+ * Separate from `memberships`, which is the whole account. Both exist
+ * because they answer different questions: a business partner co-runs
+ * everything you will ever do, and a friend helps with Saturday. Folding
+ * the second into the first is what made "help me with this party" hand
+ * over every party on the account, including ones not yet created.
+ *
+ * Carries `tenant_id` like everything else here, so a query that has one of
+ * these does not have to join through `events` to stay tenant-scoped.
+ *
+ * No invitation token, for the same reason the account has none: signing in
+ * is already proving control of an inbox, so adding the address is the whole
+ * of it.
+ */
+export const eventMembers = pgTable(
+  'event_members',
+  {
+    tenantId: uuid('tenant_id')
+      .notNull()
+      .references(() => tenants.id, { onDelete: 'cascade' }),
+    eventId: uuid('event_id')
+      .notNull()
+      .references(() => events.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    ...timestamps,
+  },
+  (t) => [
+    primaryKey({ columns: [t.eventId, t.userId] }),
+    // "Which parties am I helping with?", which is half of the event list
+    // for anyone who does not own the account.
+    index('event_members_user_idx').on(t.userId),
+  ],
+)
+
+/**
  * Both the tripod phone and the Pi print agent. One pairing primitive: a
  * short code is exchanged once for a long-lived device token, of which only
  * the hash is stored.

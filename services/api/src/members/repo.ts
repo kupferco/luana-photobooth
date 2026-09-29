@@ -1,6 +1,6 @@
 import { and, asc, eq, sql } from 'drizzle-orm'
 import { db } from '../db/client'
-import { memberships, users } from '../db/schema'
+import { eventMembers, memberships, users } from '../db/schema'
 
 /**
  * Who can help run a party.
@@ -141,4 +141,82 @@ export async function removeMember(tenantId: string, userId: string): Promise<vo
   await db
     .delete(memberships)
     .where(and(eq(memberships.tenantId, tenantId), eq(memberships.userId, userId)))
+}
+
+/* -------------------------------------------------------------------------
+ * One party, rather than the whole account.
+ *
+ * Same shape and the same no-token rule as above, deliberately: the two
+ * lists look identical to whoever reads them, and differ only in how far
+ * they reach.
+ * ---------------------------------------------------------------------- */
+
+export async function listEventMembers(eventId: string): Promise<Member[]> {
+  const rows = await db
+    .select({
+      userId: users.id,
+      email: users.email,
+      name: users.name,
+      joinedAt: eventMembers.createdAt,
+    })
+    .from(eventMembers)
+    .innerJoin(users, eq(users.id, eventMembers.userId))
+    .where(eq(eventMembers.eventId, eventId))
+    .orderBy(asc(eventMembers.createdAt))
+
+  // There is one kind of event guest, so the role is not stored -- a column
+  // with one possible value is a decision nobody has made yet.
+  return rows.map((r) => ({ ...r, role: 'admin' as const }))
+}
+
+export async function addEventMember(
+  tenantId: string,
+  eventId: string,
+  email: string,
+): Promise<{ member: Member; created: boolean }> {
+  return db.transaction(async (tx) => {
+    const [existingUser] = await tx
+      .select()
+      .from(users)
+      .where(eq(users.email, email))
+      .limit(1)
+
+    const user =
+      existingUser ?? (await tx.insert(users).values({ email }).returning())[0]
+    if (!user) throw new Error('Could not create the user.')
+
+    const [already] = await tx
+      .select()
+      .from(eventMembers)
+      .where(and(eq(eventMembers.eventId, eventId), eq(eventMembers.userId, user.id)))
+      .limit(1)
+
+    const base = {
+      userId: user.id,
+      email: user.email,
+      name: user.name,
+      role: 'admin' as const,
+    }
+
+    if (already) {
+      return { created: false, member: { ...base, joinedAt: already.createdAt } }
+    }
+
+    const [row] = await tx
+      .insert(eventMembers)
+      .values({ tenantId, eventId, userId: user.id })
+      .returning()
+    if (!row) throw new Error('Could not add them to the party.')
+
+    return { created: true, member: { ...base, joinedAt: row.createdAt } }
+  })
+}
+
+export async function removeEventMember(
+  eventId: string,
+  userId: string,
+): Promise<void> {
+  await db
+    .delete(eventMembers)
+    .where(and(eq(eventMembers.eventId, eventId), eq(eventMembers.userId, userId)))
 }

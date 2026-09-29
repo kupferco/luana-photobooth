@@ -57,13 +57,14 @@ export function ActiveEventProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null)
 
   const refresh = useCallback(async () => {
-    if (!tenantId) {
-      setEvents([])
-      setLoading(false)
-      return
-    }
     try {
-      const rows = await api.listEvents(tenantId)
+      /*
+       * No tenant. The list is everything this person can see: parties on
+       * accounts they belong to, and single parties they were invited to
+       * help with. Asking per account returned nothing at all for a helper,
+       * who belongs to none.
+       */
+      const rows = await api.listEvents()
       setEvents(rows)
       setError(null)
     } catch (e) {

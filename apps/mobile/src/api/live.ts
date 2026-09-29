@@ -239,11 +239,31 @@ export const liveApi: PhotoboothApi = {
   },
 
   async listEvents(tenantId) {
-    const result = await request<{ events: Event[] }>(
-      'GET',
-      `/events?tenantId=${encodeURIComponent(tenantId)}`,
-    )
+    const query = tenantId ? `?tenantId=${encodeURIComponent(tenantId)}` : ''
+    const result = await request<{ events: Event[] }>('GET', `/events${query}`)
     return result.events
+  },
+
+  async listEventMembers(tenantId, eventId) {
+    return request<{ members: Member[]; canManage: boolean }>(
+      'GET',
+      `/events/${encodeURIComponent(eventId)}/members?tenantId=${encodeURIComponent(tenantId)}`,
+    )
+  },
+
+  async addEventMember(tenantId, eventId, email) {
+    return request<{ member: Member; created: boolean }>(
+      'POST',
+      `/events/${encodeURIComponent(eventId)}/members`,
+      { tenantId, email },
+    )
+  },
+
+  async removeEventMember(tenantId, eventId, userId) {
+    await request<void>(
+      'DELETE',
+      `/events/${encodeURIComponent(eventId)}/members/${encodeURIComponent(userId)}?tenantId=${encodeURIComponent(tenantId)}`,
+    )
   },
 
   async getEvent(tenantId, eventId) {

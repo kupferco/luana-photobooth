@@ -20,6 +20,14 @@ export interface User {
 
 export interface Event {
   id: string
+  /**
+   * Which account the party belongs to.
+   *
+   * Carried on the event because the app can no longer assume one: somebody
+   * invited to help with a single party is a member of no account, so there
+   * is nothing on the session to read it from.
+   */
+  tenantId: string
   name: string
   eventDate: string
   status: 'draft' | 'live' | 'ended'
@@ -102,7 +110,8 @@ export interface PhotoboothApi {
   signOut(): Promise<void>
 
   // Events
-  listEvents(tenantId: string): Promise<Event[]>
+  /** Everything the caller can see. A tenant narrows it to one account. */
+  listEvents(tenantId?: string): Promise<Event[]>
   getEvent(tenantId: string, eventId: string): Promise<Event>
   createEvent(
     tenantId: string,
@@ -139,6 +148,17 @@ export interface PhotoboothApi {
    * here, so the rule lives in one place -- the place that enforces it.
    */
   listMembers(tenantId: string): Promise<{ members: Member[]; canManage: boolean }>
+  /** The same, for one party rather than the whole account. */
+  listEventMembers(
+    tenantId: string,
+    eventId: string,
+  ): Promise<{ members: Member[]; canManage: boolean }>
+  addEventMember(
+    tenantId: string,
+    eventId: string,
+    email: string,
+  ): Promise<{ member: Member; created: boolean }>
+  removeEventMember(tenantId: string, eventId: string, userId: string): Promise<void>
   /** Invites by email. Already a member is a success, not an error. */
   addMember(tenantId: string, email: string): Promise<{ member: Member; created: boolean }>
   removeMember(tenantId: string, userId: string): Promise<void>

@@ -256,7 +256,7 @@
   },
   "people": {
     "title": "Quem pode ajudar",
-    "hint": "Cada pessoa entra com o próprio email. Por enquanto, quem for adicionado aqui pode gerenciar todas as festas desta conta, inclusive as que ainda não existem.",
+    "hint": "Cada pessoa entra com o próprio email. Todos aqui podem gerenciar todas as festas da conta — para compartilhar só uma, adicione a pessoa na própria festa.",
     "emailLabel": "Adicionar alguém por email",
     "invite": "Adicionar",
     "invited": "{email} foi adicionado. Já pode entrar.",
@@ -271,7 +271,9 @@
       "owner": "Dono",
       "admin": "Pode gerenciar festas",
       "staff": "Ajudante"
-    }
+    },
+    "eventTitle": "Quem pode ajudar nesta festa",
+    "eventHint": "Cada pessoa entra com o próprio email e vê só esta festa — nada mais da sua conta."
   },
   "event": {
     "none": "Nenhum evento selecionado.",

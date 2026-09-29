@@ -15,7 +15,7 @@ import {
   revokeDevice,
 } from '../db/repo'
 import { deviceToken, isWellFormedCode, normaliseCode, pairingCode } from '../lib/codes'
-import { requireAuth, requireTenant } from '../middleware/auth'
+import { requireAuth, requireEventAccess, requireTenant } from '../middleware/auth'
 
 export const deviceRoutes: Router = Router()
 
@@ -146,7 +146,13 @@ deviceRoutes.post('/pairing-code', async (req, res, next) => {
         error: { code: 'invalid_request', message: 'tenantId is required.' },
       })
     }
-    requireTenant(req, body.data.tenantId)
+    // Setting up the printer is the job, so a helper can do it -- for the
+    // party they were invited to.
+    if (body.data.eventId) {
+      await requireEventAccess(req, body.data.tenantId, body.data.eventId)
+    } else {
+      requireTenant(req, body.data.tenantId)
+    }
 
     if (body.data.eventId) {
       const event = await getEvent(body.data.tenantId, body.data.eventId)
@@ -206,7 +212,7 @@ deviceRoutes.post('/booth', async (req, res, next) => {
         error: { code: 'invalid_request', message: 'tenantId and eventId are required.' },
       })
     }
-    requireTenant(req, body.data.tenantId)
+    await requireEventAccess(req, body.data.tenantId, body.data.eventId)
 
     const event = await getEvent(body.data.tenantId, body.data.eventId)
     if (!event) {
@@ -237,9 +243,17 @@ deviceRoutes.get('/', async (req, res, next) => {
         error: { code: 'invalid_request', message: 'tenantId is required.' },
       })
     }
-    requireTenant(req, query.data.tenantId)
-
     const eventId = typeof req.query.eventId === 'string' ? req.query.eventId : undefined
+
+    // Asking about one party is something a helper may do; asking about the
+    // account's whole kit is not, and that is the call that answers "your
+    // printers" on the dashboard.
+    if (eventId) {
+      await requireEventAccess(req, query.data.tenantId, eventId)
+    } else {
+      requireTenant(req, query.data.tenantId)
+    }
+
     const rows = await listDevices(query.data.tenantId, eventId)
 
     return res.json({

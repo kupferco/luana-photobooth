@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto'
-import { and, desc, eq, inArray, isNull, lt, sql } from 'drizzle-orm'
+import { and, desc, eq, inArray, isNotNull, isNull, lt, or, sql } from 'drizzle-orm'
 import {
   CLASSIC_3UP,
   isWellFormedDeviceName,
@@ -11,6 +11,7 @@ import {
   deviceNames,
   devices,
   emailDeliveries,
+  eventMembers,
   events,
   photos,
   printJobs,
@@ -113,6 +114,40 @@ export async function listEvents(tenantId: string) {
     .from(events)
     .where(and(eq(events.tenantId, tenantId), isNull(events.deletedAt)))
     .orderBy(desc(events.eventDate))
+}
+
+/**
+ * Every party this person can see.
+ *
+ * Two sources: accounts they belong to, and single parties they were
+ * invited to help with. One query rather than two and a merge, so the
+ * ordering is the database's and a party reachable both ways appears once.
+ *
+ * Someone invited to help has no account membership at all, so without this
+ * their event list is simply empty -- there is no tenant to ask about.
+ */
+export async function listEventsForUser(userId: string, tenantIds: string[]) {
+  const rows = await db
+    .selectDistinct()
+    .from(events)
+    .leftJoin(
+      eventMembers,
+      and(eq(eventMembers.eventId, events.id), eq(eventMembers.userId, userId)),
+    )
+    .where(
+      and(
+        isNull(events.deletedAt),
+        or(
+          // inArray with an empty list is invalid SQL, and an account-less
+          // helper is exactly the case that produces one.
+          tenantIds.length ? inArray(events.tenantId, tenantIds) : sql`false`,
+          isNotNull(eventMembers.userId),
+        ),
+      ),
+    )
+    .orderBy(desc(events.eventDate))
+
+  return rows.map((row) => row.events)
 }
 
 export async function getEvent(tenantId: string, eventId: string) {

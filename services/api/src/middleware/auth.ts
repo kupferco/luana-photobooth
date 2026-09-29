@@ -1,6 +1,9 @@
 import type { NextFunction, Request, Response } from 'express'
 import { loadAccount, type Account } from '../auth/accounts'
 import { verifyAccessToken } from '../auth/tokens'
+import { and, eq } from 'drizzle-orm'
+import { db } from '../db/client'
+import { eventMembers } from '../db/schema'
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
@@ -62,6 +65,51 @@ export async function requireAuth(
  * membership is checked, so there is one thing to get right rather than one
  * per handler.
  */
+/**
+ * What a signed-in user is allowed to do with one event.
+ *
+ * Two ways in, and they are not the same thing:
+ *
+ * - a member of the account, who can do anything to any of its parties;
+ * - someone invited to this one party, who can do anything to it and does
+ *   not know the others exist.
+ *
+ * Account membership is checked first and without a query, so the common
+ * case -- the owner, on their own event -- costs nothing.
+ *
+ * A stranger gets the same 404 as a missing event, so nobody can discover
+ * that an event id is real by watching for a 403.
+ */
+export async function requireEventAccess(
+  req: Request,
+  tenantId: string,
+  eventId: string,
+): Promise<{ tenantId: string; role: Account['memberships'][number]['role'] | 'helper' }> {
+  const account = req.auth?.memberships.find((m) => m.tenantId === tenantId)
+  if (account) return account
+
+  const userId = req.auth?.userId
+  if (userId) {
+    const [shared] = await db
+      .select({ eventId: eventMembers.eventId })
+      .from(eventMembers)
+      .where(
+        and(
+          eq(eventMembers.eventId, eventId),
+          eq(eventMembers.userId, userId),
+          eq(eventMembers.tenantId, tenantId),
+        ),
+      )
+      .limit(1)
+
+    if (shared) return { tenantId, role: 'helper' }
+  }
+
+  const error = new Error('Not found') as Error & { status?: number }
+  error.status = 404
+  throw error
+}
+
 export function requireTenant(req: Request, tenantId: string): Account['memberships'][number] {
   const membership = req.auth?.memberships.find((m) => m.tenantId === tenantId)
   if (!membership) {

@@ -256,7 +256,7 @@
   },
   "people": {
     "title": "Who can help",
-    "hint": "They sign in with their own email. For now anyone added here can run every party on this account, including ones not yet created.",
+    "hint": "They sign in with their own email. Everyone here can run every party on the account — to share just one, add them on the party itself.",
     "emailLabel": "Add someone by email",
     "invite": "Add them",
     "invited": "Added {email}. They can sign in now.",
@@ -271,7 +271,9 @@
       "owner": "Owner",
       "admin": "Can run parties",
       "staff": "Helper"
-    }
+    },
+    "eventTitle": "Who can help with this party",
+    "eventHint": "They sign in with their own email and see this party only — nothing else on your account."
   },
   "event": {
     "none": "No event selected.",

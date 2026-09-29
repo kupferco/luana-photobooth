@@ -8,17 +8,29 @@ import { useTheme } from '../theme'
 import { Body, Button, Card, Field, Label, Notice, Spinner } from '../ui'
 
 /**
- * Who else can run this account's parties.
+ * Who else can run this -- one party, or the whole account.
  *
- * On the account rather than on one event: somebody helping with the
- * birthday is trusted with the account, and re-inviting the same person for
- * every party is the kind of chore people avoid by sharing a login instead.
+ * One component for both because they are the same screen to whoever reads
+ * it, and differ only in reach. Passing an event narrows it to that party:
+ * the person sees it and nothing else on the account, which is what "help
+ * me with Saturday" should mean.
  *
- * There is nothing to accept. Adding an address is the whole of it -- they
- * sign in with their own email the usual way and the party is there. So this
- * screen never shows a pending state, because there isn't one.
+ * Account-wide still exists for the other case -- a partner who co-runs
+ * everything, or a company account -- and is worth keeping separate rather
+ * than making somebody re-invite the same person for every party.
+ *
+ * There is nothing to accept. Adding an address is the whole of it: they
+ * sign in with their own email the usual way and the party is there. So
+ * this never shows a pending state, because there isn't one.
  */
-export function PeopleCard({ tenantId }: { tenantId: string }) {
+export function PeopleCard({
+  tenantId,
+  eventId,
+}: {
+  tenantId: string
+  /** Given: this one party. Omitted: every party on the account. */
+  eventId?: string
+}) {
   const t = useT()
   const theme = useTheme()
 
@@ -34,14 +46,16 @@ export function PeopleCard({ tenantId }: { tenantId: string }) {
 
   const load = useCallback(async () => {
     try {
-      const result = await api.listMembers(tenantId)
+      const result = eventId
+        ? await api.listEventMembers(tenantId, eventId)
+        : await api.listMembers(tenantId)
       setMembers(result.members)
       setCanManage(result.canManage)
     } catch (e) {
       setNotice({ tone: 'bad', text: e instanceof Error ? e.message : String(e) })
       setMembers([])
     }
-  }, [tenantId])
+  }, [tenantId, eventId])
 
   useEffect(() => {
     void load()
@@ -54,7 +68,9 @@ export function PeopleCard({ tenantId }: { tenantId: string }) {
     setBusy(true)
     setNotice(null)
     try {
-      const { member, created } = await api.addMember(tenantId, address)
+      const { member, created } = eventId
+        ? await api.addEventMember(tenantId, eventId, address)
+        : await api.addMember(tenantId, address)
       setEmail('')
       await load()
       setNotice({
@@ -74,7 +90,7 @@ export function PeopleCard({ tenantId }: { tenantId: string }) {
     } finally {
       setBusy(false)
     }
-  }, [email, busy, tenantId, load, t])
+  }, [email, busy, tenantId, eventId, load, t])
 
   const remove = useCallback(
     async (member: Member) => {
@@ -86,7 +102,8 @@ export function PeopleCard({ tenantId }: { tenantId: string }) {
       setBusy(true)
       setNotice(null)
       try {
-        await api.removeMember(tenantId, member.userId)
+        if (eventId) await api.removeEventMember(tenantId, eventId, member.userId)
+        else await api.removeMember(tenantId, member.userId)
         await load()
       } catch (e) {
         setNotice({
@@ -97,12 +114,12 @@ export function PeopleCard({ tenantId }: { tenantId: string }) {
         setBusy(false)
       }
     },
-    [confirming, tenantId, load, t],
+    [confirming, tenantId, eventId, load, t],
   )
 
   return (
     <Card>
-      <Label>{t('people.title')}</Label>
+      <Label>{t(eventId ? 'people.eventTitle' : 'people.title')}</Label>
 
       {members === null ? (
         <Spinner />
@@ -169,7 +186,7 @@ export function PeopleCard({ tenantId }: { tenantId: string }) {
         <>
           <Field
             label={t('people.emailLabel')}
-            hint={t('people.hint')}
+            hint={t(eventId ? 'people.eventHint' : 'people.hint')}
             value={email}
             onChangeText={setEmail}
             autoCapitalize="none"

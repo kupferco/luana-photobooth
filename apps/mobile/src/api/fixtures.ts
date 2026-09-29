@@ -45,6 +45,7 @@ const FIXTURE_USER: User = {
 const EVENTS: Event[] = [
   {
     id: 'evt-live',
+    tenantId: TENANT,
     name: "Luana's 8th birthday",
     eventDate: iso(0),
     status: 'live',
@@ -57,6 +58,7 @@ const EVENTS: Event[] = [
   },
   {
     id: 'evt-draft',
+    tenantId: TENANT,
     name: "Nina's christening",
     eventDate: iso(18),
     status: 'draft',
@@ -71,6 +73,7 @@ const EVENTS: Event[] = [
     // Close to deletion on purpose: this is the state the download prompt and
     // the retention countdown have to look right in.
     id: 'evt-ended',
+    tenantId: TENANT,
     name: 'Office summer party',
     eventDate: iso(-88),
     status: 'ended',
@@ -270,6 +273,7 @@ export const fixtureApi: PhotoboothApi = {
     await delay()
     const event: Event = {
       id: `evt-${Date.now()}`,
+      tenantId: TENANT,
       name: input.name,
       eventDate: input.eventDate,
       status: 'draft',
@@ -376,6 +380,35 @@ export const fixtureApi: PhotoboothApi = {
   },
 
   async removeMember(_tenantId, userId) {
+    await delay()
+    removedMembers.add(userId)
+  },
+
+  async listEventMembers() {
+    await delay()
+    // Just the helper, not the owner: the point of the event list is that it
+    // is shorter than the account's, and a fixture that shows the same two
+    // rows would hide the difference the screen exists to show.
+    return { members: fixtureMembers.filter((m) => !m.isYou), canManage: true }
+  },
+
+  async addEventMember(_tenantId, _eventId, email) {
+    await delay()
+    const existing = fixtureMembers.find((m) => m.email === email)
+    if (existing) return { member: existing, created: false }
+    const member: Member = {
+      userId: `u-${Date.now()}`,
+      email,
+      name: null,
+      role: 'admin',
+      joinedAt: new Date().toISOString(),
+      isYou: false,
+    }
+    fixtureMembers.push(member)
+    return { member, created: true }
+  },
+
+  async removeEventMember(_tenantId, _eventId, userId) {
     await delay()
     removedMembers.add(userId)
   },

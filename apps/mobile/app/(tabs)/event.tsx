@@ -11,6 +11,7 @@ import {
 } from '../../src/api'
 import { useLocale, useT } from '../../src/locale'
 import { useActiveEvent } from '../../src/event-context'
+import { PeopleCard } from '../../src/people/PeopleCard'
 import { useSession } from '../../src/session'
 import { copy } from '../../src/clipboard'
 import { pickImage } from '../../src/pickimage'
@@ -47,7 +48,17 @@ const guestUrl = (joinCode: string) => `${GUEST_BASE}/${joinCode}`
 export default function EventTab() {
   const { active, loading: loadingEvents, refresh } = useActiveEvent()
   const id = active?.id
-  const { tenantId } = useSession()
+  const { tenantId: accountTenantId } = useSession()
+
+  /*
+   * The party's own account, not the signed-in person's.
+   *
+   * They are the same for an owner and different for someone invited to
+   * help with one party, who belongs to no account at all -- so reading it
+   * off the session gave them null and every call on this screen was
+   * skipped.
+   */
+  const tenantId = active?.tenantId ?? accountTenantId
   const theme = useTheme()
   const t = useT()
   const { locale } = useLocale()
@@ -92,7 +103,15 @@ export default function EventTab() {
         api.eventStats(tenantId, id),
         api.listSessions(tenantId, id),
         api.listDevices(tenantId, id),
-        api.listAllDevices(tenantId),
+        /*
+         * The account's other printers, for moving one to this party.
+         *
+         * The only account-wide call on this screen, and the one a helper
+         * is refused -- correctly, since it is not their account. Caught
+         * rather than awaited plainly, because inside Promise.all its 404
+         * failed the other four and left the whole screen empty.
+         */
+        api.listAllDevices(tenantId).catch(() => []),
       ])
       setEvent(e)
       setStats(s)
@@ -723,6 +742,10 @@ export default function EventTab() {
           * puzzle. The link is the thing to hand out.
           */}
       </Card>
+
+      {/* After the guest link, because both are about handing this party to
+          somebody else -- and before the buttons that start and end it. */}
+      <PeopleCard tenantId={event.tenantId} eventId={event.id} />
 
       {event.status === 'draft' ? (
         <Button
