@@ -76,6 +76,8 @@ async function call<T>(path: string, init?: RequestInit): Promise<T> {
 export interface SharedPhoto {
   montageUrl: string
   eventName: string | null
+  /** The party's date. Null for a photo whose event has since been deleted. */
+  eventDate: string | null
   retentionUntil: string | null
   takenAt: string
 }

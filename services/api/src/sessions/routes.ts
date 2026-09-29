@@ -218,6 +218,10 @@ sessionRoutes.get('/p/:shareToken', async (req, res, next) => {
     return res.json({
       montageUrl: await createReadUrl(session.montagePath, session.tenantId),
       eventName: event?.name ?? null,
+      // The party's own date, not when the shutter went: someone opening
+      // this weeks later wants to know which night it was, and a booth run
+      // past midnight would otherwise date half the photos to the next day.
+      eventDate: event?.eventDate ? new Date(event.eventDate).toISOString() : null,
       retentionUntil: event?.retentionUntil?.toISOString() ?? null,
       takenAt: session.createdAt.toISOString(),
     })

@@ -178,22 +178,59 @@ button[disabled] {
 }
 
 /*
- * Who made this.
+ * A shared photo.
  *
- * A shared photo travels: it is forwarded, saved, and opened weeks later by
- * people who were never at the party and have never heard of any of this.
- * One quiet line is the only thing on the page that says what it is.
+ * Its own spacing rather than the shell's, because this is the one screen
+ * that is mostly picture: the title and date belong tight together above it,
+ * and the fine print belongs well below it.
  *
- * Deliberately under the retention note rather than beside the photo. The
- * picture is why they opened the link.
+ * It also has to set its own, because it used to nest a second <main> inside
+ * the shell -- which had no styles at all, so it absorbed the shell's gap and
+ * left every line in the page touching the next.
  */
-.made-with {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  margin-top: var(--space-5);
+.shared {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+/* One thing: whose party, and when. */
+.shared-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.shared-when {
   color: var(--text-secondary);
   font-size: var(--text-sm);
+}
+
+.shared-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/*
+ * Who made this.
+ *
+ * A shared photo travels: forwarded, saved, opened weeks later by people who
+ * were never at the party. One quiet mark is the only thing on the page that
+ * says what it is.
+ *
+ * Set apart from the photo rather than tucked under it. It is the last thing
+ * here for a reason -- the picture is why they opened the link.
+ */
+.made-with {
+  align-self: center;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
   text-decoration: none;
 }
 
@@ -201,9 +238,17 @@ button[disabled] {
   color: var(--text-primary);
 }
 
+/*
+ * The white mark, not the app icon. The artwork is black line work, so the
+ * ordinary logo is invisible against this page.
+ */
 .made-with img {
-  width: 22px;
-  height: 22px;
-  border-radius: 6px;
+  width: 104px;
+  height: auto;
   display: block;
+  opacity: 0.75;
+}
+
+.made-with:hover img {
+  opacity: 1;
 }

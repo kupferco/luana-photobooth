@@ -41,6 +41,7 @@ const LOGO = join(here, 'logo')
 const ASSETS = join(here, '..', 'apps', 'mobile', 'assets')
 const WEB = join(here, '..', 'apps', 'mobile', 'public', 'icons')
 const GUEST_WEB = join(here, '..', 'apps', 'guest', 'public', 'icons')
+const GUEST_BRAND = join(here, '..', 'apps', 'guest', 'public', 'brand')
 
 /** amber.500 — the same yellow as the primary button. */
 const BRAND = '#f5c518'
@@ -180,6 +181,28 @@ async function monochrome(size) {
   return sharp({
     create: { width: size, height: size, channels: 3, background: '#000000' },
   })
+    .joinChannel(alpha)
+    .png()
+    .toBuffer()
+}
+
+/**
+ * The whole mark in a single colour, at its own proportions.
+ *
+ * The artwork is black line work, so on a dark surface it is a black
+ * drawing on a nearly black page -- which is what the guest page is. This
+ * keeps the shapes and throws away the colour, so the same mark works on
+ * both.
+ *
+ * Not square: this one is used inline next to text, where padding it out to
+ * a square would just be a large gap.
+ */
+async function tinted(width, colour) {
+  const fitted = await sharp(await mark()).resize({ width }).toBuffer()
+  const { width: w = width, height: h = width } = await sharp(fitted).metadata()
+  const alpha = await sharp(fitted).extractChannel('alpha').toBuffer()
+
+  return sharp({ create: { width: w, height: h, channels: 3, background: colour } })
     .joinChannel(alpha)
     .png()
     .toBuffer()
@@ -329,6 +352,10 @@ await write(join(LOGO, 'favicon-preview.png'), await square(240, 0.8, BRAND, fav
  *
  * All flattened onto the brand colour: iOS fills transparency with black.
  */
+// For the guest page, which is nearly black.
+await write(join(GUEST_BRAND, 'logo-light.png'), await tinted(640, '#ffffff'))
+await write(join(LOGO, 'logo-light.png'), await tinted(640, '#ffffff'))
+
 for (const [dir, label] of [[WEB, 'app'], [GUEST_WEB, 'guest']]) {
   // 180 is what iOS asks for; it downsamples from there for every other slot.
   await write(join(dir, 'apple-touch-icon.png'), await square(180, 0.72, BRAND), {
