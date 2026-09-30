@@ -69,7 +69,7 @@ export function BackgroundStudio({
   const theme = useTheme()
   const t = useT()
   const { locale } = useLocale()
-  const { width: screenWidth } = useWindowDimensions()
+  const { width: screenWidth, height: windowHeight } = useWindowDimensions()
 
   const set = <K extends keyof Artwork>(key: K, value: Artwork[K]) =>
     onChange({ ...artwork, [key]: value })
@@ -84,7 +84,18 @@ export function BackgroundStudio({
   const dirty =
     JSON.stringify(artwork) !== JSON.stringify(published ?? DEFAULT_ARTWORK)
 
-  const previewWidth = Math.min(screenWidth - 72, 420)
+  /*
+   * Sized by the window's height as well as its width.
+   *
+   * The print is 3:2 landscape, so width alone decides how tall this is --
+   * and on a short window a 420pt preview leaves the controls a slot to
+   * peer through. A third of the height is the most it may take.
+   */
+  const previewWidth = Math.min(
+    screenWidth - 72,
+    420,
+    (windowHeight / 3) * (template.canvas.w / template.canvas.h),
+  )
   const area = artworkArea(template)
   const scale = previewWidth / template.canvas.w
 
@@ -143,14 +154,14 @@ export function BackgroundStudio({
             </Pressable>
           </View>
 
-          <ScrollView
-            contentContainerStyle={{
-              paddingHorizontal: theme.space[4],
-              paddingBottom: theme.space[10],
-              gap: theme.space[5],
-            }}
-          >
-            {/* The print, as it would come out. */}
+          {/*
+            * Pinned, not scrolled with the controls.
+            *
+            * Everything below changes what this shows, and a preview that
+            * slides off the top the moment somebody reaches the pattern
+            * chips makes them pick blind and scroll back to check. It is
+            * the whole reason the sheet exists, so it keeps its place.
+            */}
             <View style={{ alignItems: 'center', gap: 8 }}>
               <View
                 style={{
@@ -204,6 +215,13 @@ export function BackgroundStudio({
               </Body>
             </View>
 
+          <ScrollView
+            contentContainerStyle={{
+              paddingHorizontal: theme.space[4],
+              paddingBottom: theme.space[10],
+              gap: theme.space[5],
+            }}
+          >
             <Field
               label={t('artwork.words')}
               value={artwork.title}
