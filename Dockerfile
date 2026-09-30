@@ -28,6 +28,21 @@ FROM node:22-slim AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
 
+# Fonts, for the artwork renderer.
+#
+# node:22-slim ships none at all, and sharp draws text by handing SVG to
+# librsvg, which asks fontconfig for a family and gets nothing -- so a party's
+# name renders as empty space rather than as an error. Two families, matching
+# the three lettering choices the app offers.
+#
+# Liberation is metric-compatible with Arial, Times and Courier, which is what
+# a phone reaches for in the preview. The faces are not identical; the shapes
+# are close enough that what was designed is what comes out, and the text is
+# fitted to its box either way.
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends fontconfig fonts-liberation2 fonts-dejavu-core \
+ && rm -rf /var/lib/apt/lists/*
+
 # A minimal manifest, written here rather than copied from the workspace.
 # The workspace package.json lists sibling packages like @photobooth/shared,
 # which npm would try to fetch from the public registry and fail on -- they

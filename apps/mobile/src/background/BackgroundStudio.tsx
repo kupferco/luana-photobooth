@@ -17,7 +17,16 @@ import {
 } from './artwork'
 
 const DATE_STYLES: DateStyle[] = ['long', 'short', 'monthYear', 'none']
-const FONT_NAMES: FontName[] = ['sans', 'serif', 'rounded', 'mono']
+/*
+ * Three, not four.
+ *
+ * "Rounded" had no equivalent the renderer could name: a phone has Avenir
+ * and a Debian container does not, so it would have previewed as one thing
+ * and printed as another. A lettering choice that lies is worse than one
+ * fewer choice. A real rounded face can come back when there is a font file
+ * shipped to both sides.
+ */
+const FONT_NAMES: FontName[] = ['sans', 'serif', 'mono']
 const THEMES: ThemeName[] = [
   'plain',
   'confetti',
