@@ -184,7 +184,14 @@
     "layout": "Formato",
     "generationsUsed": "{used} de {cap} usados nesta festa.",
     "patternReplaced": "A imagem gerada substitui a estampa. Remova-a para escolher uma.",
-    "fade": "Intensidade — {percent}%"
+    "fade": "Intensidade — {percent}%",
+    "colourDefault": "Padrão",
+    "wash": "Camada de cor",
+    "washStrength": "Camada — {percent}%",
+    "textColour": "Cor do texto",
+    "tidy": "Ajustar",
+    "tidyHint": "Ajusta a intensidade, a camada e o texto para algo que imprime bem. Desfaça mexendo em qualquer coisa.",
+    "enlarge": "Toque na prévia para ver grande"
   },
   "report": {
     "title": "Como foi",

@@ -40,6 +40,27 @@ export interface Artwork {
    * rather than one they were protected from.
    */
   backgroundOpacity: number
+
+  /**
+   * A colour washed over the picture, and how strongly.
+   *
+   * Its own layer rather than a filter on the picture: a wash is how you
+   * pull a photograph nobody chose for its colours into the rest of a
+   * design, and it has to sit above the picture and below the words or it
+   * tints the party's name along with everything else.
+   *
+   * Null is no wash at all, which is different from a wash at zero.
+   */
+  tint: string | null
+  tintOpacity: number
+
+  /**
+   * The words' colour, when it should not be the palette's.
+   *
+   * Null means the palette decides, which is right until somebody puts a
+   * dark photograph behind dark letters. Then it is theirs to fix.
+   */
+  ink: string | null
 }
 
 export const DEFAULT_ARTWORK: Artwork = {
@@ -50,6 +71,9 @@ export const DEFAULT_ARTWORK: Artwork = {
   palette: 'amber',
   prompt: '',
   backgroundOpacity: 100,
+  tint: null,
+  tintOpacity: 30,
+  ink: null,
 }
 
 export interface Palette {

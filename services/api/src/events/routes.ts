@@ -803,6 +803,11 @@ const ArtworkBody = z.object({
     palette: z.enum(['amber', 'ink', 'rose', 'sea', 'forest', 'blossom']),
     prompt: z.string().trim().max(300),
     backgroundOpacity: z.number().min(0).max(100).default(100),
+    // Hex only, and validated rather than trusted: this goes straight into
+    // an SVG attribute, where anything else is a way to write SVG.
+    tint: z.string().regex(/^#[0-9a-fA-F]{6}$/).nullable().default(null),
+    tintOpacity: z.number().min(0).max(100).default(30),
+    ink: z.string().regex(/^#[0-9a-fA-F]{6}$/).nullable().default(null),
   }),
   /**
    * A candidate from the generate route, to draw the words over.

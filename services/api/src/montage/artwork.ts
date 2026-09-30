@@ -8,7 +8,7 @@ import {
   type FontName,
   type Template,
 } from '@photobooth/shared'
-import sharp from 'sharp'
+import sharp, { type OverlayOptions, type Sharp } from 'sharp'
 
 /**
  * Turning a party's description into the picture the printer uses.
@@ -151,6 +151,7 @@ export async function renderArtwork(
 ): Promise<Buffer> {
   const { w, h } = template.canvas
   const palette = PALETTES[artwork.palette]
+  const ink = artwork.ink ?? palette.ink
   const area = artworkArea(template)
 
   // The same padding the preview uses, from the same constant.
@@ -174,7 +175,7 @@ export async function renderArtwork(
     words.push(
       `<text x="${centreX}" y="${top + titleSize * 0.82}" text-anchor="middle"` +
         ` font-family="${FAMILIES[artwork.font]}" font-weight="${WEIGHTS[artwork.font]}"` +
-        ` font-size="${titleSize}" fill="${palette.ink}">${escape(title)}</text>`,
+        ` font-size="${titleSize}" fill="${ink}">${escape(title)}</text>`,
     )
   }
   if (date) {
@@ -182,7 +183,7 @@ export async function renderArtwork(
     words.push(
       `<text x="${centreX}" y="${y}" text-anchor="middle"` +
         ` font-family="${FAMILIES[artwork.font]}" font-weight="400"` +
-        ` font-size="${dateSize}" fill="${palette.ink}" opacity="0.7">${escape(date)}</text>`,
+        ` font-size="${dateSize}" fill="${ink}" opacity="0.7">${escape(date)}</text>`,
     )
   }
 
@@ -212,11 +213,59 @@ export async function renderArtwork(
    * fading them along with the picture would make the party's name
    * disappear at the same rate as its decoration.
    */
+  /*
+   * Uniform transparency, by multiplying the alpha channel.
+   *
+   * Not ensureAlpha(x): that fills the channel only when it is *missing*,
+   * and a generated PNG arrives with one already -- so it silently did
+   * nothing and the strength slider moved without changing the print.
+   * `dest-in` keeps the picture only where the mask is opaque, which for a
+   * flat mask is exactly "multiply every pixel's alpha by this".
+   */
+  const fade = (layer: Sharp, amount: number) =>
+    layer.ensureAlpha().composite([
+      {
+        input: {
+          create: {
+            width: w,
+            height: h,
+            channels: 4,
+            background: { r: 0, g: 0, b: 0, alpha: Math.max(0, Math.min(1, amount)) },
+          },
+        },
+        blend: 'dest-in',
+      },
+    ])
+
   const opacity = Math.max(0, Math.min(100, artwork.backgroundOpacity)) / 100
-  const picture = await sharp(base).resize(w, h, { fit: 'cover' }).ensureAlpha(opacity).png().toBuffer()
+  const picture = await fade(sharp(base).resize(w, h, { fit: 'cover' }), opacity)
+    .png()
+    .toBuffer()
+
+  /*
+   * Above the picture, below the words.
+   *
+   * A wash over everything would tint the party's name too, and the name
+   * is the one thing on here that has to stay legible.
+   */
+  const layers: OverlayOptions[] = [{ input: picture }]
+
+  if (artwork.tint && artwork.tintOpacity > 0) {
+    const wash = await fade(
+      sharp({
+        create: { width: w, height: h, channels: 4, background: artwork.tint },
+      }),
+      artwork.tintOpacity / 100,
+    )
+      .png()
+      .toBuffer()
+    layers.push({ input: wash })
+  }
+
+  layers.push({ input: svg })
 
   return sharp({ create: { width: w, height: h, channels: 4, background: palette.paper } })
-    .composite([{ input: picture }, { input: svg }])
+    .composite(layers)
     .png()
     .toBuffer()
 }

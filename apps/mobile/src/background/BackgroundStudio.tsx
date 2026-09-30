@@ -12,6 +12,9 @@ import { useLocale, useT } from '../locale'
 import { useTheme } from '../theme'
 import type { Background, Layout } from '../api/types'
 import { Body, Button, Chip, Field, Label, Notice, Slider } from '../ui'
+import { ColourPicker } from '../ui/ColourPicker'
+import { tidy } from './tidy'
+import { useState } from 'react'
 import { ArtworkCanvas } from './ArtworkCanvas'
 import {
   DEFAULT_ARTWORK,
@@ -128,6 +131,8 @@ export function BackgroundStudio({
    * prints exactly the way the background does. Same rule: nothing until
    * the button.
    */
+  const [enlarged, setEnlarged] = useState(false)
+
   const chosen = layouts.find((l) => l.id === templateId) ?? layouts[0]
   const template = chosen?.template ?? CLASSIC_3UP
   const { width: screenWidth, height: windowHeight } = useWindowDimensions()
@@ -227,7 +232,10 @@ export function BackgroundStudio({
             * the whole reason the sheet exists, so it keeps its place.
             */}
             <View style={{ alignItems: 'center', gap: 8 }}>
-              <View
+              <Pressable
+                onPress={() => setEnlarged(true)}
+                accessibilityRole="button"
+                accessibilityLabel={t('artwork.enlarge')}
                 style={{
                   borderRadius: theme.radius.md,
                   overflow: 'hidden',
@@ -270,7 +278,7 @@ export function BackgroundStudio({
                     </Text>
                   </View>
                 ))}
-              </View>
+              </Pressable>
 
               <Body muted>
                 {t('artwork.areaHint', {
@@ -425,6 +433,45 @@ export function BackgroundStudio({
               })}
             </Group>
 
+            <ColourPicker
+              label={t('artwork.textColour')}
+              value={artwork.ink}
+              onChange={(hex) => set('ink', hex)}
+              onClear={() => set('ink', null)}
+            />
+
+            <View style={{ gap: 6 }}>
+              <ColourPicker
+                label={t('artwork.wash')}
+                value={artwork.tint}
+                onChange={(hex) => set('tint', hex)}
+                onClear={() => set('tint', null)}
+              />
+              {artwork.tint ? (
+                <>
+                  <Label>
+                    {t('artwork.washStrength', {
+                      percent: String(artwork.tintOpacity),
+                    })}
+                  </Label>
+                  <Slider
+                    value={artwork.tintOpacity}
+                    onChange={(v) => set('tintOpacity', v)}
+                  />
+                </>
+              ) : null}
+            </View>
+
+            {/* Our taste, as a button rather than as a rule. */}
+            <View style={{ gap: theme.space[2] }}>
+              <Button
+                label={t('artwork.tidy')}
+                variant="secondary"
+                onPress={() => onChange(tidy(artwork, Boolean(candidateUrl)))}
+              />
+              <Body muted>{t('artwork.tidyHint')}</Body>
+            </View>
+
             {/*
               * Generated artwork.
               *
@@ -539,6 +586,29 @@ export function BackgroundStudio({
           </ScrollView>
         </View>
       </View>
+      {/* The print, big. Tapping anywhere closes it: there is nothing to do
+          here but look. */}
+      <Modal visible={enlarged} transparent animationType="fade">
+        <Pressable
+          onPress={() => setEnlarged(false)}
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.92)',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 16,
+          }}
+        >
+          <ArtworkCanvas
+            template={template}
+            artwork={artwork}
+            backgroundUri={candidateUrl}
+            eventDate={eventDate}
+            locale={locale}
+            width={Math.min(screenWidth - 32, (windowHeight - 120) * 1.5)}
+          />
+        </Pressable>
+      </Modal>
     </Modal>
   )
 }

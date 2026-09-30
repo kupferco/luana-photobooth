@@ -184,7 +184,14 @@
     "layout": "Layout",
     "generationsUsed": "{used} of {cap} used for this party.",
     "patternReplaced": "The generated picture replaces the pattern. Remove it to choose one.",
-    "fade": "Strength — {percent}%"
+    "fade": "Strength — {percent}%",
+    "colourDefault": "Default",
+    "wash": "Colour wash",
+    "washStrength": "Wash — {percent}%",
+    "textColour": "Text colour",
+    "tidy": "Tidy it up",
+    "tidyHint": "Nudges the strength, the wash and the text towards something that prints well. Undo by moving anything.",
+    "enlarge": "Tap the preview to see it large"
   },
   "report": {
     "title": "How it went",
