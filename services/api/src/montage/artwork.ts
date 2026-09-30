@@ -1,6 +1,7 @@
 import {
   ARTWORK_PADDING,
   PALETTES,
+  resolveArtwork,
   artworkArea,
   formatEventDate,
   scatter,
@@ -150,8 +151,9 @@ export async function renderArtwork(
   base?: Buffer,
 ): Promise<Buffer> {
   const { w, h } = template.canvas
+  const resolved = resolveArtwork(artwork, Boolean(base))
   const palette = PALETTES[artwork.palette]
-  const ink = artwork.ink ?? palette.ink
+  const ink = resolved.ink
   const area = artworkArea(template)
 
   // The same padding the preview uses, from the same constant.
@@ -237,7 +239,7 @@ export async function renderArtwork(
       },
     ])
 
-  const opacity = Math.max(0, Math.min(100, artwork.backgroundOpacity)) / 100
+  const opacity = resolved.pictureOpacity
   const picture = await fade(sharp(base).resize(w, h, { fit: 'cover' }), opacity)
     .png()
     .toBuffer()
@@ -250,12 +252,12 @@ export async function renderArtwork(
    */
   const layers: OverlayOptions[] = [{ input: picture }]
 
-  if (artwork.tint && artwork.tintOpacity > 0) {
+  if (resolved.tint && resolved.tintOpacity > 0) {
     const wash = await fade(
       sharp({
-        create: { width: w, height: h, channels: 4, background: artwork.tint },
+        create: { width: w, height: h, channels: 4, background: resolved.tint },
       }),
-      artwork.tintOpacity / 100,
+      resolved.tintOpacity,
     )
       .png()
       .toBuffer()

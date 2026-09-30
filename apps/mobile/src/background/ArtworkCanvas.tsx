@@ -1,4 +1,9 @@
-import { ARTWORK_PADDING, artworkArea, type Template } from '@photobooth/shared'
+import {
+  ARTWORK_PADDING,
+  artworkArea,
+  resolveArtwork,
+  type Template,
+} from '@photobooth/shared'
 import { Image, Text, View } from 'react-native'
 import Svg, { Circle, Line, Rect } from 'react-native-svg'
 import {
@@ -40,7 +45,11 @@ export function ArtworkCanvas({
   const scale = width / template.canvas.w
   const height = template.canvas.h * scale
   const area = artworkArea(template)
+  // Every derived value comes from the shared resolver, so the preview
+  // cannot decide something the renderer has not.
+  const resolved = resolveArtwork(artwork, Boolean(backgroundUri))
   const palette = PALETTES[artwork.palette]
+  const ink = resolved.ink
   const font = FONTS[artwork.font]
 
   const date = formatEventDate(eventDate, artwork.dateStyle, locale)
@@ -71,7 +80,7 @@ export function ArtworkCanvas({
             height,
             // The renderer fades the picture against the paper; here the
             // paper is the view's own background, so opacity does the same.
-            opacity: Math.max(0, Math.min(100, artwork.backgroundOpacity)) / 100,
+            opacity: resolved.pictureOpacity,
           }}
           resizeMode="cover"
         />
@@ -88,6 +97,22 @@ export function ArtworkCanvas({
           height={height}
         />
       )}
+
+      {/* Above the picture and below the words, as the renderer does it. */}
+      {resolved.tint && resolved.tintOpacity > 0 ? (
+        <View
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            left: 0,
+            top: 0,
+            width,
+            height,
+            backgroundColor: resolved.tint,
+            opacity: resolved.tintOpacity,
+          }}
+        />
+      ) : null}
 
       <View
         style={{
@@ -107,7 +132,7 @@ export function ArtworkCanvas({
             numberOfLines={3}
             adjustsFontSizeToFit
             style={{
-              color: palette.ink,
+              color: ink,
               fontFamily: font.family,
               fontWeight: font.weight,
               fontSize: 86 * scale,
@@ -123,7 +148,7 @@ export function ArtworkCanvas({
           <Text
             numberOfLines={1}
             style={{
-              color: palette.ink,
+              color: ink,
               opacity: 0.7,
               fontFamily: font.family,
               fontWeight: '400',

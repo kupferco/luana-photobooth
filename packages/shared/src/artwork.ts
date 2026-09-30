@@ -159,3 +159,41 @@ export function scatter(seed: number, count: number): { x: number; y: number; r:
   }
   return out
 }
+
+/**
+ * The values both drawing paths must agree on.
+ *
+ * There are two of them -- the preview in the app and the renderer in the
+ * API -- and they have now disagreed three times: over which fonts exist,
+ * over the padding, and over whether the ink and the wash were applied at
+ * all. Sharing the *description* was not enough; what drifts is the
+ * handful of decisions made about it.
+ *
+ * Anything derived from an Artwork belongs here, so a rule added on one
+ * side cannot quietly not exist on the other.
+ */
+export function resolveArtwork(
+  artwork: Artwork,
+  hasPicture: boolean,
+): {
+  paper: string
+  ink: string
+  /** 0-1, ready to multiply. */
+  pictureOpacity: number
+  /** Null when there is nothing to wash, whatever the colour says. */
+  tint: string | null
+  tintOpacity: number
+} {
+  const palette = PALETTES[artwork.palette]
+  const clamp = (v: number) => Math.max(0, Math.min(100, v)) / 100
+
+  return {
+    paper: palette.paper,
+    ink: artwork.ink ?? palette.ink,
+    pictureOpacity: clamp(artwork.backgroundOpacity),
+    // A wash over plain paper is just a different paper, and saying so in
+    // one place stops the two sides deciding it differently.
+    tint: hasPicture && artwork.tint ? artwork.tint : null,
+    tintOpacity: clamp(artwork.tintOpacity),
+  }
+}
