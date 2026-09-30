@@ -139,6 +139,20 @@
     "retakesHint": "Quantas vezes um convidado pode apagar a foto e tentar de novo, mantendo o lugar na frente.",
     "retakesOff": "Desligado"
   },
+  "report": {
+    "title": "Como foi",
+    "photos": "Fotos",
+    "prints": "Impressões",
+    "guests": "Sessões",
+    "retakes": "Refeitas",
+    "averageWait": "Espera média",
+    "longestWait": "Maior espera",
+    "perHour": "Fotos por hora",
+    "busiestHour": "Hora mais cheia",
+    "noWait": "Ninguém esperou",
+    "waitHint": "Conta quem entrou na fila pelo próprio celular. Quem chegou direto na cabine não esperou.",
+    "busyHint": "Uma espera média alta é o sinal de que uma cabine só não deu conta."
+  },
   "retention": {
     "guest": "Suas fotos ficam guardadas até {date}.",
     "deleteMine": "Apagar minhas fotos",
@@ -231,7 +245,11 @@
     },
     "offlineHint": "Você continua conectado. Verifique se o servidor está rodando (npm run server) e tente de novo.",
     "show": "Mostrar",
-    "hide": "Ocultar"
+    "hide": "Ocultar",
+    "prints": {
+      "one": "{count} impressão",
+      "other": "{count} impressões"
+    }
   },
   "dev": {
     "fixtures": "Dados fictícios. Use EXPO_PUBLIC_API_MODE=live para acessar a API real."
@@ -244,7 +262,11 @@
     "totalPhotos": "Fotos",
     "totalPrints": "Impressões",
     "past": "Anteriores",
-    "upcoming": "Próximos"
+    "upcoming": "Próximos",
+    "searchPast": "Buscar festas anteriores",
+    "allYears": "Todas",
+    "noMatches": "Nenhuma festa anterior corresponde.",
+    "clearFilters": "Limpar"
   },
   "profile": {
     "title": "Perfil",

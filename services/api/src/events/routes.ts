@@ -7,6 +7,8 @@ import {
   gallery,
   getEvent,
   getSession,
+  eventCounts,
+  eventReport,
   listEvents,
   listEventsForUser,
   listTemplates,
@@ -62,9 +64,14 @@ const OptionalTenantQuery = z.object({ tenantId: z.string().uuid().optional() })
  * is useless without credentials anyway. What goes out is a short-lived
  * signed URL, which is enough to show a preview and expires on its own.
  */
-async function present(event: Awaited<ReturnType<typeof getEvent>>) {
+async function present(
+  event: Awaited<ReturnType<typeof getEvent>>,
+  counts?: { photos: number; prints: number },
+) {
   if (!event) return null
   return {
+    photos: counts?.photos ?? 0,
+    prints: counts?.prints ?? 0,
     id: event.id,
     // Sent because the client can no longer assume one account: someone
     // helping with a single party has no membership to read it from.
@@ -160,7 +167,11 @@ eventRoutes.get('/', async (req, res, next) => {
      * could not help: res.json takes anything, and an array of promises is a
      * perfectly good anything.
      */
-    return res.json({ events: await Promise.all(rows.map((row) => present(row))) })
+    const counts = await eventCounts(rows.map((row) => row.id))
+
+    return res.json({
+      events: await Promise.all(rows.map((row) => present(row, counts.get(row.id)))),
+    })
   } catch (e) {
     return next(e)
   }
@@ -730,6 +741,30 @@ eventRoutes.delete('/:eventId/members/:userId', async (req, res, next) => {
 
     await removeEventMember(req.params.eventId!, req.params.userId!)
     return res.status(204).end()
+  } catch (e) {
+    return next(e)
+  }
+})
+
+/**
+ * What one party actually did.
+ *
+ * Its own route rather than more fields on the event: it is several
+ * aggregates over every session, nobody needs it while a party is running,
+ * and putting it on the event would have made the home screen pay for it
+ * once per row.
+ */
+eventRoutes.get('/:eventId/report', async (req, res, next) => {
+  try {
+    const query = TenantQuery.safeParse(req.query)
+    if (!query.success) {
+      return res.status(400).json({
+        error: { code: 'invalid_request', message: 'tenantId is required.' },
+      })
+    }
+    await requireEventAccess(req, query.data.tenantId, req.params.eventId!)
+
+    return res.json(await eventReport(query.data.tenantId, req.params.eventId!))
   } catch (e) {
     return next(e)
   }

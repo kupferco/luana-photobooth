@@ -139,6 +139,20 @@
     "retakesHint": "How many times a guest can delete their photo and go again, keeping their place at the front.",
     "retakesOff": "Off"
   },
+  "report": {
+    "title": "How it went",
+    "photos": "Photos",
+    "prints": "Prints",
+    "guests": "Sessions",
+    "retakes": "Retakes",
+    "averageWait": "Average wait",
+    "longestWait": "Longest wait",
+    "perHour": "Photos an hour",
+    "busiestHour": "Busiest hour",
+    "noWait": "Nobody queued",
+    "waitHint": "Counts guests who joined from their own phone. Someone who walked up to the booth never waited.",
+    "busyHint": "A long average wait is the sign that one booth was not enough."
+  },
   "retention": {
     "guest": "Your photos are saved until {date}.",
     "deleteMine": "Delete my photos",
@@ -231,7 +245,11 @@
     },
     "offlineHint": "You are still signed in. Check the server is running (npm run server) and try again.",
     "show": "Show",
-    "hide": "Hide"
+    "hide": "Hide",
+    "prints": {
+      "one": "{count} print",
+      "other": "{count} prints"
+    }
   },
   "dev": {
     "fixtures": "Fixture data. Set EXPO_PUBLIC_API_MODE=live to use the real API."
@@ -244,7 +262,11 @@
     "totalPhotos": "Photos",
     "totalPrints": "Prints",
     "past": "Past",
-    "upcoming": "Coming up"
+    "upcoming": "Coming up",
+    "searchPast": "Search past events",
+    "allYears": "All",
+    "noMatches": "No past events match that.",
+    "clearFilters": "Clear"
   },
   "profile": {
     "title": "Profile",

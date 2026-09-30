@@ -11,6 +11,7 @@ import {
 } from '../../src/api'
 import { useLocale, useT } from '../../src/locale'
 import { useActiveEvent } from '../../src/event-context'
+import { EventReportCard } from '../../src/report/EventReportCard'
 import { PeopleCard } from '../../src/people/PeopleCard'
 import { useSession } from '../../src/session'
 import { copy } from '../../src/clipboard'
@@ -323,6 +324,13 @@ export default function EventTab() {
   return (
     <Screen>
       <Heading>{event.name}</Heading>
+
+      {/* A finished party's numbers, at the top where its live readout used
+          to be. Same place, same question -- how is it going, then how did
+          it go. */}
+      {event.status === 'ended' ? (
+        <EventReportCard tenantId={event.tenantId} eventId={event.id} />
+      ) : null}
 
       {/* Anything wrong with the hardware comes first: during a party this is
           the only part of the screen that matters. */}

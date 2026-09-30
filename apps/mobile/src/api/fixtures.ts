@@ -55,6 +55,8 @@ const EVENTS: Event[] = [
     endedAt: null,
     backgroundUrl: null,
     retakesAllowed: 1,
+    photos: 31,
+    prints: 12,
   },
   {
     id: 'evt-draft',
@@ -68,6 +70,8 @@ const EVENTS: Event[] = [
     endedAt: null,
     backgroundUrl: null,
     retakesAllowed: 1,
+    photos: 0,
+    prints: 0,
   },
   {
     // Close to deletion on purpose: this is the state the download prompt and
@@ -83,6 +87,8 @@ const EVENTS: Event[] = [
     endedAt: iso(-88),
     backgroundUrl: null,
     retakesAllowed: 1,
+    photos: 148,
+    prints: 96,
   },
 ]
 
@@ -283,6 +289,8 @@ export const fixtureApi: PhotoboothApi = {
       endedAt: null,
       backgroundUrl: null,
     retakesAllowed: 1,
+    photos: 0,
+    prints: 0,
     }
     EVENTS.unshift(event)
     SESSIONS[event.id] = []
@@ -382,6 +390,28 @@ export const fixtureApi: PhotoboothApi = {
   async removeMember(_tenantId, userId) {
     await delay()
     removedMembers.add(userId)
+  },
+
+  async eventReport() {
+    await delay()
+    /*
+     * A party that was busier than one booth could comfortably take: a
+     * four-minute average wait is the number that should make someone
+     * think about a second one, so it is the number worth designing the
+     * screen against.
+     */
+    return {
+      photos: 148,
+      prints: 96,
+      guests: 161,
+      retakes: 19,
+      averageWaitSeconds: 244,
+      longestWaitSeconds: 963,
+      photosPerHour: 37.2,
+      busiestHour: 52,
+      firstAt: iso(-88),
+      lastAt: iso(-88),
+    }
   },
 
   async listEventMembers() {

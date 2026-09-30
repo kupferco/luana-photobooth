@@ -1,11 +1,21 @@
 import { router } from 'expo-router'
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { Pressable, Text, View } from 'react-native'
 import { usingFixtures, type Event } from '../../src/api'
 import { useActiveEvent } from '../../src/event-context'
 import { useLocale, useT } from '../../src/locale'
 import { useTheme } from '../../src/theme'
-import { Body, Button, Card, Label, Notice, Row, Screen, Spinner } from '../../src/ui'
+import {
+  Body,
+  Button,
+  Card,
+  Field,
+  Label,
+  Notice,
+  Row,
+  Screen,
+  Spinner,
+} from '../../src/ui'
 
 /**
  * Everything that has happened. Stats across all events, then the events
@@ -23,6 +33,44 @@ export default function Home() {
     [events],
   )
   const past = useMemo(() => events.filter((e) => e.status === 'ended'), [events])
+
+  const [query, setQuery] = useState('')
+  const [year, setYear] = useState<number | null>(null)
+
+  /** Newest first, which is the order the years are wanted in. */
+  const years = useMemo(
+    () =>
+      [...new Set(past.map((e) => new Date(e.eventDate).getFullYear()))].sort(
+        (a, b) => b - a,
+      ),
+    [past],
+  )
+
+  const filtered = useMemo(() => {
+    const needle = query.trim().toLowerCase()
+    return past.filter(
+      (e) =>
+        (year === null || new Date(e.eventDate).getFullYear() === year) &&
+        (needle === '' || e.name.toLowerCase().includes(needle)),
+    )
+  }, [past, query, year])
+
+  /*
+   * Filters appear once the list is long enough to need them.
+   *
+   * Someone with three finished parties can see all three; a search box
+   * above them is a control that answers a question they do not have.
+   */
+  const showFilters = past.length >= 6
+
+  const totals = useMemo(
+    () =>
+      events.reduce(
+        (sum, e) => ({ photos: sum.photos + e.photos, prints: sum.prints + e.prints }),
+        { photos: 0, prints: 0 },
+      ),
+    [events],
+  )
 
   const open = (event: Event) => {
     setActive(event.id)
@@ -50,10 +98,8 @@ export default function Home() {
         <Card>
           <Row>
             <Stat label={t('home.totalEvents')} value={String(events.length)} />
-            {/* Totals are per-event counts the API will serve; the shape is
-                here so the layout is settled before it is wired. */}
-            <Stat label={t('home.totalPhotos')} value="—" />
-            <Stat label={t('home.totalPrints')} value="—" />
+            <Stat label={t('home.totalPhotos')} value={String(totals.photos)} />
+            <Stat label={t('home.totalPrints')} value={String(totals.prints)} />
           </Row>
         </Card>
       )}
@@ -70,14 +116,100 @@ export default function Home() {
       {past.length > 0 ? (
         <>
           <Label>{t('home.past')}</Label>
-          {past.map((event) => (
-            <EventCard key={event.id} event={event} onPress={() => open(event)} />
-          ))}
+
+          {showFilters ? (
+            <Card>
+              <Field
+                label={t('home.searchPast')}
+                value={query}
+                onChangeText={setQuery}
+                autoCapitalize="none"
+                autoCorrect={false}
+                placeholder="…"
+              />
+              {years.length > 1 ? (
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                  <Chip
+                    label={t('home.allYears')}
+                    selected={year === null}
+                    onPress={() => setYear(null)}
+                  />
+                  {years.map((y) => (
+                    <Chip
+                      key={y}
+                      label={String(y)}
+                      selected={year === y}
+                      onPress={() => setYear(y)}
+                    />
+                  ))}
+                </View>
+              ) : null}
+            </Card>
+          ) : null}
+
+          {filtered.length === 0 ? (
+            <Card>
+              <Body muted>{t('home.noMatches')}</Body>
+              <Button
+                label={t('home.clearFilters')}
+                variant="secondary"
+                onPress={() => {
+                  setQuery('')
+                  setYear(null)
+                }}
+              />
+            </Card>
+          ) : (
+            filtered.map((event) => (
+              <EventCard key={event.id} event={event} onPress={() => open(event)} />
+            ))
+          )}
         </>
       ) : null}
 
       <Button label={t('events.new')} onPress={() => router.push('/events/new')} />
     </Screen>
+  )
+}
+
+/** A year filter. Small, because it sits above the thing it filters. */
+function Chip({
+  label,
+  selected,
+  onPress,
+}: {
+  label: string
+  selected: boolean
+  onPress: () => void
+}) {
+  const theme = useTheme()
+  return (
+    <Pressable
+      onPress={onPress}
+      hitSlop={6}
+      accessibilityRole="button"
+      accessibilityState={{ selected }}
+      style={{
+        paddingVertical: 8,
+        paddingHorizontal: 14,
+        borderRadius: 999,
+        backgroundColor: selected
+          ? theme.color.action.bg
+          : theme.color.actionSecondary.bg,
+        borderWidth: 1,
+        borderColor: selected ? 'transparent' : theme.color.actionSecondary.border,
+      }}
+    >
+      <Text
+        style={{
+          color: selected ? theme.color.action.fg : theme.color.text.primary,
+          fontSize: theme.fontSize.sm,
+          fontWeight: '600',
+        }}
+      >
+        {label}
+      </Text>
+    </Pressable>
   )
 }
 
@@ -142,6 +274,21 @@ function EventCard({ event, onPress }: { event: Event; onPress: () => void }) {
               {' · '}
               {t(`events.status.${event.status}`)}
             </Text>
+
+            {/* Only once there is something to say. A row of zeroes on a
+                party that has not happened yet is noise. */}
+            {event.photos > 0 ? (
+              <Text
+                style={{
+                  color: theme.color.text.secondary,
+                  fontSize: theme.fontSize.sm,
+                }}
+              >
+                {t('common.photos', { count: event.photos })}
+                {' · '}
+                {t('common.prints', { count: event.prints })}
+              </Text>
+            ) : null}
           </View>
           <Text
             style={{

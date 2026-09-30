@@ -39,6 +39,28 @@ export interface Event {
   backgroundUrl: string | null
   /** How many times a guest may delete their photo and go again. */
   retakesAllowed: number
+  /** Finished photos, and prints that reached paper. Carried on the list. */
+  photos: number
+  prints: number
+}
+
+/** What a finished party did, for deciding whether one booth was enough. */
+export interface EventReport {
+  photos: number
+  prints: number
+  guests: number
+  retakes: number
+  /**
+   * Null when nobody queued: someone who walks up and taps the booth never
+   * waited, so an event with no QR guests has no wait to report.
+   */
+  averageWaitSeconds: number | null
+  longestWaitSeconds: number | null
+  /** Null when the party was too short for a rate to mean anything. */
+  photosPerHour: number | null
+  busiestHour: number | null
+  firstAt: string | null
+  lastAt: string | null
 }
 
 /** Artwork behind the photos. Null means the template's flat colour. */
@@ -162,6 +184,9 @@ export interface PhotoboothApi {
   /** Invites by email. Already a member is a success, not an error. */
   addMember(tenantId: string, email: string): Promise<{ member: Member; created: boolean }>
   removeMember(tenantId: string, userId: string): Promise<void>
+
+  /** The full numbers for one party. Worth asking for once it has ended. */
+  eventReport(tenantId: string, eventId: string): Promise<EventReport>
 
   // Dashboard
   eventStats(tenantId: string, eventId: string): Promise<EventLiveStats>

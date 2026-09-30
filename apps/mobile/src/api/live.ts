@@ -1,5 +1,6 @@
 import { clearToken, readToken, writeToken } from './storage'
 import type {
+  EventReport,
   Member,
   BackgroundUpload,
   Device,
@@ -242,6 +243,13 @@ export const liveApi: PhotoboothApi = {
     const query = tenantId ? `?tenantId=${encodeURIComponent(tenantId)}` : ''
     const result = await request<{ events: Event[] }>('GET', `/events${query}`)
     return result.events
+  },
+
+  async eventReport(tenantId, eventId) {
+    return request<EventReport>(
+      'GET',
+      `/events/${encodeURIComponent(eventId)}/report?tenantId=${encodeURIComponent(tenantId)}`,
+    )
   },
 
   async listEventMembers(tenantId, eventId) {

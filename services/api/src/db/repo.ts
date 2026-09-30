@@ -1058,3 +1058,151 @@ export async function countPrints(tenantId: string, sessionId: string) {
     .where(and(eq(printJobs.tenantId, tenantId), eq(printJobs.sessionId, sessionId)))
   return row?.n ?? 0
 }
+
+/**
+ * Photos and prints per event, for the list.
+ *
+ * Two small grouped queries rather than joining onto the event list itself:
+ * that query already left-joins event membership and is distinct-ed, and
+ * hanging aggregates off it would have counted rows twice.
+ */
+export async function eventCounts(
+  eventIds: string[],
+): Promise<Map<string, { photos: number; prints: number }>> {
+  const out = new Map<string, { photos: number; prints: number }>()
+  if (eventIds.length === 0) return out
+
+  const photos = await db
+    .select({ eventId: sessions.eventId, n: sql<number>`count(*)::int` })
+    .from(sessions)
+    .where(
+      and(
+        inArray(sessions.eventId, eventIds),
+        eq(sessions.status, 'ready'),
+        isNull(sessions.deletedAt),
+      ),
+    )
+    .groupBy(sessions.eventId)
+
+  // Jobs that actually reached paper. A queued or failed one is not a print.
+  const prints = await db
+    .select({ eventId: sessions.eventId, n: sql<number>`count(*)::int` })
+    .from(printJobs)
+    .innerJoin(sessions, eq(sessions.id, printJobs.sessionId))
+    .where(
+      and(inArray(sessions.eventId, eventIds), eq(printJobs.status, 'printed')),
+    )
+    .groupBy(sessions.eventId)
+
+  for (const id of eventIds) out.set(id, { photos: 0, prints: 0 })
+  for (const row of photos) out.set(row.eventId, { ...out.get(row.eventId)!, photos: row.n })
+  for (const row of prints) out.set(row.eventId, { ...out.get(row.eventId)!, prints: row.n })
+
+  return out
+}
+
+export interface EventReport {
+  photos: number
+  prints: number
+  /** Sessions started, including ones that never produced a photo. */
+  guests: number
+  retakes: number
+  /** Seconds between joining the queue and the booth calling them up. */
+  averageWaitSeconds: number | null
+  longestWaitSeconds: number | null
+  /** Photos an hour across the whole run. Null when it was too short to mean anything. */
+  photosPerHour: number | null
+  /** The most photos taken in any one clock hour. */
+  busiestHour: number | null
+  firstAt: string | null
+  lastAt: string | null
+}
+
+/**
+ * What a finished party actually did.
+ *
+ * Written for someone deciding whether one booth was enough. The throughput
+ * says what a booth managed; the wait says whether that was enough, and they
+ * are not the same question -- a booth can be busy all night and still have
+ * nobody waiting, which is exactly right.
+ */
+export async function eventReport(
+  tenantId: string,
+  eventId: string,
+): Promise<EventReport> {
+  const [row] = (await db.execute(sql`
+    select
+      count(*) filter (where status = 'ready')::int                as photos,
+      count(*)::int                                                as guests,
+      coalesce(sum(retake_count), 0)::int                          as retakes,
+      avg(extract(epoch from (called_at - queued_at)))
+        filter (where called_at is not null)                       as avg_wait,
+      max(extract(epoch from (called_at - queued_at)))
+        filter (where called_at is not null)                       as max_wait,
+      min(queued_at)                                               as first_at,
+      max(queued_at)                                               as last_at
+    from sessions
+    where tenant_id = ${tenantId}
+      and event_id = ${eventId}
+      and deleted_at is null
+  `)) as unknown as {
+    photos: number
+    guests: number
+    retakes: number
+    avg_wait: string | null
+    max_wait: string | null
+    first_at: Date | null
+    last_at: Date | null
+  }[]
+
+  const [printed] = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(printJobs)
+    .innerJoin(sessions, eq(sessions.id, printJobs.sessionId))
+    .where(and(eq(sessions.eventId, eventId), eq(printJobs.status, 'printed')))
+
+  /*
+   * The busiest clock hour, not a rolling one.
+   *
+   * A rolling window is the more accurate measure of peak load, and it is
+   * not what anybody reads this for: the question is "was there an hour
+   * that overwhelmed one booth", and an hour on the clock answers it.
+   */
+  const [peak] = (await db.execute(sql`
+    select count(*)::int as n
+    from sessions
+    where tenant_id = ${tenantId}
+      and event_id = ${eventId}
+      and deleted_at is null
+      and status = 'ready'
+    group by date_trunc('hour', queued_at)
+    order by n desc
+    limit 1
+  `)) as unknown as { n: number }[]
+
+  const first = row?.first_at ? new Date(row.first_at) : null
+  const last = row?.last_at ? new Date(row.last_at) : null
+  const hours = first && last ? (last.getTime() - first.getTime()) / 3_600_000 : 0
+
+  const num = (v: string | null | undefined) =>
+    v === null || v === undefined ? null : Math.round(Number(v))
+
+  return {
+    photos: row?.photos ?? 0,
+    prints: printed?.n ?? 0,
+    guests: row?.guests ?? 0,
+    retakes: row?.retakes ?? 0,
+    averageWaitSeconds: num(row?.avg_wait),
+    longestWaitSeconds: num(row?.max_wait),
+    /*
+     * Below a quarter of an hour the divisor is small enough that one extra
+     * photo swings the rate wildly -- three photos in four minutes is not
+     * "45 an hour" in any useful sense. Better to say nothing.
+     */
+    photosPerHour:
+      hours >= 0.25 && row?.photos ? Math.round((row.photos / hours) * 10) / 10 : null,
+    busiestHour: peak?.n ?? null,
+    firstAt: first?.toISOString() ?? null,
+    lastAt: last?.toISOString() ?? null,
+  }
+}
