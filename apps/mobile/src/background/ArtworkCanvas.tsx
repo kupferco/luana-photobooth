@@ -68,12 +68,17 @@ export function ArtworkCanvas({
         />
       ) : null}
 
-      <Decoration
-        theme={artwork.theme}
-        accent={palette.accent}
-        width={width}
-        height={height}
-      />
+      {/* Not over a picture. The pattern is what you have instead of one,
+          and drawing both is how a generated background ends up looking
+          like nothing at all. */}
+      {backgroundUri ? null : (
+        <Decoration
+          theme={artwork.theme}
+          accent={palette.accent}
+          width={width}
+          height={height}
+        />
+      )}
 
       <View
         style={{

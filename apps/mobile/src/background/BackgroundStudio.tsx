@@ -357,16 +357,22 @@ export function BackgroundStudio({
               ))}
             </Group>
 
-            <Group label={t('artwork.look')}>
-              {THEMES.map((name) => (
-                <Chip
-                  key={name}
-                  label={t(`artwork.theme.${name}`)}
-                  selected={artwork.theme === name}
-                  onPress={() => set('theme', name)}
-                />
-              ))}
-            </Group>
+            {/* Hidden rather than disabled: a row of dead chips invites
+                pressing them to find out why. */}
+            {candidateUrl ? (
+              <Body muted>{t('artwork.patternReplaced')}</Body>
+            ) : (
+              <Group label={t('artwork.look')}>
+                {THEMES.map((name) => (
+                  <Chip
+                    key={name}
+                    label={t(`artwork.theme.${name}`)}
+                    selected={artwork.theme === name}
+                    onPress={() => set('theme', name)}
+                  />
+                ))}
+              </Group>
+            )}
 
             <Group label={t('artwork.colours')}>
               {PALETTE_NAMES.map((name) => {

@@ -184,7 +184,8 @@
     "layout": "Layout",
     "generateAgain": "Try another",
     "dropCandidate": "Use no picture",
-    "generationsUsed": "{used} of {cap} used for this party."
+    "generationsUsed": "{used} of {cap} used for this party.",
+    "patternReplaced": "The generated picture replaces the pattern. Remove it to choose one."
   },
   "report": {
     "title": "How it went",

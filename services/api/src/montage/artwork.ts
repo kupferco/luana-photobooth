@@ -191,7 +191,8 @@ export async function renderArtwork(
       // No paper rectangle when there is a picture underneath: the point of
       // a generated background is to see it.
       (base ? '' : `<rect width="${w}" height="${h}" fill="${palette.paper}"/>`) +
-      decoration(artwork, w, h, palette.accent) +
+      // Same rule as the preview: a picture replaces the pattern.
+      (base ? '' : decoration(artwork, w, h, palette.accent)) +
       words.join('') +
       '</svg>',
   )

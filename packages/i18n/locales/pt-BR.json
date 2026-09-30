@@ -184,7 +184,8 @@
     "layout": "Formato",
     "generateAgain": "Tentar outro",
     "dropCandidate": "Não usar imagem",
-    "generationsUsed": "{used} de {cap} usados nesta festa."
+    "generationsUsed": "{used} de {cap} usados nesta festa.",
+    "patternReplaced": "A imagem gerada substitui a estampa. Remova-a para escolher uma."
   },
   "report": {
     "title": "Como foi",
