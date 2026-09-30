@@ -1,4 +1,9 @@
-import { DEFAULT_MONTAGE_RETENTION_DAYS, retentionUntil, shotCount } from '@photobooth/shared'
+import {
+  DEFAULT_ARTWORK,
+  DEFAULT_MONTAGE_RETENTION_DAYS,
+  retentionUntil,
+  shotCount,
+} from '@photobooth/shared'
 import { Router } from 'express'
 import { z } from 'zod'
 import {
@@ -7,6 +12,7 @@ import {
   gallery,
   getEvent,
   getSession,
+  claimGeneration,
   eventCounts,
   type EventCounts,
   eventReport,
@@ -27,9 +33,16 @@ import { addEventMember, listEventMembers, removeEventMember } from '../members/
 import { queueEmail } from '../email/queue'
 import { randomUUID } from 'node:crypto'
 import { env } from '../config/env'
-import { createReadUrl, createUploadTicket, exists, upload } from '../storage/gcs'
-import { backgroundPath } from '../storage/paths'
+import { createReadUrl, createUploadTicket, download, exists, upload } from '../storage/gcs'
+import { TIER, backgroundPath, candidatePath } from '../storage/paths'
 import { renderArtwork } from '../montage/artwork'
+import {
+  GenerationRefusedError,
+  GenerationUnavailableError,
+  buildPrompt,
+  generateBackground,
+} from '../artwork/generate'
+import sharp from 'sharp'
 import { downloadEventZip } from './download'
 
 export const eventRoutes: Router = Router()
@@ -786,6 +799,15 @@ const ArtworkBody = z.object({
     palette: z.enum(['amber', 'ink', 'rose', 'sea', 'forest', 'blossom']),
     prompt: z.string().trim().max(300),
   }),
+  /**
+   * A candidate from the generate route, to draw the words over.
+   *
+   * Optional: most artwork is a pattern and a palette with no picture
+   * under it. Must be in the tmp tier and this tenant's, both of which the
+   * storage helpers enforce -- an arbitrary path here would otherwise be a
+   * way to read one object by asking for it as a background.
+   */
+  basePath: z.string().max(300).optional(),
 })
 
 /**
@@ -823,6 +845,19 @@ eventRoutes.put('/:eventId/artwork', async (req, res, next) => {
       })
     }
 
+    let base: Buffer | undefined
+    if (body.data.basePath) {
+      // Only ever a candidate this tenant just made. download() asserts the
+      // tenant; the prefix check stops a real background or a montage being
+      // passed off as one.
+      if (!body.data.basePath.startsWith(`${TIER.tmp}/`)) {
+        return res.status(400).json({
+          error: { code: 'invalid_request', message: 'That is not a generated background.' },
+        })
+      }
+      base = await download(body.data.basePath, tenantId)
+    }
+
     const png = await renderArtwork(
       toTemplate(row),
       artwork,
@@ -831,6 +866,7 @@ eventRoutes.put('/:eventId/artwork', async (req, res, next) => {
       // no such field yet, and a date reading "10 October" to someone who
       // would write "10 de outubro" is a smaller wrong than no date.
       'en-GB',
+      base,
     )
 
     // A fresh id each time, so a regenerate never overwrites the picture the
@@ -840,6 +876,98 @@ eventRoutes.put('/:eventId/artwork', async (req, res, next) => {
 
     const updated = await setEventBackground(tenantId, event.id, path, artwork)
     return res.json({ event: await present(updated) })
+  } catch (e) {
+    return next(e)
+  }
+})
+
+/** Twenty a party. Enough to find something; not enough to be a surprise bill. */
+const GENERATION_CAP = 20
+
+const GenerateBody = z.object({
+  tenantId: z.string().uuid(),
+  prompt: z.string().trim().min(3).max(200),
+  palette: z.enum(['amber', 'ink', 'rose', 'sea', 'forest', 'blossom']),
+})
+
+/**
+ * Make a candidate background from a description.
+ *
+ * Stored in the tmp tier and handed back as a signed URL rather than as
+ * bytes: it is a 1800x1200 PNG and round-tripping that through a phone to
+ * be uploaded again is a lot of somebody's data for a picture they might
+ * reject. The bucket deletes the tier after a day, so rejected artwork
+ * costs a day of storage and no decision.
+ *
+ * Nothing about the event changes here. A candidate becomes the background
+ * only when it is sent back to PUT /artwork as `basePath`.
+ */
+eventRoutes.post('/:eventId/artwork/generate', async (req, res, next) => {
+  try {
+    const body = GenerateBody.safeParse(req.body)
+    if (!body.success) {
+      return res.status(400).json({
+        error: { code: 'invalid_request', message: 'Describe the background in a few words.' },
+      })
+    }
+    const { tenantId, prompt, palette } = body.data
+    await requireEventAccess(req, tenantId, req.params.eventId!)
+
+    const event = await getEvent(tenantId, req.params.eventId!)
+    if (!event) {
+      return res.status(404).json({ error: { code: 'not_found', message: 'Not found' } })
+    }
+
+    const templates = await listTemplates(tenantId)
+    const row = templates.find((t) => t.id === event.templateId)
+    if (!row) {
+      return res.status(409).json({
+        error: { code: 'no_template', message: 'This party has no photo layout.' },
+      })
+    }
+
+    // Claimed before the money is spent, so two taps cannot both pass.
+    const claim = await claimGeneration(tenantId, event.id, GENERATION_CAP)
+    if (!claim.ok) {
+      return res.status(429).json({
+        error: {
+          code: 'generation_cap',
+          message: `This party has used all ${claim.cap} generated backgrounds.`,
+        },
+      })
+    }
+
+    try {
+      const template = toTemplate(row)
+      const image = await generateBackground(
+        buildPrompt(prompt, { ...DEFAULT_ARTWORK, palette }, template),
+      )
+
+      // Squared to the print's own size and shape before anything sees it,
+      // so the preview and the print are looking at the same picture.
+      const sized = await sharp(image.bytes)
+        .resize(template.canvas.w, template.canvas.h, { fit: 'cover' })
+        .png()
+        .toBuffer()
+
+      const path = candidatePath(tenantId, randomUUID())
+      await upload(path, tenantId, sized, 'image/png')
+
+      return res.status(201).json({
+        path,
+        url: await createReadUrl(path, tenantId),
+        used: claim.used,
+        cap: claim.cap,
+      })
+    } catch (e) {
+      if (e instanceof GenerationUnavailableError) {
+        return res.status(503).json({ error: { code: 'generation_unavailable', message: e.message } })
+      }
+      if (e instanceof GenerationRefusedError) {
+        return res.status(422).json({ error: { code: 'generation_refused', message: e.message } })
+      }
+      throw e
+    }
   } catch (e) {
     return next(e)
   }

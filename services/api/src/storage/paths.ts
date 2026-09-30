@@ -18,6 +18,15 @@ export const TIER = {
   out: 'out',
   /** Background artwork, uploaded or generated. Lives with the tenant. */
   bg: 'bg',
+  /**
+   * Generated candidates nobody has accepted.
+   *
+   * Its own tier because it needs its own expiry: somebody trying six
+   * prompts produces five pictures that should not exist tomorrow. The
+   * bucket deletes this prefix after a day, so rejected artwork costs a
+   * day of storage and no thought.
+   */
+  tmp: 'tmp',
 } as const
 
 export type Tier = (typeof TIER)[keyof typeof TIER]
@@ -36,6 +45,11 @@ export function rawFramePath(scope: SessionScope, idx: number): string {
 /** out/t/<tenant>/e/<event>/s/<session>/montage.jpg */
 export function montagePath(scope: SessionScope): string {
   return `${TIER.out}/t/${scope.tenantId}/e/${scope.eventId}/s/${scope.sessionId}/montage.jpg`
+}
+
+/** tmp/t/<tenant>/<id>.png -- a candidate, until it is accepted. */
+export function candidatePath(tenantId: string, id: string): string {
+  return `${TIER.tmp}/t/${tenantId}/${id}.png`
 }
 
 /** bg/t/<tenant>/<assetId>.<ext> */

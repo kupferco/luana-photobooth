@@ -231,6 +231,37 @@ export async function updateEvent(
  * risk taking a picture out from under a montage someone is about to
  * reprint.
  */
+/** How many generations this party has left, and one more if it has any. */
+export async function claimGeneration(
+  tenantId: string,
+  eventId: string,
+  cap: number,
+): Promise<{ ok: boolean; used: number; cap: number }> {
+  /*
+   * Claimed before the picture is made, not after.
+   *
+   * Two taps at once would otherwise both read the same count, both pass,
+   * and both be paid for. The condition is part of the update, so the
+   * database decides who gets the last one.
+   */
+  const [row] = await db
+    .update(events)
+    .set({ artworkGenerations: sql`${events.artworkGenerations} + 1` })
+    .where(
+      and(
+        eq(events.tenantId, tenantId),
+        eq(events.id, eventId),
+        lt(events.artworkGenerations, cap),
+      ),
+    )
+    .returning({ used: events.artworkGenerations })
+
+  if (row) return { ok: true, used: row.used, cap }
+
+  const current = await getEvent(tenantId, eventId)
+  return { ok: false, used: current?.artworkGenerations ?? cap, cap }
+}
+
 export async function setEventBackground(
   tenantId: string,
   eventId: string,

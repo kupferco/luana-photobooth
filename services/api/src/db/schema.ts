@@ -262,6 +262,16 @@ export const events = pgTable(
      * Null for an uploaded background, which has no description.
      */
     artwork: jsonb('artwork').$type<Artwork>(),
+
+    /**
+     * How many pictures this party has had generated.
+     *
+     * A cap, not a statistic. Every press costs about 4p and the button is
+     * pressed on a whim, so without a ceiling one bored evening is an
+     * unbounded bill. Per event rather than per account: a professional
+     * running forty parties should get forty allowances, not one.
+     */
+    artworkGenerations: smallint('artwork_generations').notNull().default(0),
     /**
      * How many times a guest may delete their photo and try again.
      *

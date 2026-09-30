@@ -19,6 +19,16 @@ const EnvSchema = z.object({
    */
   GCS_BUCKET: z.string().min(1),
 
+  /**
+   * The Google AI key for generated artwork. Optional.
+   *
+   * Absent means the Generate button reports that it is not configured
+   * rather than the service refusing to start: everything else in the
+   * product works without it, and a missing key should not take a party's
+   * booth down with it.
+   */
+  GOOGLE_AI_API_KEY: z.string().optional(),
+
   RESEND_API_KEY: z.string().min(1),
   /** Must be on a domain verified in Resend, or sends fail silently-ish. */
   RESEND_FROM: z.string().default('Lumina <noreply@kupfer.co>'),

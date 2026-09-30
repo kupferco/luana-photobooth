@@ -1,0 +1,1 @@
+ALTER TABLE "events" ADD COLUMN "artwork_generations" smallint DEFAULT 0 NOT NULL;

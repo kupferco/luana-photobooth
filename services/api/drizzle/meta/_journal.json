@@ -85,6 +85,13 @@
       "when": 1790780221757,
       "tag": "0011_steep_blacklash",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1790781061830,
+      "tag": "0012_far_vance_astro",
+      "breakpoints": true
     }
   ]
 }
