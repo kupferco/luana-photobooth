@@ -12,7 +12,8 @@
       "minInstances": 0,
       "secretSuffix": "staging",
       "guestTarget": "guest-staging",
-      "guestUrl": "https://lumina-guest-staging.web.app"
+      "guestUrl": "https://lumina-guest-staging.web.app",
+      "gcsBucket": "photolu-media-staging"
     },
     "prod": {
       "service": "photolu-api-prod",
@@ -23,7 +24,8 @@
       "minInstances": 1,
       "secretSuffix": "prod",
       "guestTarget": "guest",
-      "guestUrl": "https://lumina-guest.web.app"
+      "guestUrl": "https://lumina-guest.web.app",
+      "gcsBucket": "photolu-media"
     }
   }
 }

@@ -1,3 +1,4 @@
+import { env } from '../config/env'
 import { Storage } from '@google-cloud/storage'
 import { GoogleAuth, Impersonated } from 'google-auth-library'
 import { assertWithinTenant } from './paths'
@@ -12,7 +13,14 @@ import { assertWithinTenant } from './paths'
  * a path is built wrongly somewhere upstream.
  */
 
-const BUCKET = process.env.GCS_BUCKET ?? 'photolu-media'
+/*
+ * From the validated config, with no fallback.
+ *
+ * This used to default to the production bucket, so a service started
+ * without the variable wrote guests' photographs into production and gave
+ * no sign of it. env.ts refuses to start instead.
+ */
+const BUCKET = env.GCS_BUCKET
 
 /**
  * V4 signing needs a key, and a *user* credential has none -- which is why

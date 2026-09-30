@@ -10,7 +10,14 @@ const EnvSchema = z.object({
   DATABASE_URL: z.string().url(),
 
   GCP_PROJECT_ID: z.string().default('photolu'),
-  GCS_BUCKET: z.string().default('photolu-media'),
+  /*
+   * No default.
+   *
+   * It used to fall back to the production bucket, so a deployment that
+   * forgot to set this wrote guests' photographs into production and
+   * looked like it was working. Failing to start is the better outcome.
+   */
+  GCS_BUCKET: z.string().min(1),
 
   RESEND_API_KEY: z.string().min(1),
   /** Must be on a domain verified in Resend, or sends fail silently-ish. */
