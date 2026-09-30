@@ -11,6 +11,7 @@ import {
   type TextInputProps,
   type ViewStyle,
 } from 'react-native'
+import { useT } from '../locale'
 import { useTheme, weight } from '../theme'
 
 /**
@@ -80,6 +81,58 @@ export function Card({
   const t = useTheme()
   const s = useMemo(() => makeStyles(t), [t])
   return <View style={[s.card, style]}>{children}</View>
+}
+
+/**
+ * A card that can be folded away.
+ *
+ * The event screen accumulated a card per thing the owner might want to do
+ * -- setup, artwork, the guest link, who else can help -- and during a party
+ * none of them are what you are looking at. Folded, the screen is a list of
+ * headings and the photos underneath; opened, it is the one thing you came
+ * for.
+ *
+ * The open state is the caller's, not this component's. Which cards start
+ * open depends on the event, and only the screen knows that.
+ */
+export function CollapsibleCard({
+  label,
+  open,
+  onToggle,
+  children,
+}: {
+  label: string
+  open: boolean
+  onToggle: () => void
+  children: ReactNode
+}) {
+  const t = useTheme()
+  const tr = useT()
+
+  return (
+    <Card>
+      <Pressable
+        onPress={onToggle}
+        // The whole header is the target, not just the word: it is a small
+        // word, and this is pressed at a party.
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}
+        hitSlop={8}
+        accessibilityRole="button"
+        accessibilityState={{ expanded: open }}
+      >
+        <Label>{label}</Label>
+        <Text style={{ color: t.color.text.secondary, fontSize: t.fontSize.sm }}>
+          {open ? tr('common.hide') : tr('common.show')}
+        </Text>
+      </Pressable>
+
+      {open ? children : null}
+    </Card>
+  )
 }
 
 export function Button({

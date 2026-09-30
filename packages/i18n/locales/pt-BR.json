@@ -101,8 +101,6 @@
     "printInProgress": "Imprimindo…",
     "printFailed": "A impressão falhou",
     "setup": "Configuração",
-    "showSetup": "Mostrar",
-    "hideSetup": "Ocultar",
     "guestLink": "Link para convidados",
     "guestLinkHint": "Envie para seus convidados. Eles também podem escanear o QR code na tela da cabine.",
     "orCode": "ou código {code}",
@@ -231,7 +229,9 @@
       "one": "{count} foto",
       "other": "{count} fotos"
     },
-    "offlineHint": "Você continua conectado. Verifique se o servidor está rodando (npm run server) e tente de novo."
+    "offlineHint": "Você continua conectado. Verifique se o servidor está rodando (npm run server) e tente de novo.",
+    "show": "Mostrar",
+    "hide": "Ocultar"
   },
   "dev": {
     "fixtures": "Dados fictícios. Use EXPO_PUBLIC_API_MODE=live para acessar a API real."

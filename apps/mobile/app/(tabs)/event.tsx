@@ -23,6 +23,7 @@ import {
   Body,
   Button,
   Card,
+  CollapsibleCard,
   Heading,
   Label,
   Notice,
@@ -45,6 +46,9 @@ const guestUrl = (joinCode: string) => `${GUEST_BASE}/${joinCode}`
  * two things they will actually reach for -- reprint, and download everything
  * before it expires.
  */
+/** The cards on this screen that fold away. One is open at a time. */
+type CardName = 'setup' | 'background' | 'guest' | 'people'
+
 export default function EventTab() {
   const { active, loading: loadingEvents, refresh } = useActiveEvent()
   const id = active?.id
@@ -85,7 +89,25 @@ export default function EventTab() {
    *
    * Open by default when nothing is paired, because then it *is* the point.
    */
-  const [setupOpen, setSetupOpen] = useState<boolean | null>(null)
+  /**
+   * Which card is unfolded, if any.
+   *
+   * One at a time rather than a flag each: this screen grew a card per
+   * thing an owner might occasionally want, and during a party none of
+   * them are the thing being looked at. Closed by default, so the screen
+   * is a short list of headings with the photographs under it.
+   *
+   * `null` means the screen has not been touched yet, which is different
+   * from everything being closed -- a party with no hardware paired opens
+   * on Setup, because that is the only thing that can be done next.
+   */
+  /*
+   * `undefined` is not the same as "all closed": it means nobody has
+   * touched this yet, and the screen is still allowed to choose for them.
+   * Collapsing the two is what made the first version of this ignore the
+   * first press -- Setup opened itself, and Hide put it back to open.
+   */
+  const [chosen, setChosen] = useState<CardName | null | undefined>(undefined)
   const [uploadingBg, setUploadingBg] = useState(false)
   const [backgroundNote, setBackgroundNote] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
@@ -266,7 +288,20 @@ export default function EventTab() {
   }
 
   const ready = sessions.filter((s) => s.status === 'ready')
-  const open = setupOpen ?? devices.length === 0
+  /*
+   * Which card is showing.
+   *
+   * Until someone chooses, a party with nothing paired opens on Setup,
+   * because pairing is the only thing that can be done next. Once they
+   * choose, their choice holds -- including choosing to close it.
+   */
+  const openCard: CardName | null =
+    chosen === undefined ? (devices.length === 0 ? 'setup' : null) : chosen
+
+  const open = openCard === 'setup'
+
+  // Pressing the open one closes it, rather than doing nothing.
+  const toggleCard = (card: CardName) => setChosen(openCard === card ? null : card)
 
   /**
    * What the "right now" line calls a piece of hardware.
@@ -371,8 +406,12 @@ export default function EventTab() {
         * perfectly fine.
         */}
       {event.status !== 'ended' ? (
-        <Card>
-          <Label>{t('dashboard.background')}</Label>
+        <CollapsibleCard
+          label={t('dashboard.background')}
+          open={openCard === 'background'}
+          onToggle={() => toggleCard('background')}
+        >
+
 
           {event.backgroundUrl ? (
             <Image
@@ -441,24 +480,18 @@ export default function EventTab() {
               }}
             />
           ) : null}
-        </Card>
+        </CollapsibleCard>
       ) : null}
 
       {/* Hardware the owner can act on, which is different from the health
           readout above: that says whether it is working, this says whose
           phone it is and lets them have it back. */}
       {event.status !== 'ended' ? (
-        <Card>
-          <Pressable
-            onPress={() => setSetupOpen((open) => !(open ?? devices.length === 0))}
-            style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
-            hitSlop={8}
-          >
-            <Label>{t('dashboard.setup')}</Label>
-            <Text style={{ color: theme.color.text.secondary, fontSize: theme.fontSize.sm }}>
-              {open ? t('dashboard.hideSetup') : t('dashboard.showSetup')}
-            </Text>
-          </Pressable>
+        <CollapsibleCard
+          label={t('dashboard.setup')}
+          open={open}
+          onToggle={() => toggleCard('setup')}
+        >
 
           {!open ? null : devices.length === 0 ? (
             <Body muted>{t('dashboard.noDevices')}</Body>
@@ -680,10 +713,14 @@ export default function EventTab() {
               added from the list above, so saying this stops people hunting
               for a network that will never appear. */}
           {open && !pairing ? <Body muted>{t('dashboard.newPrinterOnly')}</Body> : null}
-        </Card>
+        </CollapsibleCard>
       ) : null}
 
-      <Card>
+      <CollapsibleCard
+        label={t('dashboard.guestLink')}
+        open={openCard === 'guest'}
+        onToggle={() => toggleCard('guest')}
+      >
         {/*
           * The link, not the code.
           *
@@ -697,7 +734,7 @@ export default function EventTab() {
           * will not scan and the one thing that can be read aloud across a
           * room.
           */}
-        <Label>{t('dashboard.guestLink')}</Label>
+
         {/* The guest page looks the event up by join code and only finds live
             ones, so sending this to anyone before the party starts hands them
             a link that says the event does not exist. */}
@@ -741,11 +778,16 @@ export default function EventTab() {
           * it -- and a six-character code with no destination reads as a
           * puzzle. The link is the thing to hand out.
           */}
-      </Card>
+      </CollapsibleCard>
 
       {/* After the guest link, because both are about handing this party to
           somebody else -- and before the buttons that start and end it. */}
-      <PeopleCard tenantId={event.tenantId} eventId={event.id} />
+      <PeopleCard
+        tenantId={event.tenantId}
+        eventId={event.id}
+        open={openCard === 'people'}
+        onToggle={() => toggleCard('people')}
+      />
 
       {event.status === 'draft' ? (
         <Button

@@ -5,7 +5,7 @@ import type { Member } from '../api/types'
 import { ApiError } from '../api/types'
 import { useT } from '../locale'
 import { useTheme } from '../theme'
-import { Body, Button, Card, Field, Label, Notice, Spinner } from '../ui'
+import { Body, Button, CollapsibleCard, Field, Notice, Spinner } from '../ui'
 
 /**
  * Who else can run this -- one party, or the whole account.
@@ -26,10 +26,19 @@ import { Body, Button, Card, Field, Label, Notice, Spinner } from '../ui'
 export function PeopleCard({
   tenantId,
   eventId,
+  open,
+  onToggle,
 }: {
   tenantId: string
   /** Given: this one party. Omitted: every party on the account. */
   eventId?: string
+  /**
+   * Controlled when both are given, so the event screen can keep one card
+   * open at a time across all of them. Left off, it folds itself, which is
+   * what Profile wants -- there is nothing there to coordinate with.
+   */
+  open?: boolean
+  onToggle?: () => void
 }) {
   const t = useT()
   const theme = useTheme()
@@ -43,6 +52,10 @@ export function PeopleCard({
   )
   /** Removing asks twice, on the row's own button. See the booth's delete. */
   const [confirming, setConfirming] = useState<string | null>(null)
+
+  const [ownOpen, setOwnOpen] = useState(false)
+  const isOpen = open ?? ownOpen
+  const toggle = onToggle ?? (() => setOwnOpen((v) => !v))
 
   const load = useCallback(async () => {
     try {
@@ -118,8 +131,11 @@ export function PeopleCard({
   )
 
   return (
-    <Card>
-      <Label>{t(eventId ? 'people.eventTitle' : 'people.title')}</Label>
+    <CollapsibleCard
+      label={t(eventId ? 'people.eventTitle' : 'people.title')}
+      open={isOpen}
+      onToggle={toggle}
+    >
 
       {members === null ? (
         <Spinner />
@@ -208,6 +224,6 @@ export function PeopleCard({
       )}
 
       {notice ? <Notice tone={notice.tone}>{notice.text}</Notice> : null}
-    </Card>
+    </CollapsibleCard>
   )
 }

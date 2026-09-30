@@ -101,8 +101,6 @@
     "printInProgress": "Printing…",
     "printFailed": "Print failed",
     "setup": "Setup",
-    "showSetup": "Show",
-    "hideSetup": "Hide",
     "guestLink": "Guest link",
     "guestLinkHint": "Send this to your guests. They can also scan the QR code on the booth screen.",
     "orCode": "or code {code}",
@@ -231,7 +229,9 @@
       "one": "{count} photo",
       "other": "{count} photos"
     },
-    "offlineHint": "You are still signed in. Check the server is running (npm run server) and try again."
+    "offlineHint": "You are still signed in. Check the server is running (npm run server) and try again.",
+    "show": "Show",
+    "hide": "Hide"
   },
   "dev": {
     "fixtures": "Fixture data. Set EXPO_PUBLIC_API_MODE=live to use the real API."
