@@ -1,1 +1,1 @@
-ALTER TABLE "events" ADD COLUMN "artwork_generations" smallint DEFAULT 0 NOT NULL;
+ALTER TABLE "events" ADD COLUMN IF NOT EXISTS "artwork_generations" smallint DEFAULT 0 NOT NULL;

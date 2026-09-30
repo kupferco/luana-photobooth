@@ -9,6 +9,7 @@ import { eventRoutes } from './events/routes'
 import { sessionRoutes } from './sessions/routes'
 import { env, isProduction } from './config/env'
 import { cors } from './middleware/cors'
+import { preflight } from './db/preflight'
 
 const app = express()
 
@@ -121,6 +122,21 @@ process.on('unhandledRejection', (reason) => {
   throw reason
 })
 
-app.listen(env.PORT, () => {
-  console.log(`API listening on :${env.PORT} (${env.NODE_ENV})`)
-})
+/*
+ * Nothing serves traffic until the database is the one this build expects.
+ *
+ * Exits rather than starting degraded: a service that answers requests with
+ * "column does not exist" looks healthy to Cloud Run and broken to everyone
+ * else, and the revision stays live.
+ */
+preflight()
+  .then(() => {
+    app.listen(env.PORT, () => {
+      console.log(`API listening on :${env.PORT} (${env.NODE_ENV})`)
+    })
+  })
+  .catch((e: unknown) => {
+    console.error('[preflight]', e instanceof Error ? e.message : e)
+    process.exit(1)
+  })
+
