@@ -2,6 +2,7 @@ import { randomBytes } from 'node:crypto'
 import { and, desc, eq, inArray, isNotNull, isNull, lt, or, sql } from 'drizzle-orm'
 import {
   CLASSIC_3UP,
+  type Artwork,
   TEMPLATES,
   isWellFormedDeviceName,
   proposeDeviceName,
@@ -234,10 +235,18 @@ export async function setEventBackground(
   tenantId: string,
   eventId: string,
   backgroundPath: string | null,
+  /**
+   * How it was described, when it was made in the studio.
+   *
+   * Cleared on an upload, and on removal, because a description that no
+   * longer matches the picture is worse than none: the studio would reopen
+   * showing words that are not on the print.
+   */
+  artwork: Artwork | null = null,
 ) {
   const [row] = await db
     .update(events)
-    .set({ backgroundPath, updatedAt: new Date() })
+    .set({ backgroundPath, artwork, updatedAt: new Date() })
     .where(and(eq(events.tenantId, tenantId), eq(events.id, eventId)))
     .returning()
   return row ?? null

@@ -1,3 +1,4 @@
+import type { Artwork } from '@photobooth/shared'
 import {
   boolean,
   index,
@@ -248,6 +249,19 @@ export const events = pgTable(
      * Null renders the template's flat colour, which is white.
      */
     backgroundPath: text('background_path'),
+
+    /**
+     * How the background was described, when it was made here rather than
+     * uploaded.
+     *
+     * The picture itself stays in `background_path` like any other: nothing
+     * downstream learns that artwork can be made as well as found. This is
+     * only so the studio reopens where it was left -- without it, editing
+     * an existing design means describing it again from scratch.
+     *
+     * Null for an uploaded background, which has no description.
+     */
+    artwork: jsonb('artwork').$type<Artwork>(),
     /**
      * How many times a guest may delete their photo and try again.
      *

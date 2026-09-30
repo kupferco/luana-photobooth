@@ -64,6 +64,17 @@ export const PALETTES: Record<PaletteName, Palette> = {
   blossom: { paper: '#faf5ff', ink: '#3b1a52', accent: '#c084fc' },
 }
 
+/**
+ * How far the words stay back from the edge of the design area, in canvas
+ * pixels.
+ *
+ * 60px is 5mm at 300dpi. The first attempt used 28, which is 2.4mm, and a
+ * name set that close to the paper looked fine on screen and sat inside
+ * where a borderless dye-sub print gets trimmed. There is no second chance
+ * on a print: it comes out of the machine finished.
+ */
+export const ARTWORK_PADDING = 60
+
 /** How the party's date reads under its name. */
 export function formatEventDate(
   iso: string,

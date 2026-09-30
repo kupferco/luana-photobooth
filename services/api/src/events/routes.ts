@@ -27,8 +27,9 @@ import { addEventMember, listEventMembers, removeEventMember } from '../members/
 import { queueEmail } from '../email/queue'
 import { randomUUID } from 'node:crypto'
 import { env } from '../config/env'
-import { createReadUrl, createUploadTicket, exists } from '../storage/gcs'
+import { createReadUrl, createUploadTicket, exists, upload } from '../storage/gcs'
 import { backgroundPath } from '../storage/paths'
+import { renderArtwork } from '../montage/artwork'
 import { downloadEventZip } from './download'
 
 export const eventRoutes: Router = Router()
@@ -87,6 +88,8 @@ async function present(
     retentionUntil: event.retentionUntil.toISOString(),
     endedAt: event.endedAt?.toISOString() ?? null,
     retakesAllowed: event.retakesAllowed,
+    /* How the background was described, when it was made in the studio. */
+    artwork: event.artwork ?? null,
     backgroundUrl: event.backgroundPath
       ? await createReadUrl(event.backgroundPath, event.tenantId)
       : null,
@@ -768,6 +771,75 @@ eventRoutes.get('/:eventId/report', async (req, res, next) => {
     await requireEventAccess(req, query.data.tenantId, req.params.eventId!)
 
     return res.json(await eventReport(query.data.tenantId, req.params.eventId!))
+  } catch (e) {
+    return next(e)
+  }
+})
+
+const ArtworkBody = z.object({
+  tenantId: z.string().uuid(),
+  artwork: z.object({
+    title: z.string().trim().max(80),
+    dateStyle: z.enum(['none', 'long', 'short', 'monthYear']),
+    font: z.enum(['sans', 'serif', 'mono']),
+    theme: z.enum(['plain', 'confetti', 'constellation', 'clouds', 'stripes', 'bokeh']),
+    palette: z.enum(['amber', 'ink', 'rose', 'sea', 'forest', 'blossom']),
+    prompt: z.string().trim().max(300),
+  }),
+})
+
+/**
+ * Make the background from a description, rather than being handed one.
+ *
+ * Renders, uploads, then points the event at it -- the same order the
+ * upload path uses, so a render that fails leaves the previous background
+ * on the prints rather than a reference to nothing.
+ *
+ * The description is stored beside the picture so the studio reopens where
+ * it was left. The picture itself is an ordinary background: the composer,
+ * the printer and the retention job cannot tell it was made here.
+ */
+eventRoutes.put('/:eventId/artwork', async (req, res, next) => {
+  try {
+    const body = ArtworkBody.safeParse(req.body)
+    if (!body.success) {
+      return res.status(400).json({
+        error: { code: 'invalid_request', message: 'That artwork is not valid.' },
+      })
+    }
+    const { tenantId, artwork } = body.data
+    await requireEventAccess(req, tenantId, req.params.eventId!)
+
+    const event = await getEvent(tenantId, req.params.eventId!)
+    if (!event) {
+      return res.status(404).json({ error: { code: 'not_found', message: 'Not found' } })
+    }
+
+    const templates = await listTemplates(tenantId)
+    const row = templates.find((t) => t.id === event.templateId)
+    if (!row) {
+      return res.status(409).json({
+        error: { code: 'no_template', message: 'This party has no photo layout.' },
+      })
+    }
+
+    const png = await renderArtwork(
+      toTemplate(row),
+      artwork,
+      event.eventDate.toISOString(),
+      // The party's own locale would be better than the account's; there is
+      // no such field yet, and a date reading "10 October" to someone who
+      // would write "10 de outubro" is a smaller wrong than no date.
+      'en-GB',
+    )
+
+    // A fresh id each time, so a regenerate never overwrites the picture the
+    // prints are currently using until the event is pointed at the new one.
+    const path = backgroundPath(tenantId, randomUUID(), 'png')
+    await upload(path, tenantId, png, 'image/png')
+
+    const updated = await setEventBackground(tenantId, event.id, path, artwork)
+    return res.json({ event: await present(updated) })
   } catch (e) {
     return next(e)
   }

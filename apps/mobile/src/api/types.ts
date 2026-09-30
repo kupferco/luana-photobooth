@@ -1,4 +1,4 @@
-import type { Template } from '@photobooth/shared'
+import type { Artwork, Template } from '@photobooth/shared'
 import type { SessionStatus } from '@photobooth/shared'
 
 /**
@@ -40,6 +40,12 @@ export interface Event {
   backgroundUrl: string | null
   /** How many times a guest may delete their photo and go again. */
   retakesAllowed: number
+  /**
+   * How this party's background was described, if it was made in the studio.
+   * Null for an uploaded picture, which has no description.
+   */
+  artwork: Artwork | null
+
   /** Finished photos, and prints that reached paper. Carried on the list. */
   photos: number
   prints: number
@@ -171,6 +177,14 @@ export interface PhotoboothApi {
     contentType: 'image/jpeg' | 'image/png',
   ): Promise<BackgroundUpload>
   setBackground(tenantId: string, eventId: string, path: string | null): Promise<Event>
+
+  /**
+   * Make the background from a description.
+   *
+   * The server renders it, stores it and points the event at it, so what
+   * comes back is an event with a new backgroundUrl like any other.
+   */
+  setArtwork(tenantId: string, eventId: string, artwork: Artwork): Promise<Event>
 
   /** Which layout the party's prints use. */
   setLayout(tenantId: string, eventId: string, templateId: string): Promise<Event>

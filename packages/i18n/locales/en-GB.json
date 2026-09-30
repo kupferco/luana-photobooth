@@ -180,9 +180,8 @@
     "publish": "Use this artwork",
     "publishLive": "Use it from the next photo",
     "liveWarning": "This party is running. The next photo printed will use this.",
-    "draftKept": "Kept while you look around. Nothing is printed until you press the button.",
+    "draftKept": "Kept while you look around. Nothing reaches a print until you press the button.",
     "noChanges": "Nothing changed yet.",
-    "notWired": "Not sent to the booth yet — this is the editing, not the plumbing.",
     "layout": "Layout"
   },
   "report": {

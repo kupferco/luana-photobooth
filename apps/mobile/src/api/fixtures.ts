@@ -61,6 +61,14 @@ const EVENTS: Event[] = [
     retakesAllowed: 1,
     photos: 31,
     prints: 12,
+    artwork: {
+      title: "Luana's 8th birthday",
+      dateStyle: 'long',
+      font: 'sans',
+      theme: 'confetti',
+      palette: 'amber',
+      prompt: '',
+    },
     abandoned: 0,
     longestWaitSeconds: 96,
   },
@@ -80,6 +88,7 @@ const EVENTS: Event[] = [
     prints: 0,
     abandoned: 0,
     longestWaitSeconds: null,
+    artwork: null,
   },
   {
     // Close to deletion on purpose: this is the state the download prompt and
@@ -101,6 +110,7 @@ const EVENTS: Event[] = [
     // designed rather than imagined.
     abandoned: 7,
     longestWaitSeconds: 963,
+    artwork: null,
   },
 ]
 
@@ -305,6 +315,7 @@ export const fixtureApi: PhotoboothApi = {
     prints: 0,
     abandoned: 0,
     longestWaitSeconds: null,
+    artwork: null,
     }
     EVENTS.unshift(event)
     SESSIONS[event.id] = []
@@ -350,6 +361,14 @@ export const fixtureApi: PhotoboothApi = {
   async listDevices() {
     await delay()
     return fixtureDevices.filter((d) => !removedDevices.has(d.id))
+  },
+
+  async setArtwork(_tenantId, eventId, artwork) {
+    await delay()
+    const event = EVENTS.find((e) => e.id === eventId)
+    if (!event) throw new ApiError('Not found', 'not_found', 404)
+    event.artwork = artwork
+    return event
   },
 
   async setLayout(_tenantId, eventId, templateId) {

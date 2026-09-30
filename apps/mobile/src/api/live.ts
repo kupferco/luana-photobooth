@@ -353,6 +353,15 @@ export const liveApi: PhotoboothApi = {
     )
   },
 
+  async setArtwork(tenantId, eventId, artwork) {
+    const result = await request<{ event: Event }>(
+      'PUT',
+      `/events/${encodeURIComponent(eventId)}/artwork`,
+      { tenantId, artwork },
+    )
+    return result.event
+  },
+
   async setLayout(tenantId, eventId, templateId) {
     const result = await request<{ event: Event }>(
       'PATCH',

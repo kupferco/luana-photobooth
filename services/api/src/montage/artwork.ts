@@ -1,4 +1,5 @@
 import {
+  ARTWORK_PADDING,
   PALETTES,
   artworkArea,
   formatEventDate,
@@ -152,9 +153,8 @@ export async function renderArtwork(
   const palette = PALETTES[artwork.palette]
   const area = artworkArea(template)
 
-  // The same padding the preview uses, for the same reason: the printer's
-  // cut is not exact and words against the edge look like a mistake.
-  const pad = 28
+  // The same padding the preview uses, from the same constant.
+  const pad = ARTWORK_PADDING
   const boxWidth = area.w - pad * 2
 
   const title = artwork.title.trim()

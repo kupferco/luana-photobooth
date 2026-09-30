@@ -113,6 +113,7 @@ export default function EventTab() {
    */
   const [chosen, setChosen] = useState<CardName | null | undefined>(undefined)
   const [studioOpen, setStudioOpen] = useState(false)
+  const [publishing, setPublishing] = useState(false)
 
   /*
    * The artwork being edited, and the artwork the party is using.
@@ -140,11 +141,21 @@ export default function EventTab() {
    * party's name on the wrong prints.
    */
   useEffect(() => {
-    setArtworkDraft(DEFAULT_ARTWORK)
-    setPublishedArtwork(null)
     setStudioOpen(false)
     setDraftTemplateId(null)
   }, [id])
+
+  /*
+   * Start from whatever this party is already using.
+   *
+   * Keyed on the event, not on every load: the screen polls, and reseeding
+   * on each poll would wipe out what somebody was in the middle of typing.
+   */
+  useEffect(() => {
+    const saved = event?.artwork ?? null
+    setPublishedArtwork(saved)
+    setArtworkDraft(saved ?? DEFAULT_ARTWORK)
+  }, [event?.id])
   const [uploadingBg, setUploadingBg] = useState(false)
   const [backgroundNote, setBackgroundNote] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
@@ -933,19 +944,26 @@ export default function EventTab() {
         live={event.status === 'live'}
         onChange={setArtworkDraft}
         onPublish={async () => {
-          /*
-           * The layout is a real event field, so publishing actually
-           * changes something. The artwork does not have anywhere to go
-           * yet, which is why the sheet still says so.
-           */
-          if (draftTemplateId && draftTemplateId !== event.templateId) {
-            setEvent(
-              await api.setLayout(tenantId!, event.id, draftTemplateId),
-            )
+          setPublishing(true)
+          try {
+            /*
+             * Layout first, because the artwork is rendered at the
+             * layout's size: doing it the other way round would draw the
+             * words into the old shape and then change the shape.
+             */
+            if (draftTemplateId && draftTemplateId !== event.templateId) {
+              await api.setLayout(tenantId!, event.id, draftTemplateId)
+            }
+            setEvent(await api.setArtwork(tenantId!, event.id, artworkDraft))
+            setPublishedArtwork(artworkDraft)
+            setStudioOpen(false)
+          } catch (e) {
+            setBackgroundNote(e instanceof Error ? e.message : String(e))
+          } finally {
+            setPublishing(false)
           }
-          setPublishedArtwork(artworkDraft)
-          setStudioOpen(false)
         }}
+        publishing={publishing}
         onClose={() => setStudioOpen(false)}
       />
 

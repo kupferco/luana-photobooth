@@ -62,6 +62,7 @@ export function BackgroundStudio({
   published,
   layoutChanged,
   live,
+  publishing,
   onChange,
   onPublish,
   onClose,
@@ -81,6 +82,8 @@ export function BackgroundStudio({
   layoutChanged: boolean
   /** A running party prints with this the moment it is published. */
   live: boolean
+  /** Rendering happens on the server and takes a moment. */
+  publishing: boolean
   onChange: (artwork: Artwork) => void
   onPublish: () => void
   onClose: () => void
@@ -416,14 +419,14 @@ export function BackgroundStudio({
 
             <Button
               label={t(live ? 'artwork.publishLive' : 'artwork.publish')}
-              disabled={!dirty}
+              disabled={!dirty || publishing}
+              busy={publishing}
               onPress={onPublish}
             />
 
             <Body muted>
               {dirty ? t('artwork.draftKept') : t('artwork.noChanges')}
             </Body>
-            <Body muted>{t('artwork.notWired')}</Body>
           </ScrollView>
         </View>
       </View>

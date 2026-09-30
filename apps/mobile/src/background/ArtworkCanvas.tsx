@@ -1,4 +1,4 @@
-import { artworkArea, type Template } from '@photobooth/shared'
+import { ARTWORK_PADDING, artworkArea, type Template } from '@photobooth/shared'
 import { Text, View } from 'react-native'
 import Svg, { Circle, Line, Rect } from 'react-native-svg'
 import {
@@ -42,9 +42,8 @@ export function ArtworkCanvas({
 
   const date = formatEventDate(eventDate, artwork.dateStyle, locale)
 
-  // Generous padding: the printer's cut is not exact, and words that touch
-  // the edge of the paper look like a mistake even when they survive.
-  const pad = 28 * scale
+  // The renderer's padding, scaled. Same constant, or the preview lies.
+  const pad = ARTWORK_PADDING * scale
   const boxWidth = area.w * scale - pad * 2
 
   return (
