@@ -102,8 +102,13 @@ footer {
 }
 
 .hero-mark {
-  width: clamp(160px, 26vw, 220px);
+  width: clamp(180px, 30vw, 260px);
   height: auto;
+  /* The outline is black on a nearly black page. A shadow rather than a
+     box-shadow, so the light follows the figures and not their rectangle. */
+  filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.85))
+    drop-shadow(0 0 18px rgba(255, 255, 255, 0.5))
+    drop-shadow(0 0 48px rgba(255, 255, 255, 0.4));
 }
 
 .hero h1 {
@@ -329,12 +334,37 @@ a {
 .topbar img {
   display: block;
   height: auto;
+  /* The same light as the big mark on the front page, scaled to this one. */
+  filter: drop-shadow(0 0 1.5px rgba(255, 255, 255, 0.85))
+    drop-shadow(0 0 8px rgba(255, 255, 255, 0.5))
+    drop-shadow(0 0 18px rgba(255, 255, 255, 0.35));
 }
 
-.topbar-link {
+/* The front page opens on the mark at full size, so the small one would be
+   the same picture twice. Hidden rather than removed, to keep the links on
+   the right where they are on every other page. */
+.page-home .topbar-logo {
+  visibility: hidden;
+}
+
+.page-home .topbar {
+  border-bottom: 0;
+}
+
+.topbar-links {
+  display: flex;
+  gap: 20px;
+  font-size: 0.95rem;
+}
+
+.topbar-links a {
   color: var(--text-primary);
   font-weight: 600;
   text-decoration: none;
+}
+
+.topbar-links a:first-child {
+  color: var(--text-secondary);
 }
 
 .page-head {
@@ -393,6 +423,42 @@ a {
 
 .book .button {
   margin-top: 12px;
+}
+
+/* --- privacy and terms -------------------------------------------------- */
+
+/* Long prose, so a reading measure rather than the full shell. */
+.legal > * {
+  max-width: 68ch;
+}
+
+.band .legal h2 {
+  font-size: 1.35rem;
+  margin: 40px 0 12px;
+}
+
+.band .legal h2:first-child {
+  margin-top: 0;
+}
+
+.legal p,
+.legal li {
+  color: var(--text-secondary);
+}
+
+.legal p {
+  margin-bottom: 14px;
+}
+
+.legal ul {
+  margin: 0 0 14px;
+  padding-left: 22px;
+  display: grid;
+  gap: 8px;
+}
+
+.legal strong {
+  color: var(--text-primary);
 }
 
 /* --- closing ------------------------------------------------------------ */
