@@ -62,7 +62,20 @@ export function cors(req: Request, res: Response, next: NextFunction): void {
     // The response differs by origin, so shared caches must not serve one
     // origin's response to another.
     res.setHeader('Vary', 'Origin')
-    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PATCH,DELETE,OPTIONS')
+    /*
+     * PUT belongs here, and its absence was invisible.
+     *
+     * The preflight still answered 204 with a permissive-looking set of
+     * headers, so nothing logged and nothing 403'd -- the browser simply
+     * refused to send the real request, `fetch` rejected as a transport
+     * failure, and the client reported "Could not reach the server" about a
+     * server it was talking to happily. Both PUT routes on this API are the
+     * two things that stopped working: publishing artwork and pointing an
+     * event at an uploaded background.
+     *
+     * Every method the routes actually serve, listed once.
+     */
+    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS')
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
     res.setHeader('Access-Control-Max-Age', '3600')
   }

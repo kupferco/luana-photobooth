@@ -1,4 +1,4 @@
-import { CLASSIC_3UP, artworkArea } from '@photobooth/shared'
+import { CLASSIC_3UP, artworkArea, type Template } from '@photobooth/shared'
 import {
   Image,
   Modal,
@@ -164,7 +164,6 @@ export function BackgroundStudio({
     (windowHeight / 3) * (template.canvas.w / template.canvas.h),
   )
   const area = artworkArea(template)
-  const scale = previewWidth / template.canvas.w
 
   return (
     <Modal
@@ -243,7 +242,7 @@ export function BackgroundStudio({
                   borderColor: theme.color.border.subtle,
                 }}
               >
-                <ArtworkCanvas
+                <Preview
                   template={template}
                   artwork={artwork}
                   backgroundUri={candidateUrl}
@@ -251,33 +250,6 @@ export function BackgroundStudio({
                   locale={locale}
                   width={previewWidth}
                 />
-
-                {/* Where the photographs land. Greyed rather than hidden:
-                    the space left over is the whole design problem. */}
-                {template.cells.map((cell, i) => (
-                  <View
-                    key={i}
-                    style={{
-                      position: 'absolute',
-                      left: cell.x * scale,
-                      top: cell.y * scale,
-                      width: cell.w * scale,
-                      height: cell.h * scale,
-                      backgroundColor: 'rgba(24,24,27,0.82)',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <Text
-                      style={{
-                        color: 'rgba(255,255,255,0.65)',
-                        fontSize: theme.fontSize.xs,
-                      }}
-                    >
-                      {t('artwork.photoSlot', { n: String(i + 1) })}
-                    </Text>
-                  </View>
-                ))}
               </Pressable>
 
               <Body muted>
@@ -612,17 +584,84 @@ export function BackgroundStudio({
             padding: 16,
           }}
         >
-          <ArtworkCanvas
+          <Preview
             template={template}
             artwork={artwork}
             backgroundUri={candidateUrl}
             eventDate={eventDate}
             locale={locale}
-            width={Math.min(screenWidth - 32, (windowHeight - 120) * 1.5)}
+            width={Math.min(
+              screenWidth - 32,
+              (windowHeight - 120) * (template.canvas.w / template.canvas.h),
+            )}
           />
         </Pressable>
       </Modal>
     </Modal>
+  )
+}
+
+/**
+ * The whole print: the artwork, with the photographs' places drawn over it.
+ *
+ * One component rather than the same drawing written out twice. It was
+ * written out twice, and the copy without the photo slots was the enlarged
+ * view -- so the one place built for looking closely was the only place that
+ * hid what covers most of the paper. Anything judged there was judged
+ * against a print that does not exist.
+ */
+function Preview({
+  template,
+  artwork,
+  backgroundUri,
+  eventDate,
+  locale,
+  width,
+}: {
+  template: Template
+  artwork: Artwork
+  backgroundUri?: string | null
+  eventDate: string
+  locale: string
+  width: number
+}) {
+  const theme = useTheme()
+  const t = useT()
+  const scale = width / template.canvas.w
+
+  return (
+    <View style={{ width, height: template.canvas.h * scale }}>
+      <ArtworkCanvas
+        template={template}
+        artwork={artwork}
+        backgroundUri={backgroundUri}
+        eventDate={eventDate}
+        locale={locale}
+        width={width}
+      />
+
+      {/* Greyed rather than hidden: the space left over is the whole
+          design problem. */}
+      {template.cells.map((cell, i) => (
+        <View
+          key={i}
+          style={{
+            position: 'absolute',
+            left: cell.x * scale,
+            top: cell.y * scale,
+            width: cell.w * scale,
+            height: cell.h * scale,
+            backgroundColor: 'rgba(24,24,27,0.82)',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Text style={{ color: 'rgba(255,255,255,0.65)', fontSize: theme.fontSize.xs }}>
+            {t('artwork.photoSlot', { n: String(i + 1) })}
+          </Text>
+        </View>
+      ))}
+    </View>
   )
 }
 
