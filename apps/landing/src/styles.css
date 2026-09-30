@@ -61,27 +61,42 @@ footer {
   padding-inline: var(--gutter);
 }
 
-.hero > *,
-.band > *,
-footer > * {
+/*
+ * One container per section, rather than a max-width on every child.
+ *
+ * Applying it per child centred each one inside the section, so anything
+ * with a narrower max-width of its own -- the intro paragraphs -- drifted
+ * out of line with the heading above it, and anything that reset its own
+ * margins -- the two lists -- escaped the shell and sat against the window
+ * edge.
+ */
+.wrap {
   max-width: var(--shell);
   margin-inline: auto;
+}
+
+/* Inside the container everything starts at the same left edge. */
+.wrap > * {
+  margin-inline: 0;
 }
 
 /* --- hero --------------------------------------------------------------- */
 
 .hero {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 24px;
-  text-align: center;
   padding-block: clamp(56px, 12vw, 120px) clamp(48px, 9vw, 96px);
   /* A warm lift behind the mark, so the page does not open on flat black. */
   background:
     radial-gradient(ellipse 70% 60% at 50% -10%, rgba(245, 197, 24, 0.16), transparent 70%),
     var(--surface-base);
   border-bottom: 1px solid var(--border-subtle);
+}
+
+.hero .wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  text-align: center;
 }
 
 .hero-mark {

@@ -31,7 +31,13 @@ export function Screen({
   const t = useTheme()
   const s = useMemo(() => makeStyles(t), [t])
 
-  if (!scroll) return <View style={s.screen}>{children}</View>
+  if (!scroll) {
+    return (
+      <View style={s.screen}>
+        <View style={[s.screenContent, { flex: 1, padding: 0 }]}>{children}</View>
+      </View>
+    )
+  }
 
   return (
     <ScrollView style={s.screen} contentContainerStyle={s.screenContent}>
@@ -191,7 +197,24 @@ export function Spinner() {
 const makeStyles = (t: Theme) =>
   StyleSheet.create({
     screen: { flex: 1, backgroundColor: t.color.surface.base },
-    screenContent: { padding: t.space[5], paddingBottom: t.space[10], gap: t.space[4] },
+    screenContent: {
+      padding: t.space[5],
+      paddingBottom: t.space[10],
+      gap: t.space[4],
+      /*
+       * A column on a desktop window.
+       *
+       * The tab screens are already inside one, so this changes nothing
+       * there. It is for the screens that sit outside the tabs -- signing
+       * in, creating an event, and the booth's own setup states -- which
+       * would otherwise stretch a short form across a whole monitor.
+       *
+       * Matches MAX_WIDTH in the tabs layout. They are the same column.
+       */
+      width: '100%',
+      maxWidth: 560,
+      alignSelf: 'center',
+    },
     heading: {
       color: t.color.text.primary,
       fontSize: t.fontSize['2xl'],

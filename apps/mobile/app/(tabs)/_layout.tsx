@@ -20,10 +20,70 @@ import { useTheme } from '../../src/theme'
  * screen with no chrome, and a tab bar underneath it would be something to
  * catch with a thumb mid-countdown.
  */
+/**
+ * How wide the app is allowed to get.
+ *
+ * Everything in here is laid out for a phone held in one hand, and stretched
+ * across a desktop window it reads as a very wide form with the controls at
+ * opposite ends. A column keeps the measure honest, and it is the shape the
+ * thing is actually used in -- a phone on a tripod, or one in a pocket.
+ *
+ * Booth mode is deliberately outside this layout and stays full-bleed: it is
+ * a camera, and it should take the whole screen.
+ */
+const MAX_WIDTH = 560
+
 export default function TabsLayout() {
   const theme = useTheme()
   const t = useT()
 
+  return (
+    <DesktopColumn>
+      <TabsNavigator theme={theme} t={t} />
+    </DesktopColumn>
+  )
+}
+
+/**
+ * A centred column on a wide window, and nothing at all on a phone.
+ *
+ * Native returns the children untouched rather than wrapping them in a View
+ * that would do nothing: an extra layer in the tree is an extra thing for
+ * safe-area insets and the tab bar to be measured through.
+ */
+function DesktopColumn({ children }: { children: React.ReactNode }) {
+  const theme = useTheme()
+  if (Platform.OS !== 'web') return <>{children}</>
+
+  return (
+    <View style={{ flex: 1, backgroundColor: theme.color.surface.sunken }}>
+      <View
+        style={{
+          flex: 1,
+          width: '100%',
+          maxWidth: MAX_WIDTH,
+          alignSelf: 'center',
+          backgroundColor: theme.color.surface.base,
+          // Hairlines rather than a shadow: they hold the edge in both
+          // themes, where a shadow disappears against a dark page.
+          borderLeftWidth: 1,
+          borderRightWidth: 1,
+          borderColor: theme.color.border.subtle,
+        }}
+      >
+        {children}
+      </View>
+    </View>
+  )
+}
+
+function TabsNavigator({
+  theme,
+  t,
+}: {
+  theme: ReturnType<typeof useTheme>
+  t: ReturnType<typeof useT>
+}) {
   return (
     <Tabs
       screenOptions={{
