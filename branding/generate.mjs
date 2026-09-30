@@ -1,7 +1,11 @@
 /**
- * Builds every icon the app needs from one source logo.
+ * Builds every icon the app needs from the source logos.
  *
- * Run after changing branding/logo/logo-source.png:
+ * There are two: logo-colour-source.png is the mark in full colour, used
+ * wherever it sits on the icon yellow or on the landing page; logo-source.png
+ * is the line drawing the single-colour versions are cut from.
+ *
+ * Run after changing either, in branding/logo/:
  *
  *   npm run branding
  *
@@ -19,7 +23,6 @@
  * - The splash keeps its transparency, because Expo draws it on the splash
  *   background colour itself.
  */
-import { existsSync } from 'node:fs'
 import { mkdir } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -29,14 +32,12 @@ const here = dirname(fileURLToPath(import.meta.url))
 const SOURCE = join(here, 'logo', 'logo-source.png')
 
 /**
- * The favicon's own artwork, when there is any.
+ * The mark in full colour, already cut out: transparent around the figures.
  *
- * Optional: without it the favicon is cut from the main mark (FAVICON_CROP).
- * With it, it is drawn separately -- which is the only way to get a figure
- * that overlaps its neighbours in the full logo, since no rectangle contains
- * all of one and none of the others.
+ * Its own file rather than something derived, because the line drawing has
+ * no colour to recover and this has no clean line work to extract.
  */
-const FAVICON_SOURCE = join(here, 'logo', 'favicon-source.png')
+const COLOUR_SOURCE = join(here, 'logo', 'logo-colour-source.png')
 const LOGO = join(here, 'logo')
 const ASSETS = join(here, '..', 'apps', 'mobile', 'assets')
 const WEB = join(here, '..', 'apps', 'mobile', 'public', 'icons')
@@ -47,6 +48,14 @@ const SITE_BRAND = join(here, '..', 'apps', 'landing', 'public', 'brand')
 
 /** amber.500 — the same yellow as the primary button. */
 const BRAND = '#f5c518'
+/**
+ * What the colour mark sits on, in icons.
+ *
+ * Paler than BRAND on purpose. The drawing has its own oranges and golds --
+ * the hair, the sombrero -- and on the button yellow they merge into the
+ * background. The buttons keep BRAND.
+ */
+const ICON_BG = '#fbd965'
 const TRANSPARENT = { r: 0, g: 0, b: 0, alpha: 0 }
 
 /**
@@ -62,31 +71,6 @@ const TRANSPARENT = { r: 0, g: 0, b: 0, alpha: 0 }
  * densest black.
  */
 const INK_THRESHOLD = Number(process.env.INK ?? 110)
-
-/**
- * The part of the drawing the favicon uses.
- *
- * At 48px the whole scene turns to mush -- it is one connected line drawing
- * nearly three times wider than it is tall, so a tab strip gets grey soup.
- * A favicon needs one recognisable thing, so it takes a region instead.
- *
- * Fractions of the trimmed mark: `x` and `y` are the top-left corner, `w`
- * and `h` the size, all 0-1. `null` uses the whole mark.
- *
- * Only used when there is no favicon-source.png. Cropping works when a
- * figure stands clear of its neighbours; in this logo none of them do --
- * the middle girl's hair runs into the afro on one side and under the
- * sombrero brim on the other, so every rectangle around her either cuts her
- * hair or brings in the hat. That is what the separate artwork is for.
- *
- * To find a region, run `npm run branding` and open
- * branding/logo/favicon-picker.png -- it is the mark under a labelled grid.
- * Nothing in this script knows what any shape is, so the numbers have to
- * come from looking.
- */
-const FAVICON_CROP = process.env.CROP
-  ? (([x, y, w, h]) => ({ x, y, w, h }))(process.env.CROP.split(',').map(Number))
-  : null
 
 /**
  * The logo, cropped to its own edges and centred on a square.
@@ -149,6 +133,35 @@ async function inkOnly(file = SOURCE) {
  */
 let trimmedMark = null
 const mark = async () => (trimmedMark ??= await sharp(await inkOnly()).trim().toBuffer())
+
+/**
+ * The colour mark, cropped to its own edges.
+ *
+ * The cut-out left a fringe of the colour it was cut from: edge pixels are
+ * partly transparent and still tinted green, which shows as a halo on
+ * anything that is not green. Those pixels are all outline, so they are
+ * made black and keep their alpha.
+ */
+let trimmedColour = null
+async function colourMark() {
+  if (trimmedColour) return trimmedColour
+
+  const { data, info } = await sharp(COLOUR_SOURCE)
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true })
+
+  for (let i = 0; i < data.length; i += 4) {
+    if (data[i + 3] < 250) data[i] = data[i + 1] = data[i + 2] = 0
+  }
+
+  return (trimmedColour = await sharp(data, {
+    raw: { width: info.width, height: info.height, channels: 4 },
+  })
+    .png()
+    .trim()
+    .toBuffer())
+}
 
 async function square(size, scale, background, source) {
   const trimmed = source ?? (await mark())
@@ -224,86 +237,27 @@ const write = async (path, buffer, { flatten = false } = {}) => {
   console.log(`  ${path.replace(join(here, '..') + '/', '')}`)
 }
 
-/** One region of the mark, lifted out and trimmed back to its own edges. */
-async function detail(crop) {
-  const source = await mark()
-  const { width = 0, height = 0 } = await sharp(source).metadata()
-
-  // Clamped so a hand-written region can never ask for pixels past the edge.
-  const left = Math.max(0, Math.min(width - 1, Math.round(crop.x * width)))
-  const top = Math.max(0, Math.min(height - 1, Math.round(crop.y * height)))
-
-  return sharp(source)
-    .extract({
-      left,
-      top,
-      width: Math.max(1, Math.min(width - left, Math.round(crop.w * width))),
-      height: Math.max(1, Math.min(height - top, Math.round(crop.h * height))),
-    })
-    .trim()
-    .toBuffer()
-}
-
-/**
- * The mark under a labelled grid, so a region can be named out loud.
- *
- * This script judges the drawing by luminance alone and has no idea which
- * shape is which, so choosing what the favicon shows means someone looking
- * at it. The grid gives them words for it: "B2", which becomes CROP below.
- */
-async function picker(size = 900) {
-  const COLS = 6
-  const ROWS = 4
-  const shown = await square(size, 0.94, '#ffffff', await mark())
-
-  const cw = size / COLS
-  const ch = size / ROWS
-  const lines = []
-
-  for (let c = 1; c < COLS; c++) {
-    lines.push(`<line x1="${c * cw}" y1="0" x2="${c * cw}" y2="${size}"/>`)
-  }
-  for (let r = 1; r < ROWS; r++) {
-    lines.push(`<line x1="0" y1="${r * ch}" x2="${size}" y2="${r * ch}"/>`)
-  }
-
-  const labels = []
-  for (let r = 0; r < ROWS; r++) {
-    for (let c = 0; c < COLS; c++) {
-      const name = `${'ABCDEF'[c]}${r + 1}`
-      // Corner-set and semi-transparent: a label over the middle of a cell
-      // would hide the very thing being pointed at.
-      labels.push(
-        `<text x="${c * cw + 8}" y="${r * ch + 30}" fill="#d92d20" fill-opacity="0.65"` +
-          ` font-family="Helvetica,Arial,sans-serif" font-size="26" font-weight="700">${name}</text>`,
-      )
-    }
-  }
-
-  const svg = Buffer.from(
-    `<svg width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">` +
-      `<g stroke="#d92d20" stroke-opacity="0.45" stroke-width="2">${lines.join('')}</g>` +
-      labels.join('') +
-      '</svg>',
-  )
-
-  return sharp(shown).composite([{ input: svg }]).png().toBuffer()
-}
-
-console.log('\nBuilding icons from branding/logo/logo-source.png\n')
+console.log('\nBuilding icons from branding/logo/\n')
 
 // Reusable masters, so anything else that needs the mark has one to take.
 await write(join(LOGO, 'logo.png'), await square(1024, 0.92, TRANSPARENT))
-await write(join(LOGO, 'logo-on-brand.png'), await square(1024, 0.72, BRAND), { flatten: true })
+const colour = await colourMark()
+await write(join(LOGO, 'logo-colour.png'), colour)
+await write(join(LOGO, 'logo-on-brand.png'), await square(1024, 0.8, ICON_BG, colour), {
+  flatten: true,
+})
 
 // iOS and anywhere a single square icon is wanted. No transparency allowed.
-await write(join(ASSETS, 'icon.png'), await square(1024, 0.72, BRAND), { flatten: true })
+await write(join(ASSETS, 'icon.png'), await square(1024, 0.8, ICON_BG, colour), { flatten: true })
 
 // Android adaptive: the foreground is cropped, so it sits well inside.
-await write(join(ASSETS, 'android-icon-foreground.png'), await square(1024, 0.58, TRANSPARENT))
+await write(
+  join(ASSETS, 'android-icon-foreground.png'),
+  await square(1024, 0.58, TRANSPARENT, colour),
+)
 await write(
   join(ASSETS, 'android-icon-background.png'),
-  await sharp({ create: { width: 1024, height: 1024, channels: 4, background: BRAND } })
+  await sharp({ create: { width: 1024, height: 1024, channels: 4, background: ICON_BG } })
     .png()
     .toBuffer(),
   { flatten: true },
@@ -311,28 +265,22 @@ await write(
 await write(join(ASSETS, 'android-icon-monochrome.png'), await monochrome(1024))
 
 // Expo draws this on the splash background, so it keeps its transparency.
-await write(join(ASSETS, 'splash-icon.png'), await square(1024, 0.6, TRANSPARENT))
+await write(join(ASSETS, 'splash-icon.png'), await square(1024, 0.6, TRANSPARENT, colour))
 
 /*
- * Small enough that a transparent mark disappears against a dark tab strip,
- * so it sits on the brand colour like the app icon.
+ * The tab icon: the whole mark, in colour, on the icon yellow.
  *
- * At 48px the full scene is three faces' worth of line work in a space that
- * fits one, and it reads as a grey smudge. It shows one face instead: from
- * logo/favicon-source.png if that exists, otherwise cut from the main mark
- * at FAVICON_CROP.
+ * As a line drawing the three figures were a grey smudge at 48px and the
+ * favicon showed one face instead. In colour they hold together -- three
+ * blobs of hair and a hat is enough to recognise.
  */
-const faviconMark = existsSync(FAVICON_SOURCE)
-  ? await sharp(await inkOnly(FAVICON_SOURCE)).trim().toBuffer()
-  : FAVICON_CROP
-    ? await detail(FAVICON_CROP)
-    : await mark()
-await write(join(ASSETS, 'favicon.png'), await square(48, 0.8, BRAND, faviconMark), {
+const faviconMark = colour
+await write(join(ASSETS, 'favicon.png'), await square(48, 0.92, ICON_BG, faviconMark), {
   flatten: true,
 })
 
-// The same region big enough to actually check, since 48px tells you nothing.
-await write(join(LOGO, 'favicon-preview.png'), await square(240, 0.8, BRAND, faviconMark), {
+// The same thing big enough to actually check, since 48px tells you nothing.
+await write(join(LOGO, 'favicon-preview.png'), await square(240, 0.92, ICON_BG, faviconMark), {
   flatten: true,
 })
 
@@ -358,30 +306,34 @@ await write(join(LOGO, 'favicon-preview.png'), await square(240, 0.8, BRAND, fav
 const light = await tinted(640, '#ffffff')
 await write(join(GUEST_BRAND, 'logo-light.png'), light)
 await write(join(SITE_BRAND, 'logo-light.png'), light)
+// The landing page's own mark, in colour, at the top of every page.
+await write(join(SITE_BRAND, 'logo-colour.png'), colour)
+// And the app's, above the sign-in form.
+await write(join(ASSETS, 'logo-colour.png'), colour)
 await write(join(LOGO, 'logo-light.png'), light)
 
 // What a link to the landing page unfurls as in a message. Flattened onto
 // the brand colour because a transparent mark lands on whatever colour the
 // chat app happens to use, which is usually white and sometimes black.
-await write(join(SITE_BRAND, 'logo-on-brand.png'), await square(1024, 0.72, BRAND), {
+await write(join(SITE_BRAND, 'logo-on-brand.png'), await square(1024, 0.8, ICON_BG, colour), {
   flatten: true,
 })
 
 for (const [dir, label] of [[WEB, 'app'], [GUEST_WEB, 'guest'], [SITE_WEB, 'landing']]) {
   // 180 is what iOS asks for; it downsamples from there for every other slot.
-  await write(join(dir, 'apple-touch-icon.png'), await square(180, 0.72, BRAND), {
+  await write(join(dir, 'apple-touch-icon.png'), await square(180, 0.8, ICON_BG, colour), {
     flatten: true,
   })
   for (const size of [192, 512]) {
-    await write(join(dir, `icon-${size}.png`), await square(size, 0.72, BRAND), {
+    await write(join(dir, `icon-${size}.png`), await square(size, 0.8, ICON_BG, colour), {
       flatten: true,
     })
-    await write(join(dir, `icon-${size}-maskable.png`), await square(size, 0.58, BRAND), {
+    await write(join(dir, `icon-${size}-maskable.png`), await square(size, 0.62, ICON_BG, colour), {
       flatten: true,
     })
   }
   // The tab icon, alongside the .ico Expo builds from assets/favicon.png.
-  await write(join(dir, 'favicon-48.png'), await square(48, 0.8, BRAND, faviconMark), {
+  await write(join(dir, 'favicon-48.png'), await square(48, 0.92, ICON_BG, faviconMark), {
     flatten: true,
   })
   void label
@@ -390,14 +342,6 @@ for (const [dir, label] of [[WEB, 'app'], [GUEST_WEB, 'guest'], [SITE_WEB, 'land
 // Big, on white and on the brand colour, so the result can be judged at a
 // glance rather than by opening eight files.
 await write(join(LOGO, 'preview-on-white.png'), await square(600, 0.86, '#ffffff'), { flatten: true })
-await write(join(LOGO, 'favicon-picker.png'), await picker(), { flatten: true })
 
 console.log(`\nInk threshold: ${INK_THRESHOLD}. Too much left? INK=90 npm run branding`)
-console.log(
-  existsSync(FAVICON_SOURCE)
-    ? 'Favicon: its own artwork, branding/logo/favicon-source.png. Check favicon-preview.png.'
-    : FAVICON_CROP
-      ? `Favicon region: ${Object.values(FAVICON_CROP).join(', ')}. Check favicon-preview.png.`
-      : 'Favicon: the whole mark. Pick a region in favicon-picker.png, then CROP=x,y,w,h npm run branding',
-)
 console.log('Check branding/logo/preview-on-white.png — nothing here can tell you it looks wrong.\n')

@@ -9,7 +9,7 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#f5c518"
+      "backgroundColor": "#fbd965"
     },
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -24,7 +24,7 @@
     "android": {
       "package": "co.kupfer.photobooth",
       "adaptiveIcon": {
-        "backgroundColor": "#f5c518",
+        "backgroundColor": "#fbd965",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
