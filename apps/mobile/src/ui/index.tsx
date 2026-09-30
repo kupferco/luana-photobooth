@@ -1,5 +1,5 @@
 import type { Theme } from '@dk/ui-tokens'
-import { useMemo, useState, type ReactNode } from 'react'
+import { useMemo, useRef, useState, type ReactNode } from 'react'
 import {
   ActivityIndicator,
   PanResponder,
@@ -203,22 +203,38 @@ export function Slider({
   const t = useTheme()
   const [width, setWidth] = useState(0)
 
-  const set = (x: number) => {
-    if (width <= 0) return
-    onChange(Math.round(Math.max(0, Math.min(1, x / width)) * 100))
-  }
+  /*
+   * The handlers read the latest callback through a ref.
+   *
+   * The first version memoised the PanResponder on the measured width,
+   * and its handlers closed over `onChange` -- which is a new arrow every
+   * render. So it kept calling the one captured when the track was first
+   * measured, and that closure held the artwork as it was at mount. Every
+   * drag wrote a whole stale object back, which is why moving the wash's
+   * brightness reset its strength to 30: not a reset, a resurrection.
+   *
+   * A ref rather than wider deps because a PanResponder rebuilt mid-drag
+   * loses the gesture.
+   */
+  const latest = useRef({ width, onChange })
+  latest.current = { width, onChange }
 
   const responder = useMemo(
     () =>
       PanResponder.create({
         onStartShouldSetPanResponder: () => true,
         onMoveShouldSetPanResponder: () => true,
-        onPanResponderGrant: (e) => set(e.nativeEvent.locationX),
-        onPanResponderMove: (e) => set(e.nativeEvent.locationX),
+        onPanResponderGrant: (e) => emit(e.nativeEvent.locationX),
+        onPanResponderMove: (e) => emit(e.nativeEvent.locationX),
       }),
-    // Rebuilt when the track is measured, or the first drag divides by zero.
-    [width],
+    [],
   )
+
+  function emit(x: number) {
+    const { width: w, onChange: fire } = latest.current
+    if (w <= 0) return
+    fire(Math.round(Math.max(0, Math.min(1, x / w)) * 100))
+  }
 
   return (
     <View

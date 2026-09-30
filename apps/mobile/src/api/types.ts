@@ -135,6 +135,8 @@ export interface Background {
   url: string
   source: 'generated' | 'stock' | 'upload'
   prompt: string | null
+  /** How light it is, 0-100, measured when it arrived. Null if unmeasured. */
+  luminance: number | null
   credit: { name: string; url: string; source: string } | null
   selected: boolean
   createdAt: string

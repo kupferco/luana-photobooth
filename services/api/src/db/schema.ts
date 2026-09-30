@@ -340,6 +340,14 @@ export const eventBackgrounds = pgTable(
      * be able to take the credit line away from a print already made.
      */
     credit: jsonb('credit').$type<{ name: string; url: string; source: string }>(),
+    /**
+     * How light the picture is, 0 to 100.
+     *
+     * Measured once when it arrives, because the thing that decides
+     * whether a party's name is readable over it is how bright it is, and
+     * asking that question later means fetching a megabyte to answer it.
+     */
+    luminance: smallint('luminance'),
     selected: boolean('selected').notNull().default(false),
     ...timestamps,
   },

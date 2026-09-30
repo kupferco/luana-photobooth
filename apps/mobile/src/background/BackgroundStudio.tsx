@@ -473,7 +473,14 @@ export function BackgroundStudio({
               <Button
                 label={t('artwork.tidy')}
                 variant="secondary"
-                onPress={() => onChange(tidy(artwork, Boolean(candidateUrl)))}
+                onPress={() =>
+                  onChange(
+                    tidy(
+                      artwork,
+                      backgrounds.find((b) => b.url === candidateUrl) ?? null,
+                    ),
+                  )
+                }
               />
               <Body muted>{t('artwork.tidyHint')}</Body>
             </View>

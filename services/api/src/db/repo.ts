@@ -1297,6 +1297,7 @@ export interface BackgroundRecord {
   prompt: string | null
   model: string | null
   credit: { name: string; url: string; source: string } | null
+  luminance: number | null
   selected: boolean
   createdAt: Date
 }
@@ -1310,6 +1311,7 @@ export async function recordBackground(
     prompt?: string
     model?: string
     credit?: { name: string; url: string; source: string }
+    luminance?: number
   },
 ): Promise<BackgroundRecord> {
   const [row] = await db
@@ -1322,6 +1324,7 @@ export async function recordBackground(
       prompt: entry.prompt ?? null,
       model: entry.model ?? null,
       credit: entry.credit ?? null,
+      luminance: entry.luminance ?? null,
     })
     .returning()
 

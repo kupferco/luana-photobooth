@@ -1,0 +1,1 @@
+ALTER TABLE "event_backgrounds" ADD COLUMN "luminance" smallint;

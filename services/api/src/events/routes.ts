@@ -978,11 +978,23 @@ eventRoutes.post('/:eventId/artwork/generate', async (req, res, next) => {
       const path = backgroundPath(tenantId, randomUUID(), 'png')
       await upload(path, tenantId, sized, 'image/png')
 
+      /*
+       * Rec. 601 luma of the channel means: one number for "is this a
+       * light picture or a dark one". Crude, and enough to decide whether
+       * black or white letters will be readable over it.
+       */
+      const stats = await sharp(sized).stats()
+      const [r, g, b] = stats.channels
+      const luminance = Math.round(
+        ((0.299 * (r?.mean ?? 0) + 0.587 * (g?.mean ?? 0) + 0.114 * (b?.mean ?? 0)) / 255) * 100,
+      )
+
       const record = await recordBackground(tenantId, event.id, {
         objectPath: path,
         source: 'generated',
         prompt,
         model: IMAGE_MODEL,
+        luminance,
       })
 
       return res.status(201).json({
@@ -1027,6 +1039,7 @@ eventRoutes.get('/:eventId/backgrounds', async (req, res, next) => {
           url: await createReadUrl(row.objectPath, query.data.tenantId),
           source: row.source,
           prompt: row.prompt,
+          luminance: row.luminance,
           credit: row.credit,
           selected: row.selected,
           createdAt: row.createdAt.toISOString(),
