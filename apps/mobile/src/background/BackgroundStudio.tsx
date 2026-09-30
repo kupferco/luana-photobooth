@@ -120,6 +120,8 @@ export function BackgroundStudio({
             borderTopLeftRadius: theme.radius.xl,
             borderTopRightRadius: theme.radius.xl,
             maxHeight: '92%',
+            // Nothing should be drawn outside the sheet's rounded corners.
+            overflow: 'hidden',
             // The column the rest of the app sits in, so a desktop window
             // does not get a sheet the width of a monitor.
             width: '100%',
@@ -216,6 +218,15 @@ export function BackgroundStudio({
             </View>
 
           <ScrollView
+            /*
+             * Shrinkable, or it overflows the sheet instead of scrolling.
+             *
+             * A ScrollView with no height of its own grows to fit its
+             * content. The sheet is capped at 92% of the window, so the
+             * overflow ran out under the pinned preview and the first rows
+             * of controls were drawn behind it.
+             */
+            style={{ flexShrink: 1 }}
             contentContainerStyle={{
               paddingHorizontal: theme.space[4],
               paddingBottom: theme.space[10],
