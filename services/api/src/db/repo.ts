@@ -2,6 +2,7 @@ import { randomBytes } from 'node:crypto'
 import { and, desc, eq, inArray, isNotNull, isNull, lt, or, sql } from 'drizzle-orm'
 import {
   CLASSIC_3UP,
+  TEMPLATES,
   isWellFormedDeviceName,
   proposeDeviceName,
   type Template,
@@ -44,19 +45,31 @@ export async function seedDefaultTemplate(
   tenantId: string,
   tx: Pick<typeof db, 'insert'> = db,
 ): Promise<string> {
-  const [row] = await tx
+  /*
+   * Every layout, not only the default.
+   *
+   * Templates are per-tenant rows, so a layout that ships later has to be
+   * handed out to accounts that already exist as well -- see the backfill
+   * in the migrations. New accounts get the lot here.
+   */
+  const rows = await tx
     .insert(templates)
-    .values({
-      tenantId,
-      name: 'Classic three-up',
-      canvas: CLASSIC_3UP.canvas,
-      cells: CLASSIC_3UP.cells,
-      backgroundColor: CLASSIC_3UP.backgroundColor,
-    })
+    .values(
+      TEMPLATES.map(({ name, template }) => ({
+        tenantId,
+        name,
+        canvas: template.canvas,
+        cells: template.cells,
+        backgroundColor: template.backgroundColor,
+      })),
+    )
     .returning({ id: templates.id })
 
-  if (!row) throw new Error('Could not create the default template.')
-  return row.id
+  // The first is the one new events start on: it is what every print so far
+  // has used, and a new account should not be the experiment.
+  const first = rows[0]
+  if (!first) throw new Error('Could not create the default template.')
+  return first.id
 }
 
 export async function listTemplates(tenantId: string) {

@@ -182,7 +182,8 @@
     "liveWarning": "Esta festa está rolando. A próxima foto impressa vai usar esta arte.",
     "draftKept": "Guardado enquanto você explora. Nada é impresso até você tocar no botão.",
     "noChanges": "Nada mudou ainda.",
-    "notWired": "Ainda não enviado para a cabine — isto é a edição, não o encanamento."
+    "notWired": "Ainda não enviado para a cabine — isto é a edição, não o encanamento.",
+    "layout": "Formato"
   },
   "report": {
     "title": "Como foi",

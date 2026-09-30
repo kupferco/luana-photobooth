@@ -1,4 +1,8 @@
-import { DEFAULT_MONTAGE_RETENTION_DAYS, retentionUntil } from '@photobooth/shared'
+import {
+  DEFAULT_MONTAGE_RETENTION_DAYS,
+  TEMPLATES,
+  retentionUntil,
+} from '@photobooth/shared'
 import { clearToken, readToken, writeToken } from './storage'
 import type {
   Member,
@@ -348,6 +352,14 @@ export const fixtureApi: PhotoboothApi = {
     return fixtureDevices.filter((d) => !removedDevices.has(d.id))
   },
 
+  async setLayout(_tenantId, eventId, templateId) {
+    await delay()
+    const event = EVENTS.find((e) => e.id === eventId)
+    if (!event) throw new ApiError('Not found', 'not_found', 404)
+    event.templateId = templateId
+    return event
+  },
+
   async setRetakes(_tenantId, eventId, retakesAllowed) {
     await delay()
     const event = EVENTS.find((e) => e.id === eventId)
@@ -400,6 +412,16 @@ export const fixtureApi: PhotoboothApi = {
   async removeMember(_tenantId, userId) {
     await delay()
     removedMembers.add(userId)
+  },
+
+  async listLayouts() {
+    await delay()
+    return TEMPLATES.map((t, i) => ({
+      id: `tpl-${i}`,
+      name: t.name,
+      template: t.template,
+      shots: t.template.cells.length,
+    }))
   },
 
   async eventReport() {

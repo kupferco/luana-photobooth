@@ -1,3 +1,4 @@
+import type { Template } from '@photobooth/shared'
 import type { SessionStatus } from '@photobooth/shared'
 
 /**
@@ -122,6 +123,14 @@ export interface GallerySession {
   emailedTo: string | null
 }
 
+/** One of the layouts an event can be put on. */
+export interface Layout {
+  id: string
+  name: string
+  template: Template
+  shots: number
+}
+
 /** Someone who can run this account's parties. */
 export interface Member {
   userId: string
@@ -143,6 +152,8 @@ export interface PhotoboothApi {
   /** Everything the caller can see. A tenant narrows it to one account. */
   listEvents(tenantId?: string): Promise<Event[]>
   getEvent(tenantId: string, eventId: string): Promise<Event>
+  /** The layouts this account can choose between. */
+  listLayouts(tenantId: string): Promise<Layout[]>
   createEvent(
     tenantId: string,
     input: { name: string; eventDate: string },
@@ -160,6 +171,9 @@ export interface PhotoboothApi {
     contentType: 'image/jpeg' | 'image/png',
   ): Promise<BackgroundUpload>
   setBackground(tenantId: string, eventId: string, path: string | null): Promise<Event>
+
+  /** Which layout the party's prints use. */
+  setLayout(tenantId: string, eventId: string, templateId: string): Promise<Event>
 
   /** How many retakes a guest gets. 0 turns them off for a busy party. */
   setRetakes(tenantId: string, eventId: string, retakesAllowed: number): Promise<Event>

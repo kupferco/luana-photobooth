@@ -1,7 +1,8 @@
-import { artworkArea, type Template } from '@photobooth/shared'
+import { CLASSIC_3UP, artworkArea } from '@photobooth/shared'
 import { Modal, Pressable, ScrollView, Text, View, useWindowDimensions } from 'react-native'
 import { useLocale, useT } from '../locale'
 import { useTheme } from '../theme'
+import type { Layout } from '../api/types'
 import { Body, Button, Chip, Field, Label, Notice } from '../ui'
 import { ArtworkCanvas } from './ArtworkCanvas'
 import {
@@ -44,22 +45,31 @@ const PALETTE_NAMES = Object.keys(PALETTES) as PaletteName[]
  */
 export function BackgroundStudio({
   visible,
-  template,
+  layouts,
+  templateId,
+  onTemplateChange,
   eventDate,
   artwork,
   published,
+  layoutChanged,
   live,
   onChange,
   onPublish,
   onClose,
 }: {
   visible: boolean
-  template: Template
+  /** Every layout the account can choose. Empty while they load. */
+  layouts: Layout[]
+  /** The layout being previewed, which is part of the draft. */
+  templateId: string | null
+  onTemplateChange: (id: string) => void
   eventDate: string
   /** The draft being edited. Owned by the screen, so closing keeps it. */
   artwork: Artwork
   /** What the party is actually using. Null until something is published. */
   published: Artwork | null
+  /** True when the chosen layout differs from the one the party is on. */
+  layoutChanged: boolean
   /** A running party prints with this the moment it is published. */
   live: boolean
   onChange: (artwork: Artwork) => void
@@ -69,6 +79,17 @@ export function BackgroundStudio({
   const theme = useTheme()
   const t = useT()
   const { locale } = useLocale()
+
+  /*
+   * The layout is part of the draft, not a setting changed on the side.
+   *
+   * It decides how much room the words get -- a quarter of the print or
+   * most of it -- so changing it is a design decision, and it lands on
+   * prints exactly the way the background does. Same rule: nothing until
+   * the button.
+   */
+  const chosen = layouts.find((l) => l.id === templateId) ?? layouts[0]
+  const template = chosen?.template ?? CLASSIC_3UP
   const { width: screenWidth, height: windowHeight } = useWindowDimensions()
 
   const set = <K extends keyof Artwork>(key: K, value: Artwork[K]) =>
@@ -82,6 +103,7 @@ export function BackgroundStudio({
    * hands somebody a photograph captioned "Jill's 50th Birth".
    */
   const dirty =
+    layoutChanged ||
     JSON.stringify(artwork) !== JSON.stringify(published ?? DEFAULT_ARTWORK)
 
   /*
@@ -233,6 +255,19 @@ export function BackgroundStudio({
               gap: theme.space[5],
             }}
           >
+            {layouts.length > 1 ? (
+              <Group label={t('artwork.layout')}>
+                {layouts.map((layout) => (
+                  <Chip
+                    key={layout.id}
+                    label={layout.name}
+                    selected={layout.id === chosen?.id}
+                    onPress={() => onTemplateChange(layout.id)}
+                  />
+                ))}
+              </Group>
+            ) : null}
+
             <Field
               label={t('artwork.words')}
               value={artwork.title}

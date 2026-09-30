@@ -58,6 +58,37 @@ export const CLASSIC_3UP: Template = {
   backgroundColor: '#ffffff',
 }
 
+/**
+ * Three photos in a row along the bottom, and the whole top for artwork.
+ *
+ * The same three shots as CLASSIC_3UP, so nothing about the capture changes
+ * -- but the photos are smaller and gathered, which leaves a band 1800x744
+ * instead of a quadrant 919x619. That is 62% of the print rather than 26%.
+ *
+ * Worth the smaller photographs. The quadrant in v1's layout is enough for
+ * "Ana is 5!" and not much else, and the thing people ask for is their
+ * party's name across the top of the print.
+ *
+ * 560x420 is 4:3, which is the shape a phone camera gives without cropping
+ * as hard as the wide cells above do.
+ */
+export const BANNER_3UP: Template = {
+  canvas: { w: 1800, h: 1200 },
+  cells: [
+    { x: 36, y: 744, w: 560, h: 420 },
+    { x: 620, y: 744, w: 560, h: 420 },
+    { x: 1204, y: 744, w: 560, h: 420 },
+  ],
+  backgroundAssetId: null,
+  backgroundColor: '#ffffff',
+}
+
+/** Every layout that ships, in the order they are offered. */
+export const TEMPLATES: { name: string; template: Template }[] = [
+  { name: 'Classic three-up', template: CLASSIC_3UP },
+  { name: 'Banner three-up', template: BANNER_3UP },
+]
+
 /** Number of shots a template expects. */
 export function shotCount(template: Template): number {
   return template.cells.length

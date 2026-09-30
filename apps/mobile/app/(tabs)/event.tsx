@@ -13,6 +13,7 @@ import { useLocale, useT } from '../../src/locale'
 import { useActiveEvent } from '../../src/event-context'
 import { BackgroundStudio } from '../../src/background/BackgroundStudio'
 import { DEFAULT_ARTWORK, type Artwork } from '../../src/background/artwork'
+import type { Layout } from '../../src/api/types'
 import { EventReportCard } from '../../src/report/EventReportCard'
 import { PeopleCard } from '../../src/people/PeopleCard'
 import { useSession } from '../../src/session'
@@ -127,6 +128,9 @@ export default function EventTab() {
    */
   const [artworkDraft, setArtworkDraft] = useState<Artwork>(DEFAULT_ARTWORK)
   const [publishedArtwork, setPublishedArtwork] = useState<Artwork | null>(null)
+  const [layouts, setLayouts] = useState<Layout[]>([])
+  /** The layout being previewed. Null means "whatever the event is on". */
+  const [draftTemplateId, setDraftTemplateId] = useState<string | null>(null)
 
   /*
    * Both belong to the party that is open.
@@ -139,6 +143,7 @@ export default function EventTab() {
     setArtworkDraft(DEFAULT_ARTWORK)
     setPublishedArtwork(null)
     setStudioOpen(false)
+    setDraftTemplateId(null)
   }, [id])
   const [uploadingBg, setUploadingBg] = useState(false)
   const [backgroundNote, setBackgroundNote] = useState<string | null>(null)
@@ -152,7 +157,7 @@ export default function EventTab() {
   const load = useCallback(async () => {
     if (!tenantId || !id) return
     try {
-      const [e, s, list, connected, all] = await Promise.all([
+      const [e, s, list, connected, all, choices] = await Promise.all([
         api.getEvent(tenantId, id),
         api.eventStats(tenantId, id),
         api.listSessions(tenantId, id),
@@ -166,8 +171,12 @@ export default function EventTab() {
          * failed the other four and left the whole screen empty.
          */
         api.listAllDevices(tenantId).catch(() => []),
+        // The layouts this account can choose between. Same treatment as
+        // the line above: not worth failing the screen over.
+        api.listLayouts(tenantId).catch(() => []),
       ])
       setEvent(e)
+      setLayouts(choices)
       setStats(s)
       setDevices((previous) =>
         JSON.stringify(previous) === JSON.stringify(connected) ? previous : connected,
@@ -912,13 +921,28 @@ export default function EventTab() {
           endpoint already returns, and this screen currently drops. */}
       <BackgroundStudio
         visible={studioOpen}
-        template={CLASSIC_3UP}
+        layouts={layouts}
+        templateId={draftTemplateId ?? event.templateId}
+        onTemplateChange={setDraftTemplateId}
         eventDate={event.eventDate}
         artwork={artworkDraft}
         published={publishedArtwork}
+        layoutChanged={
+          draftTemplateId !== null && draftTemplateId !== event.templateId
+        }
         live={event.status === 'live'}
         onChange={setArtworkDraft}
-        onPublish={() => {
+        onPublish={async () => {
+          /*
+           * The layout is a real event field, so publishing actually
+           * changes something. The artwork does not have anywhere to go
+           * yet, which is why the sheet still says so.
+           */
+          if (draftTemplateId && draftTemplateId !== event.templateId) {
+            setEvent(
+              await api.setLayout(tenantId!, event.id, draftTemplateId),
+            )
+          }
           setPublishedArtwork(artworkDraft)
           setStudioOpen(false)
         }}
