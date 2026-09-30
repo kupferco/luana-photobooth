@@ -58,10 +58,11 @@ export default function Home() {
   /*
    * Filters appear once the list is long enough to need them.
    *
-   * Someone with three finished parties can see all three; a search box
-   * above them is a control that answers a question they do not have.
+   * Someone with two finished parties can see both; a search box above
+   * them is a control that answers a question they do not have. Three is
+   * where a list starts running off a phone screen.
    */
-  const showFilters = past.length >= 6
+  const showFilters = past.length >= 3
 
   const totals = useMemo(
     () =>
@@ -284,9 +285,9 @@ function EventCard({ event, onPress }: { event: Event; onPress: () => void }) {
                   fontSize: theme.fontSize.sm,
                 }}
               >
-                {t('common.photos', { count: event.photos })}
+                {t.plural('common.photos', event.photos)}
                 {' · '}
-                {t('common.prints', { count: event.prints })}
+                {t.plural('common.prints', event.prints)}
               </Text>
             ) : null}
           </View>
