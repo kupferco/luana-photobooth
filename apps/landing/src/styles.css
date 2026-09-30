@@ -56,6 +56,8 @@ p {
 /* --- the shell ---------------------------------------------------------- */
 
 .hero,
+.page-head,
+.topbar,
 .band,
 footer {
   padding-inline: var(--gutter);
@@ -100,8 +102,13 @@ footer {
 }
 
 .hero-mark {
-  width: clamp(160px, 26vw, 220px);
+  width: clamp(180px, 30vw, 260px);
   height: auto;
+  /* The outline is black on a nearly black page. A shadow rather than a
+     box-shadow, so the light follows the figures and not their rectangle. */
+  filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.85))
+    drop-shadow(0 0 18px rgba(255, 255, 255, 0.5))
+    drop-shadow(0 0 48px rgba(255, 255, 255, 0.4));
 }
 
 .hero h1 {
@@ -258,6 +265,202 @@ footer {
   color: var(--text-primary);
 }
 
+.more {
+  margin-top: 20px;
+}
+
+a {
+  color: var(--brand);
+}
+
+/* --- questions ---------------------------------------------------------- */
+
+/* <details>, so the answers open with no script and are still on the page
+   for a search engine to read. */
+.faq {
+  max-width: 72ch;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.faq details {
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.faq summary {
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding-block: 18px;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.faq summary::-webkit-details-marker {
+  display: none;
+}
+
+.faq summary::after {
+  content: '+';
+  color: var(--brand);
+  font-weight: 400;
+}
+
+.faq details[open] summary::after {
+  content: '\2212';
+}
+
+.faq details p {
+  color: var(--text-secondary);
+  padding-bottom: 20px;
+}
+
+/* --- the guide pages ---------------------------------------------------- */
+
+.topbar {
+  padding-block: 14px;
+  border-bottom: 1px solid var(--border-subtle);
+  /* Clears the notch when saved to a phone's home screen. */
+  padding-top: calc(14px + env(safe-area-inset-top, 0px));
+}
+
+.topbar .wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.topbar img {
+  display: block;
+  height: auto;
+  /* The same light as the big mark on the front page, scaled to this one. */
+  filter: drop-shadow(0 0 1.5px rgba(255, 255, 255, 0.85))
+    drop-shadow(0 0 8px rgba(255, 255, 255, 0.5))
+    drop-shadow(0 0 18px rgba(255, 255, 255, 0.35));
+}
+
+/* The front page opens on the mark at full size, so the small one would be
+   the same picture twice. Hidden rather than removed, to keep the links on
+   the right where they are on every other page. */
+.page-home .topbar-logo {
+  visibility: hidden;
+}
+
+.page-home .topbar {
+  border-bottom: 0;
+}
+
+.topbar-links {
+  display: flex;
+  gap: 20px;
+  font-size: 0.95rem;
+}
+
+.topbar-links a {
+  color: var(--text-primary);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.topbar-links a:first-child {
+  color: var(--text-secondary);
+}
+
+.page-head {
+  padding-block: clamp(40px, 8vw, 80px) clamp(32px, 6vw, 56px);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.page-head h1 {
+  font-size: clamp(1.9rem, 5vw, 3rem);
+  margin-bottom: 16px;
+}
+
+/* One column, unlike the three steps on the front page: these are read with
+   the kit in the other hand, one at a time, top to bottom. */
+.guide {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 28px;
+  max-width: 64ch;
+}
+
+.guide li {
+  display: flex;
+  gap: 16px;
+}
+
+.guide .step-n {
+  flex: none;
+}
+
+.guide h3 {
+  font-size: 1.2rem;
+  margin-block: 7px 8px;
+}
+
+.guide p {
+  color: var(--text-secondary);
+}
+
+/* --- booking ------------------------------------------------------------ */
+
+/* The same warm lift as the hero: this is the other place the page asks for
+   something. */
+.book {
+  background:
+    radial-gradient(ellipse 60% 80% at 0% 0%, rgba(245, 197, 24, 0.12), transparent 70%),
+    var(--surface-base);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.book .plain {
+  margin-bottom: 16px;
+}
+
+.book .button {
+  margin-top: 12px;
+}
+
+/* --- privacy and terms -------------------------------------------------- */
+
+/* Long prose, so a reading measure rather than the full shell. */
+.legal > * {
+  max-width: 68ch;
+}
+
+.band .legal h2 {
+  font-size: 1.35rem;
+  margin: 40px 0 12px;
+}
+
+.band .legal h2:first-child {
+  margin-top: 0;
+}
+
+.legal p,
+.legal li {
+  color: var(--text-secondary);
+}
+
+.legal p {
+  margin-bottom: 14px;
+}
+
+.legal ul {
+  margin: 0 0 14px;
+  padding-left: 22px;
+  display: grid;
+  gap: 8px;
+}
+
+.legal strong {
+  color: var(--text-primary);
+}
+
 /* --- closing ------------------------------------------------------------ */
 
 .closing {
@@ -281,11 +484,47 @@ footer {
   gap: 12px;
   /* Clears the home indicator when saved to a phone's home screen. */
   padding-bottom: calc(40px + env(safe-area-inset-bottom, 0px));
+  /* The WhatsApp button floats over this corner. */
+  padding-inline: 84px;
 }
 
 footer img {
   opacity: 0.6;
   height: auto;
+}
+
+.foot-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 20px;
+  font-size: 0.875rem;
+}
+
+.foot-links a {
+  color: var(--text-secondary);
+}
+
+/* --- whatsapp ----------------------------------------------------------- */
+
+/* WhatsApp's own green, not the brand yellow: people look for that colour. */
+.fab {
+  position: fixed;
+  right: calc(20px + env(safe-area-inset-right, 0px));
+  bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  width: 56px;
+  height: 56px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #25d366;
+  color: #fff;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+}
+
+.fab:hover {
+  background: #1ebe5b;
 }
 
 @media (prefers-reduced-motion: reduce) {

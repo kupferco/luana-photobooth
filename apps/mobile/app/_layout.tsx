@@ -38,7 +38,9 @@ function Navigator() {
         {/* The tab bar draws its own headers. */}
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="index" options={{ headerShown: false }} />
-        <Stack.Screen name="sign-in" options={{ title: t('auth.signIn') }} />
+        {/* No header: it is the first screen, so there is nothing to go back
+            to, and its title only repeated the heading underneath. */}
+        <Stack.Screen name="sign-in" options={{ headerShown: false }} />
         <Stack.Screen name="events/new" options={{ title: t('events.new') }} />
         {/* Outside the tabs on purpose: booth mode needs the whole screen,
             and a tab bar under it is something to catch mid-countdown. */}

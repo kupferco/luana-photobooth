@@ -1,5 +1,7 @@
 import { clearToken, readToken, writeToken } from './storage'
 import type {
+  Layout,
+  EventReport,
   Member,
   BackgroundUpload,
   Device,
@@ -244,6 +246,21 @@ export const liveApi: PhotoboothApi = {
     return result.events
   },
 
+  async listLayouts(tenantId) {
+    const result = await request<{ layouts?: Layout[]; templates: Layout[] }>(
+      'GET',
+      `/templates?tenantId=${encodeURIComponent(tenantId)}`,
+    )
+    return result.templates
+  },
+
+  async eventReport(tenantId, eventId) {
+    return request<EventReport>(
+      'GET',
+      `/events/${encodeURIComponent(eventId)}/report?tenantId=${encodeURIComponent(tenantId)}`,
+    )
+  },
+
   async listEventMembers(tenantId, eventId) {
     return request<{ members: Member[]; canManage: boolean }>(
       'GET',
@@ -334,6 +351,15 @@ export const liveApi: PhotoboothApi = {
       'DELETE',
       `/tenants/${encodeURIComponent(tenantId)}/members/${encodeURIComponent(userId)}`,
     )
+  },
+
+  async setLayout(tenantId, eventId, templateId) {
+    const result = await request<{ event: Event }>(
+      'PATCH',
+      `/events/${eventId}?tenantId=${encodeURIComponent(tenantId)}`,
+      { templateId },
+    )
+    return result.event
   },
 
   async setRetakes(tenantId, eventId, retakesAllowed) {

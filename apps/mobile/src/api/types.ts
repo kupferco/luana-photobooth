@@ -1,3 +1,4 @@
+import type { Template } from '@photobooth/shared'
 import type { SessionStatus } from '@photobooth/shared'
 
 /**
@@ -39,6 +40,36 @@ export interface Event {
   backgroundUrl: string | null
   /** How many times a guest may delete their photo and go again. */
   retakesAllowed: number
+  /** Finished photos, and prints that reached paper. Carried on the list. */
+  photos: number
+  prints: number
+  /**
+   * The two numbers that say whether the setup coped, rather than how big
+   * the party was. Both are quiet when nothing went wrong, which is the
+   * point: a list of finished parties should only speak up about the ones
+   * worth looking at.
+   */
+  abandoned: number
+  longestWaitSeconds: number | null
+}
+
+/** What a finished party did, for deciding whether one booth was enough. */
+export interface EventReport {
+  photos: number
+  prints: number
+  guests: number
+  retakes: number
+  /**
+   * Null when nobody queued: someone who walks up and taps the booth never
+   * waited, so an event with no QR guests has no wait to report.
+   */
+  averageWaitSeconds: number | null
+  longestWaitSeconds: number | null
+  /** Null when the party was too short for a rate to mean anything. */
+  photosPerHour: number | null
+  busiestHour: number | null
+  firstAt: string | null
+  lastAt: string | null
 }
 
 /** Artwork behind the photos. Null means the template's flat colour. */
@@ -92,6 +123,14 @@ export interface GallerySession {
   emailedTo: string | null
 }
 
+/** One of the layouts an event can be put on. */
+export interface Layout {
+  id: string
+  name: string
+  template: Template
+  shots: number
+}
+
 /** Someone who can run this account's parties. */
 export interface Member {
   userId: string
@@ -113,6 +152,8 @@ export interface PhotoboothApi {
   /** Everything the caller can see. A tenant narrows it to one account. */
   listEvents(tenantId?: string): Promise<Event[]>
   getEvent(tenantId: string, eventId: string): Promise<Event>
+  /** The layouts this account can choose between. */
+  listLayouts(tenantId: string): Promise<Layout[]>
   createEvent(
     tenantId: string,
     input: { name: string; eventDate: string },
@@ -130,6 +171,9 @@ export interface PhotoboothApi {
     contentType: 'image/jpeg' | 'image/png',
   ): Promise<BackgroundUpload>
   setBackground(tenantId: string, eventId: string, path: string | null): Promise<Event>
+
+  /** Which layout the party's prints use. */
+  setLayout(tenantId: string, eventId: string, templateId: string): Promise<Event>
 
   /** How many retakes a guest gets. 0 turns them off for a busy party. */
   setRetakes(tenantId: string, eventId: string, retakesAllowed: number): Promise<Event>
@@ -162,6 +206,9 @@ export interface PhotoboothApi {
   /** Invites by email. Already a member is a success, not an error. */
   addMember(tenantId: string, email: string): Promise<{ member: Member; created: boolean }>
   removeMember(tenantId: string, userId: string): Promise<void>
+
+  /** The full numbers for one party. Worth asking for once it has ended. */
+  eventReport(tenantId: string, eventId: string): Promise<EventReport>
 
   // Dashboard
   eventStats(tenantId: string, eventId: string): Promise<EventLiveStats>

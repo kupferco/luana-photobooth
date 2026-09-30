@@ -1,4 +1,8 @@
-import { DEFAULT_MONTAGE_RETENTION_DAYS, retentionUntil } from '@photobooth/shared'
+import {
+  DEFAULT_MONTAGE_RETENTION_DAYS,
+  TEMPLATES,
+  retentionUntil,
+} from '@photobooth/shared'
 import { clearToken, readToken, writeToken } from './storage'
 import type {
   Member,
@@ -55,6 +59,10 @@ const EVENTS: Event[] = [
     endedAt: null,
     backgroundUrl: null,
     retakesAllowed: 1,
+    photos: 31,
+    prints: 12,
+    abandoned: 0,
+    longestWaitSeconds: 96,
   },
   {
     id: 'evt-draft',
@@ -68,6 +76,10 @@ const EVENTS: Event[] = [
     endedAt: null,
     backgroundUrl: null,
     retakesAllowed: 1,
+    photos: 0,
+    prints: 0,
+    abandoned: 0,
+    longestWaitSeconds: null,
   },
   {
     // Close to deletion on purpose: this is the state the download prompt and
@@ -83,6 +95,12 @@ const EVENTS: Event[] = [
     endedAt: iso(-88),
     backgroundUrl: null,
     retakesAllowed: 1,
+    photos: 148,
+    prints: 96,
+    // The party that needed a second booth, so the row that says so can be
+    // designed rather than imagined.
+    abandoned: 7,
+    longestWaitSeconds: 963,
   },
 ]
 
@@ -283,6 +301,10 @@ export const fixtureApi: PhotoboothApi = {
       endedAt: null,
       backgroundUrl: null,
     retakesAllowed: 1,
+    photos: 0,
+    prints: 0,
+    abandoned: 0,
+    longestWaitSeconds: null,
     }
     EVENTS.unshift(event)
     SESSIONS[event.id] = []
@@ -328,6 +350,14 @@ export const fixtureApi: PhotoboothApi = {
   async listDevices() {
     await delay()
     return fixtureDevices.filter((d) => !removedDevices.has(d.id))
+  },
+
+  async setLayout(_tenantId, eventId, templateId) {
+    await delay()
+    const event = EVENTS.find((e) => e.id === eventId)
+    if (!event) throw new ApiError('Not found', 'not_found', 404)
+    event.templateId = templateId
+    return event
   },
 
   async setRetakes(_tenantId, eventId, retakesAllowed) {
@@ -382,6 +412,38 @@ export const fixtureApi: PhotoboothApi = {
   async removeMember(_tenantId, userId) {
     await delay()
     removedMembers.add(userId)
+  },
+
+  async listLayouts() {
+    await delay()
+    return TEMPLATES.map((t, i) => ({
+      id: `tpl-${i}`,
+      name: t.name,
+      template: t.template,
+      shots: t.template.cells.length,
+    }))
+  },
+
+  async eventReport() {
+    await delay()
+    /*
+     * A party that was busier than one booth could comfortably take: a
+     * four-minute average wait is the number that should make someone
+     * think about a second one, so it is the number worth designing the
+     * screen against.
+     */
+    return {
+      photos: 148,
+      prints: 96,
+      guests: 161,
+      retakes: 19,
+      averageWaitSeconds: 244,
+      longestWaitSeconds: 963,
+      photosPerHour: 37.2,
+      busiestHour: 52,
+      firstAt: iso(-88),
+      lastAt: iso(-88),
+    }
   },
 
   async listEventMembers() {

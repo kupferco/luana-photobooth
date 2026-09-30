@@ -11,6 +11,7 @@ import {
   type TextInputProps,
   type ViewStyle,
 } from 'react-native'
+import { useT } from '../locale'
 import { useTheme, weight } from '../theme'
 
 /**
@@ -80,6 +81,105 @@ export function Card({
   const t = useTheme()
   const s = useMemo(() => makeStyles(t), [t])
   return <View style={[s.card, style]}>{children}</View>
+}
+
+/**
+ * A card that can be folded away.
+ *
+ * The event screen accumulated a card per thing the owner might want to do
+ * -- setup, artwork, the guest link, who else can help -- and during a party
+ * none of them are what you are looking at. Folded, the screen is a list of
+ * headings and the photos underneath; opened, it is the one thing you came
+ * for.
+ *
+ * The open state is the caller's, not this component's. Which cards start
+ * open depends on the event, and only the screen knows that.
+ */
+export function CollapsibleCard({
+  label,
+  open,
+  onToggle,
+  children,
+}: {
+  label: string
+  open: boolean
+  onToggle: () => void
+  children: ReactNode
+}) {
+  const t = useTheme()
+  const tr = useT()
+
+  return (
+    <Card>
+      <Pressable
+        onPress={onToggle}
+        // The whole header is the target, not just the word: it is a small
+        // word, and this is pressed at a party.
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}
+        hitSlop={8}
+        accessibilityRole="button"
+        accessibilityState={{ expanded: open }}
+      >
+        <Label>{label}</Label>
+        <Text style={{ color: t.color.text.secondary, fontSize: t.fontSize.sm }}>
+          {open ? tr('common.hide') : tr('common.show')}
+        </Text>
+      </Pressable>
+
+      {open ? children : null}
+    </Card>
+  )
+}
+
+/**
+ * A small, round, one-tap choice.
+ *
+ * For picking from a handful of things that fit on a line -- a year, a
+ * typeface, a colour. Not for a list: a screen of chips is a menu that has
+ * lost its structure.
+ */
+export function Chip({
+  label,
+  selected,
+  onPress,
+}: {
+  label: string
+  selected: boolean
+  onPress: () => void
+}) {
+  const t = useTheme()
+  return (
+    <Pressable
+      onPress={onPress}
+      hitSlop={6}
+      accessibilityRole="button"
+      accessibilityState={{ selected }}
+      style={{
+        paddingVertical: 8,
+        paddingHorizontal: 14,
+        borderRadius: 999,
+        backgroundColor: selected
+          ? t.color.action.bg
+          : t.color.actionSecondary.bg,
+        borderWidth: 1,
+        borderColor: selected ? 'transparent' : t.color.actionSecondary.border,
+      }}
+    >
+      <Text
+        style={{
+          color: selected ? t.color.action.fg : t.color.text.primary,
+          fontSize: t.fontSize.sm,
+          fontWeight: '600',
+        }}
+      >
+        {label}
+      </Text>
+    </Pressable>
+  )
 }
 
 export function Button({

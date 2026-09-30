@@ -101,8 +101,6 @@
     "printInProgress": "Imprimindo…",
     "printFailed": "A impressão falhou",
     "setup": "Configuração",
-    "showSetup": "Mostrar",
-    "hideSetup": "Ocultar",
     "guestLink": "Link para convidados",
     "guestLinkHint": "Envie para seus convidados. Eles também podem escanear o QR code na tela da cabine.",
     "orCode": "ou código {code}",
@@ -140,6 +138,66 @@
     "retakes": "Repetições",
     "retakesHint": "Quantas vezes um convidado pode apagar a foto e tentar de novo, mantendo o lugar na frente.",
     "retakesOff": "Desligado"
+  },
+  "artwork": {
+    "title": "Criar a arte",
+    "open": "Criar aqui",
+    "words": "O nome da festa",
+    "wordsPlaceholder": "Aniversário de 50 anos da Jill",
+    "date": "Data",
+    "dateStyle": {
+      "long": "29 de setembro de 2026",
+      "short": "29/09/26",
+      "monthYear": "setembro de 2026",
+      "none": "Sem data"
+    },
+    "font": "Letras",
+    "fontSample": "Abc",
+    "look": "Estampa",
+    "theme": {
+      "plain": "Lisa",
+      "confetti": "Confete",
+      "constellation": "Estrelas",
+      "clouds": "Nuvens",
+      "stripes": "Listras",
+      "bokeh": "Luzes"
+    },
+    "colours": "Cores",
+    "palette": {
+      "amber": "Âmbar",
+      "ink": "Tinta",
+      "rose": "Rosa",
+      "sea": "Mar",
+      "forest": "Floresta",
+      "blossom": "Flor"
+    },
+    "photoSlot": "Foto {n}",
+    "areaHint": "As fotos cobrem o resto. Seu texto tem {w}×{h} para viver.",
+    "describe": "Ou descreva uma",
+    "describePlaceholder": "nuvens no pôr do sol, dourado e rosa",
+    "generate": "Gerar arte",
+    "generateSoon": "Ainda não conectado — o layout está aqui para isso.",
+    "publish": "Usar esta arte",
+    "publishLive": "Usar a partir da próxima foto",
+    "liveWarning": "Esta festa está rolando. A próxima foto impressa vai usar esta arte.",
+    "draftKept": "Guardado enquanto você explora. Nada é impresso até você tocar no botão.",
+    "noChanges": "Nada mudou ainda.",
+    "notWired": "Ainda não enviado para a cabine — isto é a edição, não o encanamento.",
+    "layout": "Formato"
+  },
+  "report": {
+    "title": "Como foi",
+    "photos": "Fotos",
+    "prints": "Impressões",
+    "guests": "Sessões",
+    "retakes": "Refeitas",
+    "averageWait": "Espera média",
+    "longestWait": "Maior espera",
+    "perHour": "Fotos por hora",
+    "busiestHour": "Hora mais cheia",
+    "noWait": "Ninguém esperou",
+    "waitHint": "Conta quem entrou na fila pelo próprio celular. Quem chegou direto na cabine não esperou.",
+    "busyHint": "Uma espera média alta é o sinal de que uma cabine só não deu conta."
   },
   "retention": {
     "guest": "Suas fotos ficam guardadas até {date}.",
@@ -231,7 +289,13 @@
       "one": "{count} foto",
       "other": "{count} fotos"
     },
-    "offlineHint": "Você continua conectado. Verifique se o servidor está rodando (npm run server) e tente de novo."
+    "offlineHint": "Você continua conectado. Verifique se o servidor está rodando (npm run server) e tente de novo.",
+    "show": "Mostrar",
+    "hide": "Ocultar",
+    "prints": {
+      "one": "{count} impressão",
+      "other": "{count} impressões"
+    }
   },
   "dev": {
     "fixtures": "Dados fictícios. Use EXPO_PUBLIC_API_MODE=live para acessar a API real."
@@ -244,7 +308,16 @@
     "totalPhotos": "Fotos",
     "totalPrints": "Impressões",
     "past": "Anteriores",
-    "upcoming": "Próximos"
+    "upcoming": "Próximos",
+    "searchPast": "Buscar festas anteriores",
+    "allYears": "Todas",
+    "noMatches": "Nenhuma festa anterior corresponde.",
+    "clearFilters": "Limpar",
+    "gaveUp": {
+      "one": "{count} desistiu",
+      "other": "{count} desistiram"
+    },
+    "queued": "fila de até {time}"
   },
   "profile": {
     "title": "Perfil",

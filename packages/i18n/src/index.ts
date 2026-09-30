@@ -33,24 +33,35 @@ export interface PluralForms {
 
 type IsPlural<T> = T extends { one: string; other: string } ? true : false
 
-/** Dotted paths whose value is a plain string. */
+/**
+ * Dotted paths whose value is a plain string.
+ *
+ * The `[X] extends [never]` arms are not decoration. A plural group yields
+ * `never` here, and `never extends ''` is *true*, so without them every
+ * plural key was also offered as a plain one -- `t('common.photos')`
+ * compiled and printed "common.photos" on the screen at a party. Wrapping
+ * both sides in a tuple stops the conditional distributing, which is what
+ * makes `never` answer for itself instead of matching everything.
+ */
 type StringLeaves<T> = T extends string
   ? ''
   : IsPlural<T> extends true
     ? never
     : {
-        [K in keyof T & string]: StringLeaves<T[K]> extends ''
-          ? K
-          : `${K}.${StringLeaves<T[K]>}`
+        [K in keyof T & string]: [StringLeaves<T[K]>] extends [never]
+          ? never
+          : StringLeaves<T[K]> extends ''
+            ? K
+            : `${K}.${StringLeaves<T[K]>}`
       }[keyof T & string]
 
-/** Dotted paths whose value is a plural group. */
+/** Dotted paths whose value is a plural group. Same tuple trick as above. */
 type PluralLeaves<T> = T extends string
   ? never
   : IsPlural<T> extends true
     ? ''
     : {
-        [K in keyof T & string]: PluralLeaves<T[K]> extends never
+        [K in keyof T & string]: [PluralLeaves<T[K]>] extends [never]
           ? never
           : PluralLeaves<T[K]> extends ''
             ? K

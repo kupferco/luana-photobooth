@@ -101,8 +101,6 @@
     "printInProgress": "Printing…",
     "printFailed": "Print failed",
     "setup": "Setup",
-    "showSetup": "Show",
-    "hideSetup": "Hide",
     "guestLink": "Guest link",
     "guestLinkHint": "Send this to your guests. They can also scan the QR code on the booth screen.",
     "orCode": "or code {code}",
@@ -140,6 +138,66 @@
     "retakes": "Retakes",
     "retakesHint": "How many times a guest can delete their photo and go again, keeping their place at the front.",
     "retakesOff": "Off"
+  },
+  "artwork": {
+    "title": "Design the artwork",
+    "open": "Design it here",
+    "words": "The party's name",
+    "wordsPlaceholder": "Jill's 50th Birthday",
+    "date": "Date",
+    "dateStyle": {
+      "long": "29 September 2026",
+      "short": "29/09/26",
+      "monthYear": "September 2026",
+      "none": "No date"
+    },
+    "font": "Lettering",
+    "fontSample": "Abc",
+    "look": "Pattern",
+    "theme": {
+      "plain": "Plain",
+      "confetti": "Confetti",
+      "constellation": "Stars",
+      "clouds": "Clouds",
+      "stripes": "Stripes",
+      "bokeh": "Lights"
+    },
+    "colours": "Colours",
+    "palette": {
+      "amber": "Amber",
+      "ink": "Ink",
+      "rose": "Rose",
+      "sea": "Sea",
+      "forest": "Forest",
+      "blossom": "Blossom"
+    },
+    "photoSlot": "Photo {n}",
+    "areaHint": "The photos cover the rest. Your words have {w}×{h} to live in.",
+    "describe": "Or describe one",
+    "describePlaceholder": "clouds at sunset, gold and pink",
+    "generate": "Generate artwork",
+    "generateSoon": "Not connected yet — the layout is here so it can be.",
+    "publish": "Use this artwork",
+    "publishLive": "Use it from the next photo",
+    "liveWarning": "This party is running. The next photo printed will use this.",
+    "draftKept": "Kept while you look around. Nothing is printed until you press the button.",
+    "noChanges": "Nothing changed yet.",
+    "notWired": "Not sent to the booth yet — this is the editing, not the plumbing.",
+    "layout": "Layout"
+  },
+  "report": {
+    "title": "How it went",
+    "photos": "Photos",
+    "prints": "Prints",
+    "guests": "Sessions",
+    "retakes": "Retakes",
+    "averageWait": "Average wait",
+    "longestWait": "Longest wait",
+    "perHour": "Photos an hour",
+    "busiestHour": "Busiest hour",
+    "noWait": "Nobody queued",
+    "waitHint": "Counts guests who joined from their own phone. Someone who walked up to the booth never waited.",
+    "busyHint": "A long average wait is the sign that one booth was not enough."
   },
   "retention": {
     "guest": "Your photos are saved until {date}.",
@@ -231,7 +289,13 @@
       "one": "{count} photo",
       "other": "{count} photos"
     },
-    "offlineHint": "You are still signed in. Check the server is running (npm run server) and try again."
+    "offlineHint": "You are still signed in. Check the server is running (npm run server) and try again.",
+    "show": "Show",
+    "hide": "Hide",
+    "prints": {
+      "one": "{count} print",
+      "other": "{count} prints"
+    }
   },
   "dev": {
     "fixtures": "Fixture data. Set EXPO_PUBLIC_API_MODE=live to use the real API."
@@ -244,7 +308,16 @@
     "totalPhotos": "Photos",
     "totalPrints": "Prints",
     "past": "Past",
-    "upcoming": "Coming up"
+    "upcoming": "Coming up",
+    "searchPast": "Search past events",
+    "allYears": "All",
+    "noMatches": "No past events match that.",
+    "clearFilters": "Clear",
+    "gaveUp": {
+      "one": "{count} gave up",
+      "other": "{count} gave up"
+    },
+    "queued": "queued up to {time}"
   },
   "profile": {
     "title": "Profile",
