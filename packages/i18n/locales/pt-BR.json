@@ -266,7 +266,12 @@
     "searchPast": "Buscar festas anteriores",
     "allYears": "Todas",
     "noMatches": "Nenhuma festa anterior corresponde.",
-    "clearFilters": "Limpar"
+    "clearFilters": "Limpar",
+    "gaveUp": {
+      "one": "{count} desistiu",
+      "other": "{count} desistiram"
+    },
+    "queued": "fila de até {time}"
   },
   "profile": {
     "title": "Perfil",

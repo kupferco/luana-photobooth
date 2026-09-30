@@ -1066,22 +1066,37 @@ export async function countPrints(tenantId: string, sessionId: string) {
  * that query already left-joins event membership and is distinct-ed, and
  * hanging aggregates off it would have counted rows twice.
  */
+export interface EventCounts {
+  photos: number
+  prints: number
+  /** Joined the queue and never got a photo. The clearest sign of trouble. */
+  abandoned: number
+  /** The worst queue anyone sat through, in seconds. Null if nobody queued. */
+  longestWaitSeconds: number | null
+}
+
 export async function eventCounts(
   eventIds: string[],
-): Promise<Map<string, { photos: number; prints: number }>> {
-  const out = new Map<string, { photos: number; prints: number }>()
+): Promise<Map<string, EventCounts>> {
+  const out = new Map<string, EventCounts>()
   if (eventIds.length === 0) return out
 
+  /*
+   * Photos, the people who gave up, and the worst wait, in one pass.
+   *
+   * The last two are what make a list of finished parties worth scanning:
+   * a count of photographs says how big the party was, not whether the
+   * setup coped with it.
+   */
   const photos = await db
-    .select({ eventId: sessions.eventId, n: sql<number>`count(*)::int` })
+    .select({
+      eventId: sessions.eventId,
+      n: sql<number>`count(*) filter (where ${sessions.status} = 'ready')::int`,
+      abandoned: sql<number>`count(*) filter (where ${sessions.status} = 'abandoned')::int`,
+      longest: sql<string | null>`max(extract(epoch from (${sessions.calledAt} - ${sessions.queuedAt})))`,
+    })
     .from(sessions)
-    .where(
-      and(
-        inArray(sessions.eventId, eventIds),
-        eq(sessions.status, 'ready'),
-        isNull(sessions.deletedAt),
-      ),
-    )
+    .where(and(inArray(sessions.eventId, eventIds), isNull(sessions.deletedAt)))
     .groupBy(sessions.eventId)
 
   // Jobs that actually reached paper. A queued or failed one is not a print.
@@ -1094,8 +1109,18 @@ export async function eventCounts(
     )
     .groupBy(sessions.eventId)
 
-  for (const id of eventIds) out.set(id, { photos: 0, prints: 0 })
-  for (const row of photos) out.set(row.eventId, { ...out.get(row.eventId)!, photos: row.n })
+  for (const id of eventIds) {
+    out.set(id, { photos: 0, prints: 0, abandoned: 0, longestWaitSeconds: null })
+  }
+  for (const row of photos) {
+    out.set(row.eventId, {
+      ...out.get(row.eventId)!,
+      photos: row.n,
+      abandoned: row.abandoned,
+      longestWaitSeconds:
+        row.longest === null ? null : Math.round(Number(row.longest)),
+    })
+  }
   for (const row of prints) out.set(row.eventId, { ...out.get(row.eventId)!, prints: row.n })
 
   return out

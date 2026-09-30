@@ -232,10 +232,37 @@ function Stat({ label, value }: { label: string; value: string }) {
   )
 }
 
+/**
+ * Anything on a finished party worth a second look, in one line.
+ *
+ * People giving up comes first: it is not a proxy for a problem, it is the
+ * problem -- somebody joined the queue and went away without a photograph.
+ *
+ * Otherwise the worst queue anybody sat through, and deliberately not the
+ * average. Parties are spiky; everyone goes after the speeches. A party can
+ * average forty seconds and still have had an hour where the queue was
+ * twelve minutes long, and that hour is the one guests remember. The
+ * average calls it fine.
+ *
+ * Five minutes is the line. Below it nobody minds; above it they start
+ * deciding it is not worth it.
+ */
+const NOTABLE_WAIT_SECONDS = 5 * 60
+
 function EventCard({ event, onPress }: { event: Event; onPress: () => void }) {
   const theme = useTheme()
   const t = useT()
   const { locale } = useLocale()
+
+  const waited = event.longestWaitSeconds
+  const review =
+    event.abandoned > 0
+      ? t.plural('home.gaveUp', event.abandoned)
+      : waited !== null && waited >= NOTABLE_WAIT_SECONDS
+        ? t('home.queued', {
+            time: `${Math.round(waited / 60)}m`,
+          })
+        : null
 
   const colour =
     event.status === 'live'
@@ -288,6 +315,22 @@ function EventCard({ event, onPress }: { event: Event; onPress: () => void }) {
                 {t.plural('common.photos', event.photos)}
                 {' · '}
                 {t.plural('common.prints', event.prints)}
+              </Text>
+            ) : null}
+
+            {/*
+              * Only when there is something to say.
+              *
+              * A third number on every row becomes wallpaper, and the
+              * question this list is scanned for is not "how big was it"
+              * but "which of these went badly". So the good parties stay
+              * quiet and the ones worth reviewing speak up.
+              */}
+            {review ? (
+              <Text
+                style={{ color: theme.color.status.ok, fontSize: theme.fontSize.sm }}
+              >
+                {review}
               </Text>
             ) : null}
           </View>

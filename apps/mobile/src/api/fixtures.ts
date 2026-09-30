@@ -57,6 +57,8 @@ const EVENTS: Event[] = [
     retakesAllowed: 1,
     photos: 31,
     prints: 12,
+    abandoned: 0,
+    longestWaitSeconds: 96,
   },
   {
     id: 'evt-draft',
@@ -72,6 +74,8 @@ const EVENTS: Event[] = [
     retakesAllowed: 1,
     photos: 0,
     prints: 0,
+    abandoned: 0,
+    longestWaitSeconds: null,
   },
   {
     // Close to deletion on purpose: this is the state the download prompt and
@@ -89,6 +93,10 @@ const EVENTS: Event[] = [
     retakesAllowed: 1,
     photos: 148,
     prints: 96,
+    // The party that needed a second booth, so the row that says so can be
+    // designed rather than imagined.
+    abandoned: 7,
+    longestWaitSeconds: 963,
   },
 ]
 
@@ -291,6 +299,8 @@ export const fixtureApi: PhotoboothApi = {
     retakesAllowed: 1,
     photos: 0,
     prints: 0,
+    abandoned: 0,
+    longestWaitSeconds: null,
     }
     EVENTS.unshift(event)
     SESSIONS[event.id] = []

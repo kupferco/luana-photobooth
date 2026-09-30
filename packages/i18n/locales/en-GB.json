@@ -266,7 +266,12 @@
     "searchPast": "Search past events",
     "allYears": "All",
     "noMatches": "No past events match that.",
-    "clearFilters": "Clear"
+    "clearFilters": "Clear",
+    "gaveUp": {
+      "one": "{count} gave up",
+      "other": "{count} gave up"
+    },
+    "queued": "queued up to {time}"
   },
   "profile": {
     "title": "Profile",

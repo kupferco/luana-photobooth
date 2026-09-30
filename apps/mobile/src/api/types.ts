@@ -42,6 +42,14 @@ export interface Event {
   /** Finished photos, and prints that reached paper. Carried on the list. */
   photos: number
   prints: number
+  /**
+   * The two numbers that say whether the setup coped, rather than how big
+   * the party was. Both are quiet when nothing went wrong, which is the
+   * point: a list of finished parties should only speak up about the ones
+   * worth looking at.
+   */
+  abandoned: number
+  longestWaitSeconds: number | null
 }
 
 /** What a finished party did, for deciding whether one booth was enough. */

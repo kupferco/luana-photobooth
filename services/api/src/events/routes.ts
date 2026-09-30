@@ -8,6 +8,7 @@ import {
   getEvent,
   getSession,
   eventCounts,
+  type EventCounts,
   eventReport,
   listEvents,
   listEventsForUser,
@@ -66,12 +67,14 @@ const OptionalTenantQuery = z.object({ tenantId: z.string().uuid().optional() })
  */
 async function present(
   event: Awaited<ReturnType<typeof getEvent>>,
-  counts?: { photos: number; prints: number },
+  counts?: EventCounts,
 ) {
   if (!event) return null
   return {
     photos: counts?.photos ?? 0,
     prints: counts?.prints ?? 0,
+    abandoned: counts?.abandoned ?? 0,
+    longestWaitSeconds: counts?.longestWaitSeconds ?? null,
     id: event.id,
     // Sent because the client can no longer assume one account: someone
     // helping with a single party has no membership to read it from.
