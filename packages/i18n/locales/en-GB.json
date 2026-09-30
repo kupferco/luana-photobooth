@@ -318,7 +318,8 @@
       "one": "{count} gave up",
       "other": "{count} gave up"
     },
-    "queued": "queued up to {time}"
+    "queued": "queued up to {time}",
+    "loadFailed": "Could not load your parties. {reason}"
   },
   "profile": {
     "title": "Profile",

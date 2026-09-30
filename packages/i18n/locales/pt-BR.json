@@ -318,7 +318,8 @@
       "one": "{count} desistiu",
       "other": "{count} desistiram"
     },
-    "queued": "fila de até {time}"
+    "queued": "fila de até {time}",
+    "loadFailed": "Não foi possível carregar suas festas. {reason}"
   },
   "profile": {
     "title": "Perfil",

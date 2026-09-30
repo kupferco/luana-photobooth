@@ -26,7 +26,7 @@ import {
  * Tapping an event makes it the one the Event tab shows.
  */
 export default function Home() {
-  const { events, loading, setActive } = useActiveEvent()
+  const { events, loading, error, setActive } = useActiveEvent()
   const t = useT()
 
   const upcoming = useMemo(
@@ -91,7 +91,19 @@ export default function Home() {
     <Screen>
       {usingFixtures ? <Notice tone="warn">{t('dev.fixtures')}</Notice> : null}
 
-      {events.length === 0 ? (
+      {/*
+        * An empty list and a failed one are not the same thing.
+        *
+        * The context already captured the error and this screen ignored it,
+        * so an API that could not answer looked exactly like an account with
+        * no parties -- which is the most alarming thing it could have said,
+        * and the least true.
+        */}
+      {error ? (
+        <Notice tone="bad">{t('home.loadFailed', { reason: error })}</Notice>
+      ) : null}
+
+      {events.length === 0 && !error ? (
         <Card>
           <Body>{t('home.noEvents')}</Body>
           <Body muted>{t('home.noEventsHint')}</Body>
