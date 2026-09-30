@@ -19,6 +19,7 @@
     "client": "npm run dev --workspace @photobooth/mobile",
     "client:fixtures": "EXPO_PUBLIC_API_MODE=fixtures npm run dev --workspace @photobooth/mobile",
     "guest": "VITE_API_URL=http://localhost:8080 npm run dev --workspace @photobooth/guest",
+    "landing": "npm run dev --workspace @photobooth/landing",
     "build": "turbo run build",
     "typecheck": "turbo run typecheck",
     "db:generate": "npm run db:generate --workspace @photobooth/api",
