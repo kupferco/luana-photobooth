@@ -376,6 +376,25 @@ a {
   color: var(--text-secondary);
 }
 
+/* --- booking ------------------------------------------------------------ */
+
+/* The same warm lift as the hero: this is the other place the page asks for
+   something. */
+.book {
+  background:
+    radial-gradient(ellipse 60% 80% at 0% 0%, rgba(245, 197, 24, 0.12), transparent 70%),
+    var(--surface-base);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.book .plain {
+  margin-bottom: 16px;
+}
+
+.book .button {
+  margin-top: 12px;
+}
+
 /* --- closing ------------------------------------------------------------ */
 
 .closing {
@@ -399,6 +418,8 @@ footer {
   gap: 12px;
   /* Clears the home indicator when saved to a phone's home screen. */
   padding-bottom: calc(40px + env(safe-area-inset-bottom, 0px));
+  /* The WhatsApp button floats over this corner. */
+  padding-inline: 84px;
 }
 
 footer img {
@@ -416,6 +437,28 @@ footer img {
 
 .foot-links a {
   color: var(--text-secondary);
+}
+
+/* --- whatsapp ----------------------------------------------------------- */
+
+/* WhatsApp's own green, not the brand yellow: people look for that colour. */
+.fab {
+  position: fixed;
+  right: calc(20px + env(safe-area-inset-right, 0px));
+  bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  width: 56px;
+  height: 56px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #25d366;
+  color: #fff;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+}
+
+.fab:hover {
+  background: #1ebe5b;
 }
 
 @media (prefers-reduced-motion: reduce) {

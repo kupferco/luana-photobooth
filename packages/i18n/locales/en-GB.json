@@ -177,8 +177,12 @@
     "describePlaceholder": "clouds at sunset, gold and pink",
     "generate": "Generate artwork",
     "generateSoon": "Not connected yet — the layout is here so it can be.",
-    "use": "Use this artwork",
-    "notSavedYet": "Nothing is saved yet. This is the design, not the plumbing."
+    "publish": "Use this artwork",
+    "publishLive": "Use it from the next photo",
+    "liveWarning": "This party is running. The next photo printed will use this.",
+    "draftKept": "Kept while you look around. Nothing is printed until you press the button.",
+    "noChanges": "Nothing changed yet.",
+    "notWired": "Not sent to the booth yet — this is the editing, not the plumbing."
   },
   "report": {
     "title": "How it went",

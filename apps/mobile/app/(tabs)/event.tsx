@@ -12,6 +12,7 @@ import {
 import { useLocale, useT } from '../../src/locale'
 import { useActiveEvent } from '../../src/event-context'
 import { BackgroundStudio } from '../../src/background/BackgroundStudio'
+import { DEFAULT_ARTWORK, type Artwork } from '../../src/background/artwork'
 import { EventReportCard } from '../../src/report/EventReportCard'
 import { PeopleCard } from '../../src/people/PeopleCard'
 import { useSession } from '../../src/session'
@@ -111,6 +112,34 @@ export default function EventTab() {
    */
   const [chosen, setChosen] = useState<CardName | null | undefined>(undefined)
   const [studioOpen, setStudioOpen] = useState(false)
+
+  /*
+   * The artwork being edited, and the artwork the party is using.
+   *
+   * Two of them on purpose. The composer reads the background fresh for
+   * every montage, so whatever is published lands on the next guest's
+   * print -- and a draft that took effect as it was typed would hand
+   * somebody a photograph captioned "Jill's 50th Birth".
+   *
+   * Held here rather than inside the sheet so closing it keeps the work.
+   * A reload still loses it: a draft belongs in storage, and the only
+   * store this app has is the Keychain, which is for credentials.
+   */
+  const [artworkDraft, setArtworkDraft] = useState<Artwork>(DEFAULT_ARTWORK)
+  const [publishedArtwork, setPublishedArtwork] = useState<Artwork | null>(null)
+
+  /*
+   * Both belong to the party that is open.
+   *
+   * Without this, starting a design for one party and switching to another
+   * carries the draft across -- and publishing it there would put the wrong
+   * party's name on the wrong prints.
+   */
+  useEffect(() => {
+    setArtworkDraft(DEFAULT_ARTWORK)
+    setPublishedArtwork(null)
+    setStudioOpen(false)
+  }, [id])
   const [uploadingBg, setUploadingBg] = useState(false)
   const [backgroundNote, setBackgroundNote] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
@@ -885,6 +914,14 @@ export default function EventTab() {
         visible={studioOpen}
         template={CLASSIC_3UP}
         eventDate={event.eventDate}
+        artwork={artworkDraft}
+        published={publishedArtwork}
+        live={event.status === 'live'}
+        onChange={setArtworkDraft}
+        onPublish={() => {
+          setPublishedArtwork(artworkDraft)
+          setStudioOpen(false)
+        }}
         onClose={() => setStudioOpen(false)}
       />
 

@@ -1,9 +1,8 @@
 import { artworkArea, type Template } from '@photobooth/shared'
-import { useState } from 'react'
 import { Modal, Pressable, ScrollView, Text, View, useWindowDimensions } from 'react-native'
 import { useLocale, useT } from '../locale'
 import { useTheme } from '../theme'
-import { Body, Button, Chip, Field, Label } from '../ui'
+import { Body, Button, Chip, Field, Label, Notice } from '../ui'
 import { ArtworkCanvas } from './ArtworkCanvas'
 import {
   DEFAULT_ARTWORK,
@@ -47,11 +46,24 @@ export function BackgroundStudio({
   visible,
   template,
   eventDate,
+  artwork,
+  published,
+  live,
+  onChange,
+  onPublish,
   onClose,
 }: {
   visible: boolean
   template: Template
   eventDate: string
+  /** The draft being edited. Owned by the screen, so closing keeps it. */
+  artwork: Artwork
+  /** What the party is actually using. Null until something is published. */
+  published: Artwork | null
+  /** A running party prints with this the moment it is published. */
+  live: boolean
+  onChange: (artwork: Artwork) => void
+  onPublish: () => void
   onClose: () => void
 }) {
   const theme = useTheme()
@@ -59,9 +71,18 @@ export function BackgroundStudio({
   const { locale } = useLocale()
   const { width: screenWidth } = useWindowDimensions()
 
-  const [artwork, setArtwork] = useState<Artwork>(DEFAULT_ARTWORK)
   const set = <K extends keyof Artwork>(key: K, value: Artwork[K]) =>
-    setArtwork((a) => ({ ...a, [key]: value }))
+    onChange({ ...artwork, [key]: value })
+
+  /*
+   * Publishing is a separate act from editing, and not for tidiness.
+   *
+   * The composer reads the background afresh for every montage, so whatever
+   * is published is on the next guest's print. Saving as somebody types
+   * hands somebody a photograph captioned "Jill's 50th Birth".
+   */
+  const dirty =
+    JSON.stringify(artwork) !== JSON.stringify(published ?? DEFAULT_ARTWORK)
 
   const previewWidth = Math.min(screenWidth - 72, 420)
   const area = artworkArea(template)
@@ -313,8 +334,23 @@ export function BackgroundStudio({
               <Body muted>{t('artwork.generateSoon')}</Body>
             </View>
 
-            <Button label={t('artwork.use')} disabled onPress={() => {}} />
-            <Body muted>{t('artwork.notSavedYet')}</Body>
+            {/* Loud about it while a party is running, because it is the
+                one moment this button changes something in somebody's
+                hand rather than on a screen. */}
+            {live && dirty ? (
+              <Notice tone="warn">{t('artwork.liveWarning')}</Notice>
+            ) : null}
+
+            <Button
+              label={t(live ? 'artwork.publishLive' : 'artwork.publish')}
+              disabled={!dirty}
+              onPress={onPublish}
+            />
+
+            <Body muted>
+              {dirty ? t('artwork.draftKept') : t('artwork.noChanges')}
+            </Body>
+            <Body muted>{t('artwork.notWired')}</Body>
           </ScrollView>
         </View>
       </View>
