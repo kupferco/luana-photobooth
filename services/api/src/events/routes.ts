@@ -13,6 +13,9 @@ import {
   getEvent,
   getSession,
   claimGeneration,
+  listBackgrounds,
+  recordBackground,
+  selectBackground,
   eventCounts,
   type EventCounts,
   eventReport,
@@ -41,6 +44,7 @@ import {
   GenerationUnavailableError,
   buildPrompt,
   generateBackground,
+  IMAGE_MODEL,
 } from '../artwork/generate'
 import sharp from 'sharp'
 import { downloadEventZip } from './download'
@@ -807,7 +811,14 @@ const ArtworkBody = z.object({
    * storage helpers enforce -- an arbitrary path here would otherwise be a
    * way to read one object by asking for it as a background.
    */
-  basePath: z.string().max(300).optional(),
+  /**
+   * Which of this party's backgrounds to draw the words over.
+   *
+   * An id from its own record, not a storage path: the path came from the
+   * client, and an id is looked up against this event before anything is
+   * read. Null means plain paper.
+   */
+  backgroundId: z.string().uuid().nullable().optional(),
 })
 
 /**
@@ -846,16 +857,18 @@ eventRoutes.put('/:eventId/artwork', async (req, res, next) => {
     }
 
     let base: Buffer | undefined
-    if (body.data.basePath) {
-      // Only ever a candidate this tenant just made. download() asserts the
-      // tenant; the prefix check stops a real background or a montage being
-      // passed off as one.
-      if (!body.data.basePath.startsWith(`${TIER.tmp}/`)) {
-        return res.status(400).json({
-          error: { code: 'invalid_request', message: 'That is not a generated background.' },
+    let chosenId: string | null = null
+
+    if (body.data.backgroundId) {
+      const known = await listBackgrounds(tenantId, event.id)
+      const match = known.find((row) => row.id === body.data.backgroundId)
+      if (!match) {
+        return res.status(404).json({
+          error: { code: 'not_found', message: 'That background is not this party\'s.' },
         })
       }
-      base = await download(body.data.basePath, tenantId)
+      base = await download(match.objectPath, tenantId)
+      chosenId = match.id
     }
 
     const png = await renderArtwork(
@@ -873,6 +886,10 @@ eventRoutes.put('/:eventId/artwork', async (req, res, next) => {
     // prints are currently using until the event is pointed at the new one.
     const path = backgroundPath(tenantId, randomUUID(), 'png')
     await upload(path, tenantId, png, 'image/png')
+
+    // The record follows the event, so reopening the studio shows which of
+    // the gallery is the one currently on the prints.
+    await selectBackground(tenantId, event.id, chosenId)
 
     const updated = await setEventBackground(tenantId, event.id, path, artwork)
     return res.json({ event: await present(updated) })
@@ -950,11 +967,20 @@ eventRoutes.post('/:eventId/artwork/generate', async (req, res, next) => {
         .png()
         .toBuffer()
 
-      const path = candidatePath(tenantId, randomUUID())
+      // The durable tier, not the daily one: somebody wanting the third
+      // picture back tomorrow is the normal case, not the odd one.
+      const path = backgroundPath(tenantId, randomUUID(), 'png')
       await upload(path, tenantId, sized, 'image/png')
 
+      const record = await recordBackground(tenantId, event.id, {
+        objectPath: path,
+        source: 'generated',
+        prompt,
+        model: IMAGE_MODEL,
+      })
+
       return res.status(201).json({
-        path,
+        id: record.id,
         url: await createReadUrl(path, tenantId),
         used: claim.used,
         cap: claim.cap,
@@ -968,6 +994,39 @@ eventRoutes.post('/:eventId/artwork/generate', async (req, res, next) => {
       }
       throw e
     }
+  } catch (e) {
+    return next(e)
+  }
+})
+
+/** Every background this party has been offered, newest first. */
+eventRoutes.get('/:eventId/backgrounds', async (req, res, next) => {
+  try {
+    const query = TenantQuery.safeParse(req.query)
+    if (!query.success) {
+      return res.status(400).json({
+        error: { code: 'invalid_request', message: 'tenantId is required.' },
+      })
+    }
+    await requireEventAccess(req, query.data.tenantId, req.params.eventId!)
+
+    const rows = await listBackgrounds(query.data.tenantId, req.params.eventId!)
+
+    return res.json({
+      backgrounds: await Promise.all(
+        rows.map(async (row) => ({
+          id: row.id,
+          // Signed per read rather than stored: a saved URL expires and a
+          // gallery of expired links is worse than no gallery.
+          url: await createReadUrl(row.objectPath, query.data.tenantId),
+          source: row.source,
+          prompt: row.prompt,
+          credit: row.credit,
+          selected: row.selected,
+          createdAt: row.createdAt.toISOString(),
+        })),
+      ),
+    })
   } catch (e) {
     return next(e)
   }

@@ -1,8 +1,16 @@
 import { CLASSIC_3UP, artworkArea } from '@photobooth/shared'
-import { Modal, Pressable, ScrollView, Text, View, useWindowDimensions } from 'react-native'
+import {
+  Image,
+  Modal,
+  Pressable,
+  ScrollView,
+  Text,
+  View,
+  useWindowDimensions,
+} from 'react-native'
 import { useLocale, useT } from '../locale'
 import { useTheme } from '../theme'
-import type { Layout } from '../api/types'
+import type { Background, Layout } from '../api/types'
 import { Body, Button, Chip, Field, Label, Notice } from '../ui'
 import { ArtworkCanvas } from './ArtworkCanvas'
 import {
@@ -69,6 +77,8 @@ export function BackgroundStudio({
   generated,
   generationNote,
   onClearCandidate,
+  backgrounds,
+  onPickBackground,
   onChange,
   onPublish,
   onClose,
@@ -99,6 +109,9 @@ export function BackgroundStudio({
   generated: { used: number; cap: number } | null
   generationNote: string | null
   onClearCandidate: () => void
+  /** Everything this party has been offered. Newest first. */
+  backgrounds: Background[]
+  onPickBackground: (background: Background | null) => void
   onChange: (artwork: Artwork) => void
   onPublish: () => void
   onClose: () => void
@@ -434,6 +447,50 @@ export function BackgroundStudio({
                 disabled={generating || artwork.prompt.trim().length < 3}
                 onPress={() => void onGenerate(artwork.prompt)}
               />
+
+              {/*
+                * Everything this party has been offered, kept.
+                *
+                * Generated pictures used to be thrown away after a day,
+                * which is fine until somebody wants the third one back --
+                * and wanting the third one back is most of how choosing
+                * works. A megabyte each is nothing beside the photographs.
+                */}
+              {backgrounds.length > 0 ? (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={{ gap: 8, paddingVertical: 4 }}
+                >
+                  {backgrounds.map((background) => {
+                    const chosen = candidateUrl === background.url
+                    return (
+                      <Pressable
+                        key={background.id}
+                        onPress={() => onPickBackground(chosen ? null : background)}
+                        accessibilityRole="button"
+                        accessibilityState={{ selected: chosen }}
+                        style={{
+                          width: 96,
+                          height: 64,
+                          borderRadius: theme.radius.sm,
+                          overflow: 'hidden',
+                          borderWidth: chosen ? 3 : 1,
+                          borderColor: chosen
+                            ? theme.color.action.bg
+                            : theme.color.border.strong,
+                        }}
+                      >
+                        <Image
+                          source={{ uri: background.url }}
+                          style={{ width: '100%', height: '100%' }}
+                          resizeMode="cover"
+                        />
+                      </Pressable>
+                    )
+                  })}
+                </ScrollView>
+              ) : null}
 
               {candidateUrl ? (
                 <Button

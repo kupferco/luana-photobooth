@@ -129,6 +129,17 @@ export interface GallerySession {
   emailedTo: string | null
 }
 
+/** A background this party has been offered, kept whether or not it was used. */
+export interface Background {
+  id: string
+  url: string
+  source: 'generated' | 'stock' | 'upload'
+  prompt: string | null
+  credit: { name: string; url: string; source: string } | null
+  selected: boolean
+  createdAt: string
+}
+
 /** One of the layouts an event can be put on. */
 export interface Layout {
   id: string
@@ -188,8 +199,8 @@ export interface PhotoboothApi {
     tenantId: string,
     eventId: string,
     artwork: Artwork,
-    /** An accepted candidate to draw the words over. */
-    basePath?: string,
+    /** Which of the party's backgrounds to draw the words over. */
+    backgroundId?: string | null,
   ): Promise<Event>
 
   /**
@@ -203,7 +214,10 @@ export interface PhotoboothApi {
     eventId: string,
     prompt: string,
     palette: Artwork['palette'],
-  ): Promise<{ path: string; url: string; used: number; cap: number }>
+  ): Promise<{ id: string; url: string; used: number; cap: number }>
+
+  /** Everything this party has been offered, newest first. */
+  listBackgrounds(tenantId: string, eventId: string): Promise<Background[]>
 
   /** Which layout the party's prints use. */
   setLayout(tenantId: string, eventId: string, templateId: string): Promise<Event>

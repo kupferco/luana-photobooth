@@ -1,5 +1,6 @@
 import { clearToken, readToken, writeToken } from './storage'
 import type {
+  Background,
   Layout,
   EventReport,
   Member,
@@ -246,6 +247,14 @@ export const liveApi: PhotoboothApi = {
     return result.events
   },
 
+  async listBackgrounds(tenantId, eventId) {
+    const result = await request<{ backgrounds: Background[] }>(
+      'GET',
+      `/events/${encodeURIComponent(eventId)}/backgrounds?tenantId=${encodeURIComponent(tenantId)}`,
+    )
+    return result.backgrounds
+  },
+
   async listLayouts(tenantId) {
     const result = await request<{ layouts?: Layout[]; templates: Layout[] }>(
       'GET',
@@ -353,17 +362,17 @@ export const liveApi: PhotoboothApi = {
     )
   },
 
-  async setArtwork(tenantId, eventId, artwork, basePath) {
+  async setArtwork(tenantId, eventId, artwork, backgroundId) {
     const result = await request<{ event: Event }>(
       'PUT',
       `/events/${encodeURIComponent(eventId)}/artwork`,
-      { tenantId, artwork, basePath },
+      { tenantId, artwork, backgroundId },
     )
     return result.event
   },
 
   async generateBackground(tenantId, eventId, prompt, palette) {
-    return request<{ path: string; url: string; used: number; cap: number }>(
+    return request<{ id: string; url: string; used: number; cap: number }>(
       'POST',
       `/events/${encodeURIComponent(eventId)}/artwork/generate`,
       { tenantId, prompt, palette },

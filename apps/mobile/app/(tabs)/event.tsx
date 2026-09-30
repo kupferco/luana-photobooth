@@ -13,7 +13,7 @@ import { useLocale, useT } from '../../src/locale'
 import { useActiveEvent } from '../../src/event-context'
 import { BackgroundStudio } from '../../src/background/BackgroundStudio'
 import { DEFAULT_ARTWORK, type Artwork } from '../../src/background/artwork'
-import type { Layout } from '../../src/api/types'
+import type { Background, Layout } from '../../src/api/types'
 import { EventReportCard } from '../../src/report/EventReportCard'
 import { PeopleCard } from '../../src/people/PeopleCard'
 import { useSession } from '../../src/session'
@@ -121,7 +121,9 @@ export default function EventTab() {
    * Held here rather than in the sheet for the same reason the draft is:
    * closing the sheet should not throw away a picture somebody paid for.
    */
-  const [candidate, setCandidate] = useState<{ path: string; url: string } | null>(null)
+  const [candidate, setCandidate] = useState<{ id: string; url: string } | null>(null)
+  /** Everything this party has been offered, for the gallery. */
+  const [backgrounds, setBackgrounds] = useState<Background[]>([])
   const [generating, setGenerating] = useState(false)
   const [generated, setGenerated] = useState<{ used: number; cap: number } | null>(null)
   const [generationNote, setGenerationNote] = useState<string | null>(null)
@@ -155,6 +157,7 @@ export default function EventTab() {
     setStudioOpen(false)
     setDraftTemplateId(null)
     setCandidate(null)
+    setBackgrounds([])
     setGenerated(null)
     setGenerationNote(null)
   }, [id])
@@ -182,7 +185,7 @@ export default function EventTab() {
   const load = useCallback(async () => {
     if (!tenantId || !id) return
     try {
-      const [e, s, list, connected, all, choices] = await Promise.all([
+      const [e, s, list, connected, all, choices, gallery] = await Promise.all([
         api.getEvent(tenantId, id),
         api.eventStats(tenantId, id),
         api.listSessions(tenantId, id),
@@ -199,9 +202,11 @@ export default function EventTab() {
         // The layouts this account can choose between. Same treatment as
         // the line above: not worth failing the screen over.
         api.listLayouts(tenantId).catch(() => []),
+        api.listBackgrounds(tenantId, id).catch(() => []),
       ])
       setEvent(e)
       setLayouts(choices)
+      setBackgrounds(gallery)
       setStats(s)
       setDevices((previous) =>
         JSON.stringify(previous) === JSON.stringify(connected) ? previous : connected,
@@ -973,7 +978,7 @@ export default function EventTab() {
                 tenantId!,
                 event.id,
                 artworkDraft,
-                candidate?.path,
+                candidate?.id ?? null,
               ),
             )
             setPublishedArtwork(artworkDraft)
@@ -988,6 +993,12 @@ export default function EventTab() {
         }}
         publishing={publishing}
         candidateUrl={candidate?.url ?? null}
+        backgrounds={backgrounds}
+        onPickBackground={(background) =>
+          setCandidate(
+            background ? { id: background.id, url: background.url } : null,
+          )
+        }
         generating={generating}
         generated={generated}
         generationNote={generationNote}
@@ -1002,8 +1013,10 @@ export default function EventTab() {
               prompt,
               artworkDraft.palette,
             )
-            setCandidate({ path: made.path, url: made.url })
+            setCandidate({ id: made.id, url: made.url })
             setGenerated({ used: made.used, cap: made.cap })
+            // The gallery grows as they try things, without a reload.
+            setBackgrounds(await api.listBackgrounds(tenantId!, event.id))
           } catch (e) {
             // Worth showing rather than swallowing: the useful failures here
             // are "billing is not on" and "that description was refused",

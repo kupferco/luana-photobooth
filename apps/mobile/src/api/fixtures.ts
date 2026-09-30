@@ -442,6 +442,11 @@ export const fixtureApi: PhotoboothApi = {
     removedMembers.add(userId)
   },
 
+  async listBackgrounds() {
+    await delay()
+    return []
+  },
+
   async listLayouts() {
     await delay()
     return TEMPLATES.map((t, i) => ({

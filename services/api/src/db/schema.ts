@@ -302,6 +302,51 @@ export const events = pgTable(
 )
 
 /**
+ * Every background this party has been offered, kept.
+ *
+ * Generated pictures were going to a tier the bucket empties daily, which
+ * is right for something nobody wants and wrong the moment somebody wants
+ * the third one back. A megabyte each is nothing next to the photographs,
+ * and the record of which were kept and which were passed over is worth
+ * more than the disk it costs.
+ *
+ * `selected` marks the one the event is using. Exactly one per event, kept
+ * true by the code rather than by a constraint, because the honest
+ * constraint is partial and this is not worth an index.
+ */
+export const eventBackgrounds = pgTable(
+  'event_backgrounds',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    tenantId: uuid('tenant_id')
+      .notNull()
+      .references(() => tenants.id, { onDelete: 'cascade' }),
+    eventId: uuid('event_id')
+      .notNull()
+      .references(() => events.id, { onDelete: 'cascade' }),
+    /** Where the picture itself lives. Signed URLs are minted per read. */
+    objectPath: text('object_path').notNull(),
+    /** 'generated', 'stock' or 'upload' -- how it came to be here. */
+    source: text('source').notNull(),
+    /** What was asked for, when it was generated. */
+    prompt: text('prompt'),
+    /** Which model made it, so a change of model is visible in hindsight. */
+    model: text('model'),
+    /**
+     * Who to credit, for a stock photograph.
+     *
+     * Stored rather than derived: the licence requires it at the point the
+     * picture is shown, and a service that changes its terms later must not
+     * be able to take the credit line away from a print already made.
+     */
+    credit: jsonb('credit').$type<{ name: string; url: string; source: string }>(),
+    selected: boolean('selected').notNull().default(false),
+    ...timestamps,
+  },
+  (t) => [index('event_backgrounds_event_idx').on(t.eventId, t.createdAt)],
+)
+
+/**
  * Someone invited to help with one party.
  *
  * Separate from `memberships`, which is the whole account. Both exist

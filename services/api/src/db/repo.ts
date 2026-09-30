@@ -13,6 +13,7 @@ import {
   deviceNames,
   devices,
   emailDeliveries,
+  eventBackgrounds,
   eventMembers,
   events,
   photos,
@@ -1283,4 +1284,96 @@ export async function eventReport(
     firstAt: first?.toISOString() ?? null,
     lastAt: last?.toISOString() ?? null,
   }
+}
+
+/* -------------------------------------------------------------------------
+ * Backgrounds a party has been offered.
+ * ---------------------------------------------------------------------- */
+
+export interface BackgroundRecord {
+  id: string
+  objectPath: string
+  source: string
+  prompt: string | null
+  model: string | null
+  credit: { name: string; url: string; source: string } | null
+  selected: boolean
+  createdAt: Date
+}
+
+export async function recordBackground(
+  tenantId: string,
+  eventId: string,
+  entry: {
+    objectPath: string
+    source: 'generated' | 'stock' | 'upload'
+    prompt?: string
+    model?: string
+    credit?: { name: string; url: string; source: string }
+  },
+): Promise<BackgroundRecord> {
+  const [row] = await db
+    .insert(eventBackgrounds)
+    .values({
+      tenantId,
+      eventId,
+      objectPath: entry.objectPath,
+      source: entry.source,
+      prompt: entry.prompt ?? null,
+      model: entry.model ?? null,
+      credit: entry.credit ?? null,
+    })
+    .returning()
+
+  if (!row) throw new Error('Could not record the background.')
+  return row as BackgroundRecord
+}
+
+/** Newest first: the one somebody just made is the one they are looking at. */
+export async function listBackgrounds(
+  tenantId: string,
+  eventId: string,
+): Promise<BackgroundRecord[]> {
+  const rows = await db
+    .select()
+    .from(eventBackgrounds)
+    .where(
+      and(eq(eventBackgrounds.tenantId, tenantId), eq(eventBackgrounds.eventId, eventId)),
+    )
+    .orderBy(desc(eventBackgrounds.createdAt))
+
+  return rows as BackgroundRecord[]
+}
+
+/**
+ * Mark one as the party's, and the rest as not.
+ *
+ * Two statements rather than one, because "exactly one selected" is a rule
+ * about the whole set and clearing first is the only order that cannot
+ * leave two marked if the second fails.
+ */
+export async function selectBackground(
+  tenantId: string,
+  eventId: string,
+  backgroundId: string | null,
+): Promise<void> {
+  await db
+    .update(eventBackgrounds)
+    .set({ selected: false, updatedAt: new Date() })
+    .where(
+      and(eq(eventBackgrounds.tenantId, tenantId), eq(eventBackgrounds.eventId, eventId)),
+    )
+
+  if (!backgroundId) return
+
+  await db
+    .update(eventBackgrounds)
+    .set({ selected: true, updatedAt: new Date() })
+    .where(
+      and(
+        eq(eventBackgrounds.tenantId, tenantId),
+        eq(eventBackgrounds.eventId, eventId),
+        eq(eventBackgrounds.id, backgroundId),
+      ),
+    )
 }
