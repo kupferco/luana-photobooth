@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Setting up the booth — Lumina</title>
+    <meta name="description" content="Step by step: the rented printer kit, the phone on the tripod, and the code on the table." />
+
+    <link rel="icon" type="image/png" sizes="48x48" href="/icons/favicon-48.png" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <meta name="theme-color" content="#0b0b0d" />
+
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+
+  <body>
+    <nav class="topbar" aria-label="Site">
+      <div class="wrap">
+        <a href="/"><img src="/brand/logo-light.png" alt="Lumina — home" width="96" /></a>
+        <a class="topbar-link" href="https://luminabooth-app.web.app">Open the app</a>
+      </div>
+    </nav>
+
+    <header class="page-head">
+      <div class="wrap">
+        <h1>Setting up the booth</h1>
+        <p class="lede">
+          From the kit in your hands to the first print. Allow a quarter of an hour, and
+          do it at the venue, on the wifi you will use on the day.
+        </p>
+      </div>
+    </header>
+
+    <main>
+      <section class="band">
+        <div class="wrap">
+          <h2>What is in the kit</h2>
+          <p class="plain">The kit is rented from Lumina, in London. It holds two things:</p>
+          <ul class="kit">
+            <li>
+              <strong>A Canon SELPHY</strong> &mdash; the photo printer. It makes the
+              6&times;4 prints.
+            </li>
+            <li>
+              <strong>A Raspberry Pi</strong> &mdash; the small box wired to the printer.
+              It fetches each photo and hands it to the SELPHY. It has no screen and no
+              buttons you need.
+            </li>
+          </ul>
+          <p class="plain">
+            On the box is a card with a QR code and a three-word name, something like
+            <em>popcorn-sherbet-dance</em>. You will need both.
+          </p>
+        </div>
+      </section>
+
+      <section class="band alt">
+        <div class="wrap">
+          <h2>What you bring</h2>
+          <ul class="kit">
+            <li><strong>A phone</strong> to be the booth, and its charger.</li>
+            <li><strong>A tripod</strong> that holds the phone sideways.</li>
+            <li><strong>The wifi name and password</strong> for the venue.</li>
+            <li><strong>Your own phone</strong>, to do the setting up from.</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="band">
+        <div class="wrap">
+          <h2>Step by step</h2>
+
+          <ol class="guide">
+            <li>
+              <span class="step-n">1</span>
+              <div>
+                <h3>Create the party in the app</h3>
+                <p>
+                  On your own phone, open
+                  <a href="https://luminabooth-app.web.app">the app</a>, sign in with your
+                  email and tap <em>New event</em>. Give it a name and a date.
+                </p>
+              </div>
+            </li>
+            <li>
+              <span class="step-n">2</span>
+              <div>
+                <h3>Plug in the kit</h3>
+                <p>
+                  Plug in the Pi and the SELPHY, check the cable between them is in, and
+                  turn the printer on. Make sure it has paper and ink loaded. Give the Pi
+                  a minute or two to start.
+                </p>
+              </div>
+            </li>
+            <li>
+              <span class="step-n">3</span>
+              <div>
+                <h3>Get a pairing code</h3>
+                <p>
+                  In your event, under <em>Booth and printer</em>, tap
+                  <em>Connect a printer</em>, then <em>Set up a new printer</em>. The app
+                  shows a pairing code. It lasts 15 minutes and works once; tap it to copy.
+                </p>
+              </div>
+            </li>
+            <li>
+              <span class="step-n">4</span>
+              <div>
+                <h3>Join the printer&rsquo;s own network</h3>
+                <p>
+                  In your phone&rsquo;s wifi settings, join the network with the
+                  three-word name from the card. It has no password. This is a temporary
+                  network the Pi makes just for setting up.
+                </p>
+              </div>
+            </li>
+            <li>
+              <span class="step-n">5</span>
+              <div>
+                <h3>Scan the card</h3>
+                <p>
+                  Scan the QR code on the card, or type <strong>lumina.local</strong> into
+                  your browser. Choose the venue&rsquo;s wifi, enter its password, and
+                  paste the pairing code.
+                </p>
+              </div>
+            </li>
+            <li>
+              <span class="step-n">6</span>
+              <div>
+                <h3>Watch the setup network disappear</h3>
+                <p>
+                  The Pi joins the venue&rsquo;s wifi and its own network vanishes. That
+                  is what success looks like. Your phone goes back to its usual wifi, and
+                  the printer shows as connected in your event.
+                </p>
+              </div>
+            </li>
+            <li>
+              <span class="step-n">7</span>
+              <div>
+                <h3>Stand the booth phone on the tripod</h3>
+                <p>
+                  Sideways &mdash; the booth takes landscape photos. Plug it in to charge.
+                  Open the app on it, sign in, open the event and tap
+                  <em>Use this phone as the booth</em>. Leave that screen open.
+                  <a href="/install/">Saving the app to the home screen</a> first makes it
+                  full-screen.
+                </p>
+              </div>
+            </li>
+            <li>
+              <span class="step-n">8</span>
+              <div>
+                <h3>Start the event and take a test photo</h3>
+                <p>
+                  Tap <em>Start the event</em>, then tap the booth screen and pose. Three
+                  shots, and about a minute later a print. If it comes out, you are done.
+                </p>
+              </div>
+            </li>
+            <li>
+              <span class="step-n">9</span>
+              <div>
+                <h3>Put the QR code on the table</h3>
+                <p>
+                  Print the <em>Guest QR code</em> from your event and stand it where
+                  people will see it. Guests scan it to join the queue from their own
+                  phone; it is on the booth screen too.
+                </p>
+              </div>
+            </li>
+          </ol>
+        </div>
+      </section>
+
+      <section class="band alt">
+        <div class="wrap">
+          <h2>If something is not working</h2>
+
+          <div class="faq">
+            <details>
+              <summary>I cannot see the three-word network</summary>
+              <p>
+                Give the Pi a couple of minutes after plugging it in, then look again. If
+                it still is not there, unplug the Pi, plug it back in and wait.
+              </p>
+            </details>
+            <details>
+              <summary>lumina.local will not open</summary>
+              <p>
+                Your phone has probably hopped back to another network. Check in wifi
+                settings that it is still on the three-word one, then try again.
+              </p>
+            </details>
+            <details>
+              <summary>It says the code has expired</summary>
+              <p>
+                Codes last 15 minutes and work once. Go back to the app, make a new one,
+                and enter that.
+              </p>
+            </details>
+            <details>
+              <summary>The setup network came back</summary>
+              <p>
+                The Pi could not join the wifi, nearly always because of a mistyped
+                password. Join the three-word network again and repeat from step 3 with a
+                new code.
+              </p>
+            </details>
+            <details>
+              <summary>The photo was taken but nothing printed</summary>
+              <p>
+                Look at the printer in your event: it shows what the printer itself is
+                reporting. Usually it is paper, ink, or the printer being switched off.
+                Fix that, then print the photo again from the event.
+              </p>
+            </details>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <img src="/brand/logo-light.png" alt="Lumina" width="112" />
+      <nav class="foot-links" aria-label="More">
+        <a href="/setup/">Setup guide</a>
+        <a href="/install/">Save to Home Screen</a>
+        <a href="/#questions">Questions</a>
+      </nav>
+    </footer>
+  </body>
+</html>

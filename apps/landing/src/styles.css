@@ -56,6 +56,8 @@ p {
 /* --- the shell ---------------------------------------------------------- */
 
 .hero,
+.page-head,
+.topbar,
 .band,
 footer {
   padding-inline: var(--gutter);
@@ -258,6 +260,122 @@ footer {
   color: var(--text-primary);
 }
 
+.more {
+  margin-top: 20px;
+}
+
+a {
+  color: var(--brand);
+}
+
+/* --- questions ---------------------------------------------------------- */
+
+/* <details>, so the answers open with no script and are still on the page
+   for a search engine to read. */
+.faq {
+  max-width: 72ch;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.faq details {
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.faq summary {
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding-block: 18px;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.faq summary::-webkit-details-marker {
+  display: none;
+}
+
+.faq summary::after {
+  content: '+';
+  color: var(--brand);
+  font-weight: 400;
+}
+
+.faq details[open] summary::after {
+  content: '\2212';
+}
+
+.faq details p {
+  color: var(--text-secondary);
+  padding-bottom: 20px;
+}
+
+/* --- the guide pages ---------------------------------------------------- */
+
+.topbar {
+  padding-block: 14px;
+  border-bottom: 1px solid var(--border-subtle);
+  /* Clears the notch when saved to a phone's home screen. */
+  padding-top: calc(14px + env(safe-area-inset-top, 0px));
+}
+
+.topbar .wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.topbar img {
+  display: block;
+  height: auto;
+}
+
+.topbar-link {
+  color: var(--text-primary);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.page-head {
+  padding-block: clamp(40px, 8vw, 80px) clamp(32px, 6vw, 56px);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.page-head h1 {
+  font-size: clamp(1.9rem, 5vw, 3rem);
+  margin-bottom: 16px;
+}
+
+/* One column, unlike the three steps on the front page: these are read with
+   the kit in the other hand, one at a time, top to bottom. */
+.guide {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 28px;
+  max-width: 64ch;
+}
+
+.guide li {
+  display: flex;
+  gap: 16px;
+}
+
+.guide .step-n {
+  flex: none;
+}
+
+.guide h3 {
+  font-size: 1.2rem;
+  margin-block: 7px 8px;
+}
+
+.guide p {
+  color: var(--text-secondary);
+}
+
 /* --- closing ------------------------------------------------------------ */
 
 .closing {
@@ -286,6 +404,18 @@ footer {
 footer img {
   opacity: 0.6;
   height: auto;
+}
+
+.foot-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 20px;
+  font-size: 0.875rem;
+}
+
+.foot-links a {
+  color: var(--text-secondary);
 }
 
 @media (prefers-reduced-motion: reduce) {

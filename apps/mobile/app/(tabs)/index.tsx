@@ -115,6 +115,16 @@ export default function Home() {
         </>
       ) : null}
 
+      {/*
+        * Above the past events, not after them.
+        *
+        * The upcoming list is a handful; the past one grows for as long as
+        * somebody keeps throwing parties. Anything below it is below the
+        * fold forever, and this is the most common thing to come here to
+        * do after looking at the party that is running.
+        */}
+      <Button label={t('events.new')} onPress={() => router.push('/events/new')} />
+
       {past.length > 0 ? (
         <>
           <Label>{t('home.past')}</Label>
@@ -169,7 +179,6 @@ export default function Home() {
         </>
       ) : null}
 
-      <Button label={t('events.new')} onPress={() => router.push('/events/new')} />
     </Screen>
   )
 }
