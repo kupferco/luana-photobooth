@@ -191,7 +191,8 @@
     "textColour": "Cor do texto",
     "tidy": "Ajustar",
     "tidyHint": "Ajusta a intensidade, a camada e o texto para algo que imprime bem. Desfaça mexendo em qualquer coisa.",
-    "enlarge": "Toque na prévia para ver grande"
+    "enlarge": "Toque na prévia para ver grande",
+    "brightness": "Mais claro ou escuro"
   },
   "report": {
     "title": "Como foi",

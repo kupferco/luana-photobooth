@@ -191,7 +191,8 @@
     "textColour": "Text colour",
     "tidy": "Tidy it up",
     "tidyHint": "Nudges the strength, the wash and the text towards something that prints well. Undo by moving anything.",
-    "enlarge": "Tap the preview to see it large"
+    "enlarge": "Tap the preview to see it large",
+    "brightness": "Brighter or darker"
   },
   "report": {
     "title": "How it went",

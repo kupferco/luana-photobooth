@@ -438,15 +438,20 @@ export function BackgroundStudio({
               value={artwork.ink}
               onChange={(hex) => set('ink', hex)}
               onClear={() => set('ink', null)}
+              clearLabel={t('artwork.colourDefault')}
+              brightnessLabel={t('artwork.brightness')}
             />
 
-            <View style={{ gap: 6 }}>
-              <ColourPicker
-                label={t('artwork.wash')}
-                value={artwork.tint}
-                onChange={(hex) => set('tint', hex)}
-                onClear={() => set('tint', null)}
-              />
+            {candidateUrl ? (
+              <View style={{ gap: 6 }}>
+                <ColourPicker
+                  label={t('artwork.wash')}
+                  value={artwork.tint}
+                  onChange={(hex) => set('tint', hex)}
+                  onClear={() => set('tint', null)}
+                  clearLabel={t('artwork.colourDefault')}
+                  brightnessLabel={t('artwork.brightness')}
+                />
               {artwork.tint ? (
                 <>
                   <Label>
@@ -459,8 +464,9 @@ export function BackgroundStudio({
                     onChange={(v) => set('tintOpacity', v)}
                   />
                 </>
-              ) : null}
-            </View>
+                ) : null}
+              </View>
+            ) : null}
 
             {/* Our taste, as a button rather than as a rule. */}
             <View style={{ gap: theme.space[2] }}>
