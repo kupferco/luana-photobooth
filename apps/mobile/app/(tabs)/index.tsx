@@ -9,6 +9,7 @@ import {
   Body,
   Button,
   Card,
+  Chip,
   Field,
   Label,
   Notice,
@@ -170,47 +171,6 @@ export default function Home() {
 
       <Button label={t('events.new')} onPress={() => router.push('/events/new')} />
     </Screen>
-  )
-}
-
-/** A year filter. Small, because it sits above the thing it filters. */
-function Chip({
-  label,
-  selected,
-  onPress,
-}: {
-  label: string
-  selected: boolean
-  onPress: () => void
-}) {
-  const theme = useTheme()
-  return (
-    <Pressable
-      onPress={onPress}
-      hitSlop={6}
-      accessibilityRole="button"
-      accessibilityState={{ selected }}
-      style={{
-        paddingVertical: 8,
-        paddingHorizontal: 14,
-        borderRadius: 999,
-        backgroundColor: selected
-          ? theme.color.action.bg
-          : theme.color.actionSecondary.bg,
-        borderWidth: 1,
-        borderColor: selected ? 'transparent' : theme.color.actionSecondary.border,
-      }}
-    >
-      <Text
-        style={{
-          color: selected ? theme.color.action.fg : theme.color.text.primary,
-          fontSize: theme.fontSize.sm,
-          fontWeight: '600',
-        }}
-      >
-        {label}
-      </Text>
-    </Pressable>
   )
 }
 

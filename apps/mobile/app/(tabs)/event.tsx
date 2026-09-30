@@ -1,4 +1,4 @@
-import { daysRemaining } from '@photobooth/shared'
+import { CLASSIC_3UP, daysRemaining } from '@photobooth/shared'
 import { router } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
 import { Image, Platform, Pressable, Text, View } from 'react-native'
@@ -11,6 +11,7 @@ import {
 } from '../../src/api'
 import { useLocale, useT } from '../../src/locale'
 import { useActiveEvent } from '../../src/event-context'
+import { BackgroundStudio } from '../../src/background/BackgroundStudio'
 import { EventReportCard } from '../../src/report/EventReportCard'
 import { PeopleCard } from '../../src/people/PeopleCard'
 import { useSession } from '../../src/session'
@@ -109,6 +110,7 @@ export default function EventTab() {
    * first press -- Setup opened itself, and Hide put it back to open.
    */
   const [chosen, setChosen] = useState<CardName | null | undefined>(undefined)
+  const [studioOpen, setStudioOpen] = useState(false)
   const [uploadingBg, setUploadingBg] = useState(false)
   const [backgroundNote, setBackgroundNote] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
@@ -460,6 +462,15 @@ export default function EventTab() {
 
           <Body muted>{t('dashboard.backgroundHint')}</Body>
           {backgroundNote ? <Notice tone="warn">{backgroundNote}</Notice> : null}
+
+          {/* Making one, rather than going away to find one. Above the
+              upload because it is the answer for most people: almost
+              nobody throwing a party has artwork ready. */}
+          <Button
+            label={t('artwork.open')}
+            variant="secondary"
+            onPress={() => setStudioOpen(true)}
+          />
 
           <Button
             label={
@@ -865,6 +876,18 @@ export default function EventTab() {
           }}
         />
       ))}
+
+      {/* CLASSIC_3UP is the one layout there is. This screen only knows the
+          event's templateId, so when the studio starts producing a real
+          picture it will need the template itself -- which the event
+          endpoint already returns, and this screen currently drops. */}
+      <BackgroundStudio
+        visible={studioOpen}
+        template={CLASSIC_3UP}
+        eventDate={event.eventDate}
+        onClose={() => setStudioOpen(false)}
+      />
+
     </Screen>
   )
 }

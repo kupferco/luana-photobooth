@@ -135,6 +135,53 @@ export function CollapsibleCard({
   )
 }
 
+/**
+ * A small, round, one-tap choice.
+ *
+ * For picking from a handful of things that fit on a line -- a year, a
+ * typeface, a colour. Not for a list: a screen of chips is a menu that has
+ * lost its structure.
+ */
+export function Chip({
+  label,
+  selected,
+  onPress,
+}: {
+  label: string
+  selected: boolean
+  onPress: () => void
+}) {
+  const t = useTheme()
+  return (
+    <Pressable
+      onPress={onPress}
+      hitSlop={6}
+      accessibilityRole="button"
+      accessibilityState={{ selected }}
+      style={{
+        paddingVertical: 8,
+        paddingHorizontal: 14,
+        borderRadius: 999,
+        backgroundColor: selected
+          ? t.color.action.bg
+          : t.color.actionSecondary.bg,
+        borderWidth: 1,
+        borderColor: selected ? 'transparent' : t.color.actionSecondary.border,
+      }}
+    >
+      <Text
+        style={{
+          color: selected ? t.color.action.fg : t.color.text.primary,
+          fontSize: t.fontSize.sm,
+          fontWeight: '600',
+        }}
+      >
+        {label}
+      </Text>
+    </Pressable>
+  )
+}
+
 export function Button({
   label,
   onPress,

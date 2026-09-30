@@ -139,6 +139,47 @@
     "retakesHint": "Quantas vezes um convidado pode apagar a foto e tentar de novo, mantendo o lugar na frente.",
     "retakesOff": "Desligado"
   },
+  "artwork": {
+    "title": "Criar a arte",
+    "open": "Criar aqui",
+    "words": "O nome da festa",
+    "wordsPlaceholder": "Aniversário de 50 anos da Jill",
+    "date": "Data",
+    "dateStyle": {
+      "long": "29 de setembro de 2026",
+      "short": "29/09/26",
+      "monthYear": "setembro de 2026",
+      "none": "Sem data"
+    },
+    "font": "Letras",
+    "fontSample": "Abc",
+    "look": "Estampa",
+    "theme": {
+      "plain": "Lisa",
+      "confetti": "Confete",
+      "constellation": "Estrelas",
+      "clouds": "Nuvens",
+      "stripes": "Listras",
+      "bokeh": "Luzes"
+    },
+    "colours": "Cores",
+    "palette": {
+      "amber": "Âmbar",
+      "ink": "Tinta",
+      "rose": "Rosa",
+      "sea": "Mar",
+      "forest": "Floresta",
+      "blossom": "Flor"
+    },
+    "photoSlot": "Foto {n}",
+    "areaHint": "As fotos cobrem o resto. Seu texto tem {w}×{h} para viver.",
+    "describe": "Ou descreva uma",
+    "describePlaceholder": "nuvens no pôr do sol, dourado e rosa",
+    "generate": "Gerar arte",
+    "generateSoon": "Ainda não conectado — o layout está aqui para isso.",
+    "use": "Usar esta arte",
+    "notSavedYet": "Nada é salvo ainda. Isto é o desenho, não o encanamento."
+  },
   "report": {
     "title": "Como foi",
     "photos": "Fotos",

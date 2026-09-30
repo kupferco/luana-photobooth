@@ -139,6 +139,47 @@
     "retakesHint": "How many times a guest can delete their photo and go again, keeping their place at the front.",
     "retakesOff": "Off"
   },
+  "artwork": {
+    "title": "Design the artwork",
+    "open": "Design it here",
+    "words": "The party's name",
+    "wordsPlaceholder": "Jill's 50th Birthday",
+    "date": "Date",
+    "dateStyle": {
+      "long": "29 September 2026",
+      "short": "29/09/26",
+      "monthYear": "September 2026",
+      "none": "No date"
+    },
+    "font": "Lettering",
+    "fontSample": "Abc",
+    "look": "Pattern",
+    "theme": {
+      "plain": "Plain",
+      "confetti": "Confetti",
+      "constellation": "Stars",
+      "clouds": "Clouds",
+      "stripes": "Stripes",
+      "bokeh": "Lights"
+    },
+    "colours": "Colours",
+    "palette": {
+      "amber": "Amber",
+      "ink": "Ink",
+      "rose": "Rose",
+      "sea": "Sea",
+      "forest": "Forest",
+      "blossom": "Blossom"
+    },
+    "photoSlot": "Photo {n}",
+    "areaHint": "The photos cover the rest. Your words have {w}×{h} to live in.",
+    "describe": "Or describe one",
+    "describePlaceholder": "clouds at sunset, gold and pink",
+    "generate": "Generate artwork",
+    "generateSoon": "Not connected yet — the layout is here so it can be.",
+    "use": "Use this artwork",
+    "notSavedYet": "Nothing is saved yet. This is the design, not the plumbing."
+  },
   "report": {
     "title": "How it went",
     "photos": "Photos",
