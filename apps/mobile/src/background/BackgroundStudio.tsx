@@ -63,6 +63,12 @@ export function BackgroundStudio({
   layoutChanged,
   live,
   publishing,
+  onGenerate,
+  candidateUrl,
+  generating,
+  generated,
+  generationNote,
+  onClearCandidate,
   onChange,
   onPublish,
   onClose,
@@ -84,6 +90,15 @@ export function BackgroundStudio({
   live: boolean
   /** Rendering happens on the server and takes a moment. */
   publishing: boolean
+  /** Asks the server for a candidate. Rejects with a message worth showing. */
+  onGenerate: (prompt: string) => Promise<void>
+  /** The candidate being previewed, if one has been made. */
+  candidateUrl: string | null
+  generating: boolean
+  /** How many of this party's allowance is gone. */
+  generated: { used: number; cap: number } | null
+  generationNote: string | null
+  onClearCandidate: () => void
   onChange: (artwork: Artwork) => void
   onPublish: () => void
   onClose: () => void
@@ -210,6 +225,7 @@ export function BackgroundStudio({
                 <ArtworkCanvas
                   template={template}
                   artwork={artwork}
+                  backgroundUri={candidateUrl}
                   eventDate={eventDate}
                   locale={locale}
                   width={previewWidth}
@@ -393,10 +409,9 @@ export function BackgroundStudio({
             {/*
               * Generated artwork.
               *
-              * Present and not wired. It is left visible because the shape
-              * of the screen depends on it -- a prompt box added later is a
-              * redesign, not an addition -- and disabled because pretending
-              * would be worse than admitting.
+              * A candidate is only ever looked at until the artwork is
+              * published: the preview above draws the words over it, so what
+              * is judged is the finished print rather than the picture.
               */}
             <View style={{ gap: theme.space[2] }}>
               <Field
@@ -404,10 +419,38 @@ export function BackgroundStudio({
                 value={artwork.prompt}
                 onChangeText={(v) => set('prompt', v)}
                 placeholder={t('artwork.describePlaceholder')}
-                editable={false}
+                multiline
               />
-              <Button label={t('artwork.generate')} variant="secondary" disabled onPress={() => {}} />
-              <Body muted>{t('artwork.generateSoon')}</Body>
+              <Button
+                label={t(candidateUrl ? 'artwork.generateAgain' : 'artwork.generate')}
+                variant="secondary"
+                busy={generating}
+                disabled={generating || artwork.prompt.trim().length < 3}
+                onPress={() => void onGenerate(artwork.prompt)}
+              />
+
+              {candidateUrl ? (
+                <Button
+                  label={t('artwork.dropCandidate')}
+                  variant="secondary"
+                  disabled={generating}
+                  onPress={onClearCandidate}
+                />
+              ) : null}
+
+              {generationNote ? (
+                <Notice tone="warn">{generationNote}</Notice>
+              ) : null}
+
+              {/* Said plainly, because each one costs the account money. */}
+              {generated ? (
+                <Body muted>
+                  {t('artwork.generationsUsed', {
+                    used: String(generated.used),
+                    cap: String(generated.cap),
+                  })}
+                </Body>
+              ) : null}
             </View>
 
             {/* Loud about it while a party is running, because it is the

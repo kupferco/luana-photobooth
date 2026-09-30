@@ -1,5 +1,5 @@
 import { ARTWORK_PADDING, artworkArea, type Template } from '@photobooth/shared'
-import { Text, View } from 'react-native'
+import { Image, Text, View } from 'react-native'
 import Svg, { Circle, Line, Rect } from 'react-native-svg'
 import {
   FONTS,
@@ -27,12 +27,15 @@ export function ArtworkCanvas({
   eventDate,
   locale,
   width,
+  backgroundUri,
 }: {
   template: Template
   artwork: Artwork
   eventDate: string
   locale: string
   width: number
+  /** A generated candidate, drawn under everything. Null for a plain paper. */
+  backgroundUri?: string | null
 }) {
   const scale = width / template.canvas.w
   const height = template.canvas.h * scale
@@ -55,6 +58,16 @@ export function ArtworkCanvas({
         overflow: 'hidden',
       }}
     >
+      {/* Under the pattern and the words, exactly where the renderer puts
+          it, so what is judged here is the finished print. */}
+      {backgroundUri ? (
+        <Image
+          source={{ uri: backgroundUri }}
+          style={{ position: 'absolute', left: 0, top: 0, width, height }}
+          resizeMode="cover"
+        />
+      ) : null}
+
       <Decoration
         theme={artwork.theme}
         accent={palette.accent}

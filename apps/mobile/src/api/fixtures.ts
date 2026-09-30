@@ -363,6 +363,15 @@ export const fixtureApi: PhotoboothApi = {
     return fixtureDevices.filter((d) => !removedDevices.has(d.id))
   },
 
+  async generateBackground() {
+    await delay(900)
+    throw new ApiError(
+      'Generating a background needs the real API. Set EXPO_PUBLIC_API_MODE=live.',
+      'fixtures_only',
+      400,
+    )
+  },
+
   async setArtwork(_tenantId, eventId, artwork) {
     await delay()
     const event = EVENTS.find((e) => e.id === eventId)

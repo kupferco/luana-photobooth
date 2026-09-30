@@ -184,7 +184,26 @@ export interface PhotoboothApi {
    * The server renders it, stores it and points the event at it, so what
    * comes back is an event with a new backgroundUrl like any other.
    */
-  setArtwork(tenantId: string, eventId: string, artwork: Artwork): Promise<Event>
+  setArtwork(
+    tenantId: string,
+    eventId: string,
+    artwork: Artwork,
+    /** An accepted candidate to draw the words over. */
+    basePath?: string,
+  ): Promise<Event>
+
+  /**
+   * Make a candidate background from a description.
+   *
+   * Nothing about the party changes: it comes back as a picture to look at,
+   * and becomes the background only if it is passed to setArtwork.
+   */
+  generateBackground(
+    tenantId: string,
+    eventId: string,
+    prompt: string,
+    palette: Artwork['palette'],
+  ): Promise<{ path: string; url: string; used: number; cap: number }>
 
   /** Which layout the party's prints use. */
   setLayout(tenantId: string, eventId: string, templateId: string): Promise<Event>

@@ -116,6 +116,17 @@ export default function EventTab() {
   const [publishing, setPublishing] = useState(false)
 
   /*
+   * A generated candidate, until it is published or dropped.
+   *
+   * Held here rather than in the sheet for the same reason the draft is:
+   * closing the sheet should not throw away a picture somebody paid for.
+   */
+  const [candidate, setCandidate] = useState<{ path: string; url: string } | null>(null)
+  const [generating, setGenerating] = useState(false)
+  const [generated, setGenerated] = useState<{ used: number; cap: number } | null>(null)
+  const [generationNote, setGenerationNote] = useState<string | null>(null)
+
+  /*
    * The artwork being edited, and the artwork the party is using.
    *
    * Two of them on purpose. The composer reads the background fresh for
@@ -143,6 +154,9 @@ export default function EventTab() {
   useEffect(() => {
     setStudioOpen(false)
     setDraftTemplateId(null)
+    setCandidate(null)
+    setGenerated(null)
+    setGenerationNote(null)
   }, [id])
 
   /*
@@ -954,8 +968,17 @@ export default function EventTab() {
             if (draftTemplateId && draftTemplateId !== event.templateId) {
               await api.setLayout(tenantId!, event.id, draftTemplateId)
             }
-            setEvent(await api.setArtwork(tenantId!, event.id, artworkDraft))
+            setEvent(
+              await api.setArtwork(
+                tenantId!,
+                event.id,
+                artworkDraft,
+                candidate?.path,
+              ),
+            )
             setPublishedArtwork(artworkDraft)
+            // The candidate is the background now; it is not a candidate.
+            setCandidate(null)
             setStudioOpen(false)
           } catch (e) {
             setBackgroundNote(e instanceof Error ? e.message : String(e))
@@ -964,6 +987,32 @@ export default function EventTab() {
           }
         }}
         publishing={publishing}
+        candidateUrl={candidate?.url ?? null}
+        generating={generating}
+        generated={generated}
+        generationNote={generationNote}
+        onClearCandidate={() => setCandidate(null)}
+        onGenerate={async (prompt) => {
+          setGenerating(true)
+          setGenerationNote(null)
+          try {
+            const made = await api.generateBackground(
+              tenantId!,
+              event.id,
+              prompt,
+              artworkDraft.palette,
+            )
+            setCandidate({ path: made.path, url: made.url })
+            setGenerated({ used: made.used, cap: made.cap })
+          } catch (e) {
+            // Worth showing rather than swallowing: the useful failures here
+            // are "billing is not on" and "that description was refused",
+            // and both tell somebody what to do next.
+            setGenerationNote(e instanceof Error ? e.message : String(e))
+          } finally {
+            setGenerating(false)
+          }
+        }}
         onClose={() => setStudioOpen(false)}
       />
 

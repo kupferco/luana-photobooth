@@ -353,13 +353,21 @@ export const liveApi: PhotoboothApi = {
     )
   },
 
-  async setArtwork(tenantId, eventId, artwork) {
+  async setArtwork(tenantId, eventId, artwork, basePath) {
     const result = await request<{ event: Event }>(
       'PUT',
       `/events/${encodeURIComponent(eventId)}/artwork`,
-      { tenantId, artwork },
+      { tenantId, artwork, basePath },
     )
     return result.event
+  },
+
+  async generateBackground(tenantId, eventId, prompt, palette) {
+    return request<{ path: string; url: string; used: number; cap: number }>(
+      'POST',
+      `/events/${encodeURIComponent(eventId)}/artwork/generate`,
+      { tenantId, prompt, palette },
+    )
   },
 
   async setLayout(tenantId, eventId, templateId) {

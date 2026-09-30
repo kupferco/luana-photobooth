@@ -175,14 +175,16 @@
     "areaHint": "As fotos cobrem o resto. Seu texto tem {w}×{h} para viver.",
     "describe": "Ou descreva uma",
     "describePlaceholder": "nuvens no pôr do sol, dourado e rosa",
-    "generate": "Gerar arte",
-    "generateSoon": "Ainda não conectado — o layout está aqui para isso.",
+    "generate": "Gerar um fundo",
     "publish": "Usar esta arte",
     "publishLive": "Usar a partir da próxima foto",
     "liveWarning": "Esta festa está rolando. A próxima foto impressa vai usar esta arte.",
     "draftKept": "Guardado enquanto você explora. Nada chega a uma impressão até você tocar no botão.",
     "noChanges": "Nada mudou ainda.",
-    "layout": "Formato"
+    "layout": "Formato",
+    "generateAgain": "Tentar outro",
+    "dropCandidate": "Não usar imagem",
+    "generationsUsed": "{used} de {cap} usados nesta festa."
   },
   "report": {
     "title": "Como foi",

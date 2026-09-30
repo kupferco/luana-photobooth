@@ -75,7 +75,7 @@ deploy_back() {
     --memory 1Gi \
     --timeout 120 \
     --set-env-vars "^|^NODE_ENV=production|GCP_PROJECT_ID=$PROJECT|GCS_BUCKET=$(cfg "$env" gcsBucket)|RESEND_FROM=Lumina <noreply@kupfer.co>|GUEST_URL=$(cfg "$env" guestUrl)|APP_URL=$(cfg "$env" webUrl)" \
-    --set-secrets "DATABASE_URL=photolu-database-url-$suffix:latest,JWT_SECRET=photolu-jwt-secret-$suffix:latest,RESEND_API_KEY=photolu-resend-key-$suffix:latest"
+    --set-secrets "DATABASE_URL=photolu-database-url-$suffix:latest,JWT_SECRET=photolu-jwt-secret-$suffix:latest,RESEND_API_KEY=photolu-resend-key-$suffix:latest,GOOGLE_AI_API_KEY=photolu-google-ai-key:latest"
 }
 
 deploy_front() {
