@@ -182,10 +182,9 @@
     "draftKept": "Guardado enquanto você explora. Nada chega a uma impressão até você tocar no botão.",
     "noChanges": "Nada mudou ainda.",
     "layout": "Formato",
-    "generateAgain": "Tentar outro",
-    "dropCandidate": "Não usar imagem",
     "generationsUsed": "{used} de {cap} usados nesta festa.",
-    "patternReplaced": "A imagem gerada substitui a estampa. Remova-a para escolher uma."
+    "patternReplaced": "A imagem gerada substitui a estampa. Remova-a para escolher uma.",
+    "fade": "Intensidade — {percent}%"
   },
   "report": {
     "title": "Como foi",

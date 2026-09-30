@@ -1,7 +1,8 @@
 import type { Theme } from '@dk/ui-tokens'
-import { useMemo, type ReactNode } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import {
   ActivityIndicator,
+  PanResponder,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -179,6 +180,87 @@ export function Chip({
         {label}
       </Text>
     </Pressable>
+  )
+}
+
+/**
+ * A value between 0 and 100, dragged.
+ *
+ * Hand-rolled rather than a dependency: the one control needed here is a
+ * horizontal track, and @react-native-community/slider is a native module
+ * to install, link and ship on three platforms for that.
+ *
+ * Responds to a tap as well as a drag, because on a narrow sheet the track
+ * is short and people aim at a position rather than pick up the handle.
+ */
+export function Slider({
+  value,
+  onChange,
+}: {
+  value: number
+  onChange: (value: number) => void
+}) {
+  const t = useTheme()
+  const [width, setWidth] = useState(0)
+
+  const set = (x: number) => {
+    if (width <= 0) return
+    onChange(Math.round(Math.max(0, Math.min(1, x / width)) * 100))
+  }
+
+  const responder = useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => true,
+        onMoveShouldSetPanResponder: () => true,
+        onPanResponderGrant: (e) => set(e.nativeEvent.locationX),
+        onPanResponderMove: (e) => set(e.nativeEvent.locationX),
+      }),
+    // Rebuilt when the track is measured, or the first drag divides by zero.
+    [width],
+  )
+
+  return (
+    <View
+      {...responder.panHandlers}
+      onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
+      // Generous vertical padding: the track is 6pt and a thumb is not.
+      style={{ paddingVertical: 12, justifyContent: 'center' }}
+      accessibilityRole="adjustable"
+      accessibilityValue={{ min: 0, max: 100, now: value }}
+    >
+      <View
+        style={{
+          height: 6,
+          borderRadius: 3,
+          backgroundColor: t.color.actionSecondary.bg,
+        }}
+      >
+        <View
+          style={{
+            width: `${value}%`,
+            height: 6,
+            borderRadius: 3,
+            backgroundColor: t.color.action.bg,
+          }}
+        />
+      </View>
+
+      <View
+        pointerEvents="none"
+        style={{
+          position: 'absolute',
+          left: `${value}%`,
+          marginLeft: -11,
+          width: 22,
+          height: 22,
+          borderRadius: 11,
+          backgroundColor: t.color.action.bg,
+          borderWidth: 2,
+          borderColor: t.color.surface.base,
+        }}
+      />
+    </View>
   )
 }
 

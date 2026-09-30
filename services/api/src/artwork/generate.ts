@@ -1,5 +1,4 @@
 import type { Artwork, Template } from '@photobooth/shared'
-import { PALETTES } from '@photobooth/shared'
 
 /**
  * Making a background out of a sentence.
@@ -55,34 +54,33 @@ export class GenerationRefusedError extends Error {
 }
 
 /**
- * What we ask for, rather than what the person typed.
+ * What we ask for.
  *
- * Their words are the subject; everything else here is the brief. A
- * background for this product has one job and it is not to be admired: it
- * sits under three photographs and a party's name, and anything with real
- * contrast in the middle wins a fight it should not be in.
+ * Their words lead. An earlier version buried them under a brief demanding
+ * low contrast, an even composition and a quiet centre -- the reasoning
+ * being that a background sits under photographs and should not compete.
+ * The reasoning was sound and the result was that "constellation with
+ * colourful star systems" came back as faint cream nothing, which is not a
+ * background anybody asked for. Taste belongs to whoever is throwing the
+ * party; if they want it loud, the fade control is right there.
  *
- * The photo cells are named as empty space so the model leaves the busy
- * detail where it will be covered rather than where the faces go.
+ * What is left are the two things that are not taste. Text comes out as
+ * garbled pseudo-lettering next to a real title, and faces in a background
+ * are confusing on a print whose whole subject is faces.
  */
 export function buildPrompt(
   wish: string,
-  artwork: Artwork,
+  _artwork: Artwork,
   template: Template,
 ): string {
-  const palette = PALETTES[artwork.palette]
   const { w, h } = template.canvas
 
   return [
-    `A decorative background image, ${w}x${h} pixels, landscape.`,
-    `Theme: ${wish}.`,
-    `Palette: soft ${palette.paper} paper with ${palette.accent} accents.`,
-    'It must be very low contrast and softly lit, like patterned wrapping paper.',
+    `A background image, ${w}x${h} pixels, landscape.`,
+    `${wish}.`,
+    'Fill the whole frame.',
     'No text, no letters, no numbers, no logos, no watermarks.',
-    'No people, no faces, no hands.',
-    'Keep the composition even and calm with no single dominant subject,',
-    'because photographs and a title are printed on top of it.',
-    'Leave the centre and lower area quiet and uncluttered.',
+    'No people and no faces.',
   ].join(' ')
 }
 

@@ -197,9 +197,26 @@ export async function renderArtwork(
       '</svg>',
   )
 
-  const canvas = base
-    ? sharp(base).resize(w, h, { fit: 'cover' })
-    : sharp({ create: { width: w, height: h, channels: 4, background: palette.paper } })
+  if (!base) {
+    return sharp({ create: { width: w, height: h, channels: 4, background: palette.paper } })
+      .composite([{ input: svg }])
+      .png()
+      .toBuffer()
+  }
 
-  return canvas.composite([{ input: svg }]).png().toBuffer()
+  /*
+   * The picture is faded against the paper, not made transparent.
+   *
+   * A transparent PNG would hand the printer a background with no colour
+   * underneath it, and the words are composited afterwards either way --
+   * fading them along with the picture would make the party's name
+   * disappear at the same rate as its decoration.
+   */
+  const opacity = Math.max(0, Math.min(100, artwork.backgroundOpacity)) / 100
+  const picture = await sharp(base).resize(w, h, { fit: 'cover' }).ensureAlpha(opacity).png().toBuffer()
+
+  return sharp({ create: { width: w, height: h, channels: 4, background: palette.paper } })
+    .composite([{ input: picture }, { input: svg }])
+    .png()
+    .toBuffer()
 }

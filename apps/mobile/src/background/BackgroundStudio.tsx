@@ -11,7 +11,7 @@ import {
 import { useLocale, useT } from '../locale'
 import { useTheme } from '../theme'
 import type { Background, Layout } from '../api/types'
-import { Body, Button, Chip, Field, Label, Notice } from '../ui'
+import { Body, Button, Chip, Field, Label, Notice, Slider } from '../ui'
 import { ArtworkCanvas } from './ArtworkCanvas'
 import {
   DEFAULT_ARTWORK,
@@ -441,7 +441,7 @@ export function BackgroundStudio({
                 multiline
               />
               <Button
-                label={t(candidateUrl ? 'artwork.generateAgain' : 'artwork.generate')}
+                label={t('artwork.generate')}
                 variant="secondary"
                 busy={generating}
                 disabled={generating || artwork.prompt.trim().length < 3}
@@ -493,12 +493,15 @@ export function BackgroundStudio({
               ) : null}
 
               {candidateUrl ? (
-                <Button
-                  label={t('artwork.dropCandidate')}
-                  variant="secondary"
-                  disabled={generating}
-                  onPress={onClearCandidate}
-                />
+                <View style={{ gap: 6, paddingTop: 4 }}>
+                  <Label>
+                    {t('artwork.fade', { percent: String(artwork.backgroundOpacity) })}
+                  </Label>
+                  <Slider
+                    value={artwork.backgroundOpacity}
+                    onChange={(v) => set('backgroundOpacity', v)}
+                  />
+                </View>
               ) : null}
 
               {generationNote ? (

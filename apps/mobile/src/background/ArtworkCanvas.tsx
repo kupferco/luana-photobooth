@@ -63,7 +63,16 @@ export function ArtworkCanvas({
       {backgroundUri ? (
         <Image
           source={{ uri: backgroundUri }}
-          style={{ position: 'absolute', left: 0, top: 0, width, height }}
+          style={{
+            position: 'absolute',
+            left: 0,
+            top: 0,
+            width,
+            height,
+            // The renderer fades the picture against the paper; here the
+            // paper is the view's own background, so opacity does the same.
+            opacity: Math.max(0, Math.min(100, artwork.backgroundOpacity)) / 100,
+          }}
           resizeMode="cover"
         />
       ) : null}

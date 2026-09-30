@@ -802,6 +802,7 @@ const ArtworkBody = z.object({
     theme: z.enum(['plain', 'confetti', 'constellation', 'clouds', 'stripes', 'bokeh']),
     palette: z.enum(['amber', 'ink', 'rose', 'sea', 'forest', 'blossom']),
     prompt: z.string().trim().max(300),
+    backgroundOpacity: z.number().min(0).max(100).default(100),
   }),
   /**
    * A candidate from the generate route, to draw the words over.

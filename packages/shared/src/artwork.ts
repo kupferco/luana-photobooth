@@ -29,6 +29,17 @@ export interface Artwork {
   palette: PaletteName
   /** For generated artwork. Carried now so the shape does not change later. */
   prompt: string
+
+  /**
+   * How strongly the picture shows, 0 to 100.
+   *
+   * This is what used to be a demand in the prompt for something faint.
+   * Asking the model for quiet artwork produced artwork nobody wanted; a
+   * slider produces whatever they want and then lets them take it down. A
+   * background that fights the photographs is now a choice somebody made
+   * rather than one they were protected from.
+   */
+  backgroundOpacity: number
 }
 
 export const DEFAULT_ARTWORK: Artwork = {
@@ -38,6 +49,7 @@ export const DEFAULT_ARTWORK: Artwork = {
   theme: 'plain',
   palette: 'amber',
   prompt: '',
+  backgroundOpacity: 100,
 }
 
 export interface Palette {

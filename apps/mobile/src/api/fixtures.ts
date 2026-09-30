@@ -68,6 +68,7 @@ const EVENTS: Event[] = [
       theme: 'confetti',
       palette: 'amber',
       prompt: '',
+      backgroundOpacity: 100,
     },
     abandoned: 0,
     longestWaitSeconds: 96,

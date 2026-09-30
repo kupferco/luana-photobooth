@@ -182,10 +182,9 @@
     "draftKept": "Kept while you look around. Nothing reaches a print until you press the button.",
     "noChanges": "Nothing changed yet.",
     "layout": "Layout",
-    "generateAgain": "Try another",
-    "dropCandidate": "Use no picture",
     "generationsUsed": "{used} of {cap} used for this party.",
-    "patternReplaced": "The generated picture replaces the pattern. Remove it to choose one."
+    "patternReplaced": "The generated picture replaces the pattern. Remove it to choose one.",
+    "fade": "Strength — {percent}%"
   },
   "report": {
     "title": "How it went",
