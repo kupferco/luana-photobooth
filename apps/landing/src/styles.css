@@ -1,0 +1,295 @@
+/*
+ * The landing page.
+ *
+ * Hand-written against the same palette the app uses, copied rather than
+ * imported: this is the only thing in the repo with no build step worth the
+ * name, and a marketing page wants to be free to look bolder than a
+ * dashboard without dragging the dashboard along with it.
+ *
+ * Values match packages/ui-tokens/themes/photobooth.dark.json. If the brand
+ * moves, they move here too.
+ */
+:root {
+  --surface-base: #0b0b0d;
+  --surface-raised: #18181b;
+  --text-primary: #fafafa;
+  --text-secondary: #a1a1aa;
+  --brand: #f5c518;
+  --brand-pressed: #d9a800;
+  --on-brand: #0b0b0d;
+  --border-subtle: #27272a;
+
+  --shell: 1080px;
+  --gutter: 20px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: var(--surface-base);
+  color: var(--text-primary);
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.5;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+p {
+  margin: 0;
+}
+
+/* --- the shell ---------------------------------------------------------- */
+
+.hero,
+.band,
+footer {
+  padding-inline: var(--gutter);
+}
+
+/*
+ * One container per section, rather than a max-width on every child.
+ *
+ * Applying it per child centred each one inside the section, so anything
+ * with a narrower max-width of its own -- the intro paragraphs -- drifted
+ * out of line with the heading above it, and anything that reset its own
+ * margins -- the two lists -- escaped the shell and sat against the window
+ * edge.
+ */
+.wrap {
+  max-width: var(--shell);
+  margin-inline: auto;
+}
+
+/* Inside the container everything starts at the same left edge. */
+.wrap > * {
+  margin-inline: 0;
+}
+
+/* --- hero --------------------------------------------------------------- */
+
+.hero {
+  padding-block: clamp(56px, 12vw, 120px) clamp(48px, 9vw, 96px);
+  /* A warm lift behind the mark, so the page does not open on flat black. */
+  background:
+    radial-gradient(ellipse 70% 60% at 50% -10%, rgba(245, 197, 24, 0.16), transparent 70%),
+    var(--surface-base);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.hero .wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  text-align: center;
+}
+
+.hero-mark {
+  width: clamp(160px, 26vw, 220px);
+  height: auto;
+}
+
+.hero h1 {
+  font-size: clamp(2.1rem, 6.2vw, 3.9rem);
+  max-width: 16ch;
+}
+
+.lede {
+  color: var(--text-secondary);
+  font-size: clamp(1.05rem, 2.4vw, 1.3rem);
+  max-width: 54ch;
+}
+
+.cta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+}
+
+/* --- buttons ------------------------------------------------------------ */
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 52px;
+  padding: 0 28px;
+  border-radius: 10px;
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-raised);
+  color: var(--text-primary);
+  font-size: 1rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.button:hover {
+  border-color: #3f3f46;
+}
+
+.button.primary {
+  background: var(--brand);
+  color: var(--on-brand);
+  border-color: transparent;
+}
+
+.button.primary:hover {
+  background: var(--brand-pressed);
+}
+
+.button.big {
+  min-height: 60px;
+  padding: 0 36px;
+  font-size: 1.1rem;
+}
+
+/* --- bands -------------------------------------------------------------- */
+
+.band {
+  padding-block: clamp(48px, 9vw, 96px);
+}
+
+.band.alt {
+  background: #101012;
+  border-block: 1px solid var(--border-subtle);
+}
+
+.band h2 {
+  font-size: clamp(1.6rem, 4vw, 2.4rem);
+  margin-bottom: 32px;
+}
+
+.plain {
+  color: var(--text-secondary);
+  max-width: 60ch;
+  font-size: 1.05rem;
+}
+
+.fine {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+/* --- the three steps ---------------------------------------------------- */
+
+.steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 32px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.steps h3 {
+  font-size: 1.2rem;
+  margin-block: 14px 8px;
+}
+
+.steps p {
+  color: var(--text-secondary);
+}
+
+/* Numbered rather than bulleted: the order is the point. */
+.step-n {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  background: var(--brand);
+  color: var(--on-brand);
+  font-weight: 700;
+}
+
+/* --- feature cards ------------------------------------------------------ */
+
+.grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.card {
+  background: var(--surface-base);
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  padding: 24px;
+}
+
+.card h3 {
+  font-size: 1.1rem;
+  margin-bottom: 8px;
+}
+
+.card p {
+  color: var(--text-secondary);
+}
+
+/* --- what you need ------------------------------------------------------ */
+
+.kit {
+  margin: 0 0 16px;
+  padding-left: 22px;
+  color: var(--text-secondary);
+  display: grid;
+  gap: 8px;
+  max-width: 60ch;
+}
+
+.kit strong {
+  color: var(--text-primary);
+}
+
+/* --- closing ------------------------------------------------------------ */
+
+.closing {
+  text-align: center;
+}
+
+.closing .plain {
+  margin-inline: auto;
+  margin-bottom: 28px;
+}
+
+/* --- footer ------------------------------------------------------------- */
+
+footer {
+  border-top: 1px solid var(--border-subtle);
+  padding-block: 40px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  /* Clears the home indicator when saved to a phone's home screen. */
+  padding-bottom: calc(40px + env(safe-area-inset-bottom, 0px));
+}
+
+footer img {
+  opacity: 0.6;
+  height: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
