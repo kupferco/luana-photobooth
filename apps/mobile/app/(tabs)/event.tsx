@@ -130,19 +130,23 @@ export default function EventTab() {
   const [generationNote, setGenerationNote] = useState<string | null>(null)
 
   /*
-   * The artwork being edited, and the artwork the party is using.
+   * The artwork being edited, which is not the artwork the party is using.
    *
-   * Two of them on purpose. The composer reads the background fresh for
-   * every montage, so whatever is published lands on the next guest's
-   * print -- and a draft that took effect as it was typed would hand
-   * somebody a photograph captioned "Jill's 50th Birth".
+   * The composer reads the background fresh for every montage, so whatever
+   * is published lands on the next guest's print -- and a draft that took
+   * effect as it was typed would hand somebody a photograph captioned
+   * "Jill's 50th Birth". Hence the button.
+   *
+   * A copy of the published artwork used to be kept alongside this one, to
+   * grey the button out when the two matched. That turned out to be a way
+   * of refusing to publish rather than a way of saving work, so it is
+   * gone and the draft stands alone.
    *
    * Held here rather than inside the sheet so closing it keeps the work.
    * A reload still loses it: a draft belongs in storage, and the only
    * store this app has is the Keychain, which is for credentials.
    */
   const [artworkDraft, setArtworkDraft] = useState<Artwork>(DEFAULT_ARTWORK)
-  const [publishedArtwork, setPublishedArtwork] = useState<Artwork | null>(null)
   const [layouts, setLayouts] = useState<Layout[]>([])
   /** The layout being previewed. Null means "whatever the event is on". */
   const [draftTemplateId, setDraftTemplateId] = useState<string | null>(null)
@@ -170,9 +174,7 @@ export default function EventTab() {
    * on each poll would wipe out what somebody was in the middle of typing.
    */
   useEffect(() => {
-    const saved = event?.artwork ?? null
-    setPublishedArtwork(saved)
-    setArtworkDraft(saved ?? DEFAULT_ARTWORK)
+    setArtworkDraft(event?.artwork ?? DEFAULT_ARTWORK)
   }, [event?.id])
   const [uploadingBg, setUploadingBg] = useState(false)
   const [backgroundNote, setBackgroundNote] = useState<string | null>(null)
@@ -979,10 +981,6 @@ export default function EventTab() {
         onTemplateChange={setDraftTemplateId}
         eventDate={event.eventDate}
         artwork={artworkDraft}
-        published={publishedArtwork}
-        layoutChanged={
-          draftTemplateId !== null && draftTemplateId !== event.templateId
-        }
         live={event.status === 'live'}
         onChange={setArtworkDraft}
         onPublish={async () => {
@@ -1004,7 +1002,6 @@ export default function EventTab() {
                 candidate?.id ?? null,
               ),
             )
-            setPublishedArtwork(artworkDraft)
             // The candidate is the background now; it is not a candidate.
             setCandidate(null)
             setStudioOpen(false)
@@ -1025,7 +1022,6 @@ export default function EventTab() {
         generating={generating}
         generated={generated}
         generationNote={generationNote}
-        onClearCandidate={() => setCandidate(null)}
         onGenerate={async (prompt) => {
           setGenerating(true)
           setGenerationNote(null)

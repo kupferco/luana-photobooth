@@ -18,7 +18,6 @@ import { useState } from 'react'
 import { ArtworkCanvas } from './ArtworkCanvas'
 import { PhotoSlots } from './PhotoSlots'
 import {
-  DEFAULT_ARTWORK,
   FONTS,
   PALETTES,
   type Artwork,
@@ -71,8 +70,6 @@ export function BackgroundStudio({
   onTemplateChange,
   eventDate,
   artwork,
-  published,
-  layoutChanged,
   live,
   publishing,
   onGenerate,
@@ -80,7 +77,6 @@ export function BackgroundStudio({
   generating,
   generated,
   generationNote,
-  onClearCandidate,
   backgrounds,
   onPickBackground,
   onChange,
@@ -96,10 +92,6 @@ export function BackgroundStudio({
   eventDate: string
   /** The draft being edited. Owned by the screen, so closing keeps it. */
   artwork: Artwork
-  /** What the party is actually using. Null until something is published. */
-  published: Artwork | null
-  /** True when the chosen layout differs from the one the party is on. */
-  layoutChanged: boolean
   /** A running party prints with this the moment it is published. */
   live: boolean
   /** Rendering happens on the server and takes a moment. */
@@ -112,7 +104,6 @@ export function BackgroundStudio({
   /** How many of this party's allowance is gone. */
   generated: { used: number; cap: number } | null
   generationNote: string | null
-  onClearCandidate: () => void
   /** Everything this party has been offered. Newest first. */
   backgrounds: Background[]
   onPickBackground: (background: Background | null) => void
@@ -147,10 +138,19 @@ export function BackgroundStudio({
    * The composer reads the background afresh for every montage, so whatever
    * is published is on the next guest's print. Saving as somebody types
    * hands somebody a photograph captioned "Jill's 50th Birth".
+   *
+   * It is the *only* thing publishing is separate for, which is why the
+   * button is no longer disabled when nothing has changed. There was a
+   * comparison here that asked whether the draft differed from the last
+   * published artwork, and it was wrong twice over. It never saw the
+   * picture -- choosing a different generated background changed the whole
+   * design and left the button dead, insisting nothing had happened. And
+   * even when it was right it was answering the wrong question: a party
+   * sitting on an uploaded photograph has an artwork identical to the
+   * default, so switching to the designed one is a real change with
+   * nothing to compare. Pressing it twice costs a render nobody sees.
+   * Refusing to press it once costs the design.
    */
-  const dirty =
-    layoutChanged ||
-    JSON.stringify(artwork) !== JSON.stringify(published ?? DEFAULT_ARTWORK)
 
   /*
    * Sized by the window's height as well as its width.
@@ -555,20 +555,16 @@ export function BackgroundStudio({
             {/* Loud about it while a party is running, because it is the
                 one moment this button changes something in somebody's
                 hand rather than on a screen. */}
-            {live && dirty ? (
-              <Notice tone="warn">{t('artwork.liveWarning')}</Notice>
-            ) : null}
+            {live ? <Notice tone="warn">{t('artwork.liveWarning')}</Notice> : null}
 
             <Button
               label={t(live ? 'artwork.publishLive' : 'artwork.publish')}
-              disabled={!dirty || publishing}
+              disabled={publishing}
               busy={publishing}
               onPress={onPublish}
             />
 
-            <Body muted>
-              {dirty ? t('artwork.draftKept') : t('artwork.noChanges')}
-            </Body>
+            <Body muted>{t('artwork.draftKept')}</Body>
           </ScrollView>
         </View>
       </View>
