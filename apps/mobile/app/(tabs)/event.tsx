@@ -12,6 +12,7 @@ import {
 import { useLocale, useT } from '../../src/locale'
 import { useActiveEvent } from '../../src/event-context'
 import { BackgroundStudio } from '../../src/background/BackgroundStudio'
+import { PhotoSlots } from '../../src/background/PhotoSlots'
 import { DEFAULT_ARTWORK, type Artwork } from '../../src/background/artwork'
 import type { Background, Layout } from '../../src/api/types'
 import { EventReportCard } from '../../src/report/EventReportCard'
@@ -359,6 +360,16 @@ export default function EventTab() {
   }
 
   const ready = sessions.filter((s) => s.status === 'ready')
+
+  /*
+   * The layout this party prints on, for drawing the photo slots.
+   *
+   * CLASSIC_3UP until the layouts have loaded, which is a guess -- but it
+   * is the layout almost every party is on, and the alternative is a card
+   * that pops its shape a second after it appears.
+   */
+  const eventTemplate =
+    layouts.find((l) => l.id === event.templateId)?.template ?? CLASSIC_3UP
   /*
    * Which card is showing.
    *
@@ -491,42 +502,54 @@ export default function EventTab() {
         >
 
 
-          {event.backgroundUrl ? (
-            <Image
-              source={{ uri: event.backgroundUrl }}
-              style={{
-                width: '100%',
-                aspectRatio: 3 / 2,
-                borderRadius: theme.radius.sm,
-                backgroundColor: theme.color.surface.sunken,
-              }}
-              resizeMode="cover"
-            />
-          ) : (
-            <View
-              style={{
-                width: '100%',
-                aspectRatio: 3 / 2,
-                borderRadius: theme.radius.sm,
-                backgroundColor: '#ffffff',
-                borderWidth: 1,
-                borderColor: theme.color.border.subtle,
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: 16,
-              }}
-            >
+          {/*
+            * The background with the photographs' places over it.
+            *
+            * The card is headed Background and the picture under it is the
+            * background, which is accurate and still misleading: three
+            * photographs cover most of it. Shown bare, this invited
+            * choosing a picture whose best part lands under a photo and
+            * finding out at the printer. Same slots the studio draws, from
+            * the same layout the party will actually print on.
+            */}
+          <View
+            style={{
+              width: '100%',
+              aspectRatio: eventTemplate.canvas.w / eventTemplate.canvas.h,
+              borderRadius: theme.radius.sm,
+              // The slots are absolute, so without this they square off the
+              // corners the image just rounded.
+              overflow: 'hidden',
+              backgroundColor: event.backgroundUrl
+                ? theme.color.surface.sunken
+                : '#ffffff',
+              borderWidth: event.backgroundUrl ? 0 : 1,
+              borderColor: theme.color.border.subtle,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            {event.backgroundUrl ? (
+              <Image
+                source={{ uri: event.backgroundUrl }}
+                style={{ width: '100%', height: '100%' }}
+                resizeMode="cover"
+              />
+            ) : (
               <Text
                 style={{
                   color: '#888',
                   fontSize: theme.fontSize.sm,
                   textAlign: 'center',
+                  paddingHorizontal: 16,
                 }}
               >
                 {t('dashboard.backgroundNone')}
               </Text>
-            </View>
-          )}
+            )}
+
+            <PhotoSlots template={eventTemplate} compact />
+          </View>
 
           <Body muted>{t('dashboard.backgroundHint')}</Body>
           {backgroundNote ? <Notice tone="warn">{backgroundNote}</Notice> : null}

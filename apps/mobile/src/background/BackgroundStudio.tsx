@@ -16,6 +16,7 @@ import { ColourPicker } from '../ui/ColourPicker'
 import { tidy } from './tidy'
 import { useState } from 'react'
 import { ArtworkCanvas } from './ArtworkCanvas'
+import { PhotoSlots } from './PhotoSlots'
 import {
   DEFAULT_ARTWORK,
   FONTS,
@@ -625,12 +626,10 @@ function Preview({
   locale: string
   width: number
 }) {
-  const theme = useTheme()
-  const t = useT()
   const scale = width / template.canvas.w
 
   return (
-    <View style={{ width, height: template.canvas.h * scale }}>
+    <View style={{ width, height: template.canvas.h * scale, overflow: 'hidden' }}>
       <ArtworkCanvas
         template={template}
         artwork={artwork}
@@ -642,25 +641,7 @@ function Preview({
 
       {/* Greyed rather than hidden: the space left over is the whole
           design problem. */}
-      {template.cells.map((cell, i) => (
-        <View
-          key={i}
-          style={{
-            position: 'absolute',
-            left: cell.x * scale,
-            top: cell.y * scale,
-            width: cell.w * scale,
-            height: cell.h * scale,
-            backgroundColor: 'rgba(24,24,27,0.82)',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <Text style={{ color: 'rgba(255,255,255,0.65)', fontSize: theme.fontSize.xs }}>
-            {t('artwork.photoSlot', { n: String(i + 1) })}
-          </Text>
-        </View>
-      ))}
+      <PhotoSlots template={template} />
     </View>
   )
 }
