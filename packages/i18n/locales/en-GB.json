@@ -148,7 +148,8 @@
     "guidedStep2": "Tap Passcode Settings › Set Guided Access Passcode, and pick a code you will remember.",
     "guidedStep3": "Open the booth here, then triple-click the side button and tap Start.",
     "guidedStep4": "To get out: triple-click again and enter that passcode.",
-    "guidedAndroid": "On Android the same thing is called app pinning: Settings › Security › App pinning."
+    "guidedAndroid": "On Android the same thing is called app pinning: Settings › Security › App pinning.",
+    "pairOnWifi": "Printer already on your wifi, but asking to be set up? Skip the steps above — open lumina.local in a browser on the same wifi and enter the code there."
   },
   "artwork": {
     "title": "Design the artwork",

@@ -28,8 +28,60 @@ export function setupPage(opts: {
   error?: string | null
   ssid?: string
   applying?: boolean
+  /**
+   * Served over the Pi's normal wifi rather than its own setup network.
+   *
+   * The wifi half of this form is then not only unnecessary but dangerous:
+   * the Pi is already on the network the owner is sitting on, and asking
+   * them to choose one again invites them to take a working box off the
+   * air to fix a problem that is only about pairing.
+   */
+  codeOnly?: boolean
+  /** The name on the box, so the right one is being looked at. */
+  deviceName?: string | null
+  paired?: boolean
 }): string {
-  const { networks, error, ssid = '', applying = false } = opts
+  const {
+    networks,
+    error,
+    ssid = '',
+    applying = false,
+    codeOnly = false,
+    deviceName = null,
+    paired = false,
+  } = opts
+
+  if (codeOnly) {
+    if (paired) {
+      return page(`
+    <h1>All set</h1>
+    <p class="muted">
+      ${deviceName ? `<strong>${escape(deviceName)}</strong> is` : 'This printer is'}
+      paired and ready. It appears in the app within a few seconds.
+    </p>
+    <p class="muted small">You can close this page.</p>`)
+    }
+
+    return page(`
+    <h1>Connect this printer</h1>
+    <p class="muted">
+      ${deviceName ? `<strong>${escape(deviceName)}</strong> is` : 'This printer is'}
+      on your wifi already. It just needs a pairing code.
+    </p>
+
+    ${error ? `<p class="error">${escape(error)}</p>` : ''}
+
+    <form method="POST" action="/setup">
+      <label for="code">Pairing code</label>
+      <input id="code" name="code" required placeholder="ABC123"
+             autocapitalize="characters" autocorrect="off" spellcheck="false">
+      <p class="muted small">
+        In the app, open your party, then Setup › Connect a printer.
+      </p>
+
+      <button type="submit">Connect</button>
+    </form>`)
+  }
 
   const options = networks
     .map(

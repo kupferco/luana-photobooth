@@ -59,6 +59,23 @@ sudo apt-get install -y cups cups-client
 sudo usermod -aG lpadmin "$REMOTE_USER" || true
 
 echo
+echo "==> Naming this Pi lumina, so lumina.local always reaches it"
+# avahi publishes <hostname>.local and nothing else, so the name this box
+# answers to is whatever it happened to be flashed with -- photolu on the
+# first one, raspberrypi on a stock image. That is fine until the Pi is on
+# wifi but unpaired, which is the one state where the owner has to type an
+# address into a browser, and we cannot tell them which one.
+#
+# A fixed name makes that address printable: the app already says
+# lumina.local, and now that is true. The setup network keeps the box's own
+# three-word name, so two Pis in one room are still told apart where it
+# matters -- and if both are on wifi, avahi appends -2 rather than colliding.
+sudo hostnamectl set-hostname lumina
+# 127.0.1.1 must follow the hostname or sudo complains on every command.
+sudo sed -i "s/^127\.0\.1\.1.*/127.0.1.1\tlumina/" /etc/hosts
+sudo systemctl restart avahi-daemon || true
+
+echo
 echo "==> Creating $REMOTE_DIR"
 # Owned by the login user, so deploys need no root to write into it.
 sudo mkdir -p "$REMOTE_DIR"
@@ -141,8 +158,12 @@ User=root
 WorkingDirectory=$REMOTE_DIR
 EnvironmentFile=-$REMOTE_DIR/.env
 ExecStart=/usr/bin/node $REMOTE_DIR/dist/onboard.js
-# Exits immediately when already set up, so restarting it would be pointless.
-Restart=no
+# Exits on its own when there is nothing to do, or once pairing succeeds.
+# While the Pi is unpaired it stays up and serves the setup page, so a crash
+# there takes away the only way back in -- hence on-failure rather than no.
+# A clean exit is a finished job and is never restarted.
+Restart=on-failure
+RestartSec=10
 StandardOutput=journal
 StandardError=journal
 

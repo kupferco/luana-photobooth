@@ -1,10 +1,12 @@
 import { existsSync } from 'node:fs'
+import { hostname } from 'node:os'
 import { unlink } from 'node:fs/promises'
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
 import {
   apiBase,
   apiBaseIsDefault,
   hasToken,
+  localDeviceName,
   pair,
   saveToken,
   SETUP_MARKER,
@@ -59,6 +61,16 @@ const REVERT_AFTER_MS = Number(process.env.ONBOARD_REVERT_MS ?? 15 * 60_000)
 let networks: Network[] = []
 let lastError: string | null = null
 let finished = false
+/**
+ * Serving over the Pi's own wifi rather than its own setup network.
+ *
+ * Decides both which form is shown and what a submission is allowed to do:
+ * in this mode nothing may touch the radio, because the connection being
+ * used to fix the Pi is running over it.
+ */
+let lanMode = false
+/** The name on the box, so the page can say which printer this is. */
+let deviceName: string | null = null
 
 const log = (...args: unknown[]) =>
   console.log(new Date().toISOString().slice(11, 19), '[onboard]', ...args)
@@ -114,12 +126,57 @@ async function apply(ssid: string, password: string, code: string): Promise<stri
    */
   if (!(await waitForApi())) {
     log('joined the network but the API is not reachable')
-    exitSoon('wifi joined but the API is unreachable')
+    /*
+     * Still listening, on the network that was just set up.
+     *
+     * This used to exit. The wifi was good, the Pi was reachable at its own
+     * name, and the page that would have said so had just shut itself down
+     * -- so the owner was left with a box on their network, a message they
+     * could not get back to, and no way in.
+     */
+    lanMode = true
+    deviceName = await localDeviceName().catch(() => null)
     return (
       `Connected to ${ssid}, but the photo booth service could not be reached. ` +
       'Check the network has internet, then try the code again.'
     )
   }
+
+  const failure = await redeemCode(code)
+  if (failure === null) return null
+
+  /*
+   * The wifi worked and the code did not, which is a different sentence
+   * from either half alone -- and the half that matters is that they are
+   * on the network now and only need a fresh code.
+   *
+   * charAt rather than [0]: an empty message would be a bug, not a crash.
+   */
+  return `Connected to ${ssid}, but ${failure.charAt(0).toLowerCase()}${failure.slice(1)}`
+}
+
+/**
+ * The pairing half on its own, with the network left alone.
+ *
+ * Split out because it is the whole job when this page is served over the
+ * Pi's own wifi: there is nothing to join, and the box must not be taken
+ * off the air to pair it.
+ *
+ * Returns null on success, or a sentence to show.
+ */
+async function redeemCode(code: string): Promise<string | null> {
+  /*
+   * From here the hotspot is gone and the Pi is on the owner's network, so
+   * this process is reachable at its own name and nowhere else. Saying so
+   * changes what the page offers: a code, not a network to join.
+   *
+   * It matters on the failure path. A code that has expired while someone
+   * typed their wifi password used to end onboarding, and the next page
+   * load -- over the wifi that had just been set up perfectly well -- found
+   * nothing listening.
+   */
+  lanMode = true
+  deviceName = await localDeviceName().catch(() => null)
 
   log('pairing')
 
@@ -146,10 +203,16 @@ async function apply(ssid: string, password: string, code: string): Promise<stri
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e)
     log(`pairing failed: ${message}`)
-    // The wifi is good, so leave it: the owner can retry the code over SSH,
-    // or run onboarding again -- which needs this process gone.
-    exitSoon('wifi joined but pairing failed')
-    return `Connected to ${ssid}, but the pairing code was not accepted. ${message}`
+    /*
+     * Deliberately still running.
+     *
+     * A rejected code is the one failure the owner can fix on the spot --
+     * it has usually just expired, and they are holding the phone that
+     * makes a new one. Exiting here would take the page away at the exact
+     * moment it became useful, which is what left the only recovery route
+     * being SSH.
+     */
+    return `The pairing code was not accepted. ${message}`
   }
 }
 
@@ -235,6 +298,23 @@ async function handler(req: IncomingMessage, res: ServerResponse): Promise<void>
     const ssid = (body.ssid ?? '').trim()
     const code = (body.code ?? '').trim()
 
+    /*
+     * Over the Pi's own wifi there is nothing to join, so a code is the
+     * whole form. Answering after the work rather than before it, because
+     * unlike the hotspot path this connection survives: nothing is taking
+     * the radio down underneath it.
+     */
+    if (lanMode) {
+      if (!code) {
+        lastError = 'Enter the pairing code.'
+        send(res, 400, page())
+        return
+      }
+      lastError = await redeemCode(code)
+      send(res, lastError ? 400 : 200, page())
+      return
+    }
+
     if (!ssid || !code) {
       lastError = 'Choose a network and enter the pairing code.'
       send(res, 400, setupPage({ networks, error: lastError, ssid }))
@@ -271,7 +351,18 @@ async function handler(req: IncomingMessage, res: ServerResponse): Promise<void>
     return
   }
 
-  send(res, 200, setupPage({ networks, error: lastError }))
+  send(res, 200, page())
+}
+
+/** The page in whichever mode this process is serving. */
+function page(): string {
+  return setupPage({
+    networks,
+    error: lastError,
+    codeOnly: lanMode,
+    deviceName,
+    paired: finished,
+  })
 }
 
 /**
@@ -316,33 +407,68 @@ async function main(): Promise<void> {
    * though this Pi is on wifi.
    */
   const asked = existsSync(SETUP_MARKER)
-  const force = process.argv.includes('--force') || asked
+
+  /*
+   * Only the flag forces the hotspot, and it is there to test the hotspot.
+   *
+   * The marker used to force it too, which is how a Pi sitting happily on
+   * wifi got its radio taken away: the agent's token was refused, the
+   * marker went down, and onboarding read that as "advertise a setup
+   * network" rather than "this needs pairing". The marker says what is
+   * wrong, not which door to open -- that depends on whether there is
+   * already a network to reach the Pi on.
+   */
+  const forceHotspot = process.argv.includes('--force')
 
   if (asked) log('the agent asked to be set up again')
 
   const online = await isOnline()
   const paired = await hasToken()
 
-  if (online && paired && !force) {
+  if (online && paired && !asked && !forceHotspot) {
     log('already set up; nothing to do')
     return
   }
 
   /*
-   * Being online is enough to stay out of the way.
+   * On wifi and unpaired: serve the page over that wifi, and leave the
+   * radio alone.
    *
    * The hotspot exists for a Pi that cannot be reached at all. A Pi that is
-   * on a network but not yet paired is perfectly reachable -- over SSH, or
-   * by the app -- so taking the radio to advertise a setup network would
-   * disconnect a working machine to solve a problem it does not have. That
-   * is exactly what would happen on the next reboot of a Pi that is online
-   * and simply has not been paired yet.
+   * on a network but not yet paired is perfectly reachable, so taking the
+   * radio to advertise a setup network disconnects a working machine to
+   * solve a problem it does not have -- which is exactly what happened, and
+   * it put the Pi somewhere the owner could not follow.
+   *
+   * This branch used to log "pair over SSH, or from the app once the agent
+   * is running" and return. Neither was true for anyone but us. SSH is not
+   * a thing a customer has, and the app cannot pair a device the service no
+   * longer knows about -- there is nothing on screen to press. So an
+   * unpaired Pi on a working network had no recovery at all, and the one
+   * route that did exist, the hotspot, closed after fifteen minutes and
+   * never came back.
+   *
+   * Now the owner opens the Pi's own name in a browser on the same wifi
+   * and types a code. No network to choose, nothing taken off the air, and
+   * it keeps working for as long as the Pi is unpaired rather than for a
+   * quarter of an hour.
    *
    * --force is for testing the hotspot deliberately.
    */
-  if (online && !force) {
-    log('online but not paired — leaving the network alone')
-    log('pair over SSH, or from the app once the agent is running')
+  if (online && !forceHotspot) {
+    lanMode = true
+    deviceName = await localDeviceName().catch(() => null)
+    log('online but not paired — serving setup over the network')
+    /*
+     * The hostname, not the device name.
+     *
+     * They are different things and only one of them resolves: avahi
+     * publishes <hostname>.local, while the device name is what the app
+     * and the card call this box. Printing the device name here sent
+     * someone to buttery-feast-sherbet.local, which answers nowhere.
+     */
+    log(`open http://${hostname()}.local/ from a phone on the same wifi`)
+    serve()
     return
   }
 
@@ -389,10 +515,16 @@ async function main(): Promise<void> {
   log(`hotspot up: ${ssid} (open network — see startHotspot for why)`)
   log(`setup page at http://${HOTSPOT_ADDRESS}/`)
 
+  serve()
+}
+
+/** The setup page, on whichever address this process is reachable at. */
+function serve(): void {
   createServer((req, res) => {
     handler(req, res).catch((e) => {
       log('request failed', e)
-      send(res, 500, setupPage({ networks, error: 'Something went wrong. Try again.' }))
+      lastError = 'Something went wrong. Try again.'
+      send(res, 500, page())
     })
   }).listen(PORT, () => log(`listening on :${PORT}`))
 }

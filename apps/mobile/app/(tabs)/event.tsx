@@ -711,6 +711,19 @@ export default function EventTab() {
               </View>
 
               <Body muted>{t('dashboard.pairingCodeHint')}</Body>
+
+              {/*
+                * The other route in, for a printer that is already on the
+                * wifi and only needs a code.
+                *
+                * The five steps above all begin with the setup network,
+                * which only exists on a printer that has never been
+                * connected. One that has -- and then lost its pairing --
+                * is sitting on the wifi with no setup network to join, and
+                * every step above is wrong for it. That gap had exactly
+                * one workaround and it was a terminal.
+                */}
+              <Notice>{t('dashboard.pairOnWifi')}</Notice>
             </View>
           ) : null}
 

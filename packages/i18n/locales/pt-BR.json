@@ -148,7 +148,8 @@
     "guidedStep2": "Toque em Ajustes de Senha › Definir Senha do Acesso Guiado, e escolha uma senha que você vá lembrar.",
     "guidedStep3": "Abra a cabine aqui, clique três vezes no botão lateral e toque em Iniciar.",
     "guidedStep4": "Para sair: clique três vezes de novo e digite a senha.",
-    "guidedAndroid": "No Android isso se chama fixação de tela: Ajustes › Segurança › Fixação de apps."
+    "guidedAndroid": "No Android isso se chama fixação de tela: Ajustes › Segurança › Fixação de apps.",
+    "pairOnWifi": "A impressora já está no seu wifi, mas pedindo configuração? Pule os passos acima — abra lumina.local no navegador, no mesmo wifi, e digite o código lá."
   },
   "artwork": {
     "title": "Criar a arte",
