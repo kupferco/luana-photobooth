@@ -28,6 +28,7 @@ import {
   Body,
   Button,
   Card,
+  Choice,
   CollapsibleCard,
   Heading,
   Label,
@@ -788,7 +789,7 @@ export default function EventTab() {
           {/* A party setting rather than a device one, but it lives here
               because Setup is where things you decide once belong. */}
           {open ? (
-            <View style={{ gap: 6, paddingTop: 12 }}>
+            <View style={{ gap: theme.space[3], paddingTop: theme.space[6] }}>
               <Label>{t('dashboard.retakes')}</Label>
               <Body muted>{t('dashboard.retakesHint')}</Body>
               {/* Equal thirds. The labels were "Off", "1 per guest" and
@@ -830,24 +831,27 @@ export default function EventTab() {
             * told which of the two they have turned on.
             */}
           {open ? (
-            <View style={{ gap: 6, paddingTop: 12 }}>
+            <View style={{ gap: theme.space[3], paddingTop: theme.space[6] }}>
               <Label>{t('dashboard.boothLock')}</Label>
-              <Body muted>{t('dashboard.boothLockHint')}</Body>
-              <View style={{ flexDirection: 'row', gap: 8 }}>
+              {/* No hint line here any more. It was a third voice above two
+                  unlabelled buttons, and the options say it better. */}
+              <View style={{ gap: theme.space[2] }}>
                 {([true, false] as const).map((allowed) => (
-                  <View key={String(allowed)} style={{ flex: 1, minWidth: 0 }}>
-                    <Button
-                      label={t(allowed ? 'dashboard.boothExitOn' : 'dashboard.boothExitOff')}
-                      variant={event.boothExitAllowed === allowed ? 'primary' : 'secondary'}
-                      onPress={async () => {
-                        try {
-                          setEvent(await api.setBoothExit(tenantId!, event.id, allowed))
-                        } catch (err) {
-                          setLoadError(err instanceof Error ? err.message : String(err))
-                        }
-                      }}
-                    />
-                  </View>
+                  <Choice
+                    key={String(allowed)}
+                    title={t(allowed ? 'dashboard.boothExitOn' : 'dashboard.boothExitOff')}
+                    description={t(
+                      allowed ? 'dashboard.boothExitOnWhat' : 'dashboard.boothExitOffWhat',
+                    )}
+                    selected={event.boothExitAllowed === allowed}
+                    onPress={async () => {
+                      try {
+                        setEvent(await api.setBoothExit(tenantId!, event.id, allowed))
+                      } catch (err) {
+                        setLoadError(err instanceof Error ? err.message : String(err))
+                      }
+                    }}
+                  />
                 ))}
               </View>
               {/* Only once the lock is on: before that it is advice about a
@@ -855,25 +859,56 @@ export default function EventTab() {
               {!event.boothExitAllowed ? (
                 <View
                   style={{
-                    gap: 8,
-                    padding: theme.space[3],
+                    gap: theme.space[4],
+                    padding: theme.space[4],
+                    marginTop: theme.space[2],
                     borderRadius: theme.radius.md,
                     backgroundColor: theme.color.surface.sunken,
+                    borderLeftWidth: 3,
+                    borderLeftColor: theme.color.action.bg,
                   }}
                 >
-                  <Label>{t('dashboard.guidedTitle')}</Label>
-                  {/* Why first. Four steps on a phone someone is holding at
-                      a party are worth following only once it is clear the
-                      setting above did not already do this. */}
-                  <Body muted>{t('dashboard.guidedWhy')}</Body>
-                  {([1, 2, 3, 4] as const).map((n) => (
-                    <View key={n} style={{ flexDirection: 'row', gap: 10 }}>
-                      <Body muted>{n}.</Body>
-                      <View style={{ flex: 1 }}>
-                        <Body>{t(`dashboard.guidedStep${n}` as 'dashboard.guidedStep1')}</Body>
+                  <View style={{ gap: 6 }}>
+                    <Label>{t('dashboard.guidedTitle')}</Label>
+                    {/* Why first. Four steps on a phone someone is holding
+                        at a party are worth following only once it is clear
+                        the setting above did not already do this. */}
+                    <Body muted>{t('dashboard.guidedWhy')}</Body>
+                  </View>
+
+                  {/* Numbered and spaced apart. These are performed one at a
+                      time on a different device, looking back and forth, so
+                      losing your place is the thing to design against --
+                      which a single justified paragraph guaranteed. */}
+                  <View style={{ gap: theme.space[3] }}>
+                    {([1, 2, 3, 4] as const).map((n) => (
+                      <View key={n} style={{ flexDirection: 'row', gap: 12 }}>
+                        <Text
+                          style={{
+                            color: theme.color.action.bg,
+                            fontSize: theme.fontSize.sm,
+                            fontWeight: '700',
+                            width: 14,
+                            lineHeight: 22,
+                          }}
+                        >
+                          {n}
+                        </Text>
+                        <View style={{ flex: 1 }}>
+                          <Text
+                            style={{
+                              color: theme.color.text.primary,
+                              fontSize: theme.fontSize.sm,
+                              lineHeight: 22,
+                            }}
+                          >
+                            {t(`dashboard.guidedStep${n}` as 'dashboard.guidedStep1')}
+                          </Text>
+                        </View>
                       </View>
-                    </View>
-                  ))}
+                    ))}
+                  </View>
+
                   <Body muted>{t('dashboard.guidedAndroid')}</Body>
                 </View>
               ) : null}

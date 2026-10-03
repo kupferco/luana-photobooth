@@ -184,6 +184,99 @@ export function Chip({
 }
 
 /**
+ * One choice in a short list of them, with its consequence written on it.
+ *
+ * For settings where the options are not self-describing. A row of equal
+ * buttons works for Retakes, because "Off / 1 / 2" answers the question in
+ * the heading. It failed badly for the booth lock, which offered "Allow"
+ * and "Lock" -- two verbs with no object, under a heading that did not
+ * supply one either, so the only way to find out what either did was to
+ * press one and go and look at the booth.
+ *
+ * Stacked rather than side by side: a consequence needs a line of text, and
+ * two lines of text side by side on a phone is four words per line.
+ */
+export function Choice({
+  title,
+  description,
+  selected,
+  onPress,
+}: {
+  title: string
+  description: string
+  selected: boolean
+  onPress: () => void
+}) {
+  const t = useTheme()
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="radio"
+      accessibilityState={{ selected }}
+      accessibilityLabel={`${title}. ${description}`}
+      style={{
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        gap: 12,
+        padding: t.space[3],
+        borderRadius: t.radius.md,
+        backgroundColor: selected ? t.color.surface.sunken : 'transparent',
+        // Two, so the row does not change size when it is chosen.
+        borderWidth: 2,
+        borderColor: selected ? t.color.action.bg : t.color.border.subtle,
+      }}
+    >
+      {/* A filled dot rather than a tick: this is one of several, not a
+          box that is on or off. */}
+      <View
+        style={{
+          width: 20,
+          height: 20,
+          borderRadius: 10,
+          marginTop: 2,
+          borderWidth: 2,
+          borderColor: selected ? t.color.action.bg : t.color.border.strong,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        {selected ? (
+          <View
+            style={{
+              width: 10,
+              height: 10,
+              borderRadius: 5,
+              backgroundColor: t.color.action.bg,
+            }}
+          />
+        ) : null}
+      </View>
+
+      <View style={{ flex: 1, gap: 4 }}>
+        <Text
+          style={{
+            color: t.color.text.primary,
+            fontSize: t.fontSize.md,
+            fontWeight: '600',
+          }}
+        >
+          {title}
+        </Text>
+        <Text
+          style={{
+            color: t.color.text.secondary,
+            fontSize: t.fontSize.sm,
+            lineHeight: 20,
+          }}
+        >
+          {description}
+        </Text>
+      </View>
+    </Pressable>
+  )
+}
+
+/**
  * A value between 0 and 100, dragged.
  *
  * Hand-rolled rather than a dependency: the one control needed here is a
