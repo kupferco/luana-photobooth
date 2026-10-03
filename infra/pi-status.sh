@@ -10,16 +10,10 @@
 
 set -euo pipefail
 
-TARGET="${1:-${PI_HOST:-lumina@lumina.local}}"
+# shellcheck source=pi-host.sh
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/pi-host.sh"
 
-if ! ssh -o BatchMode=yes -o ConnectTimeout=8 "$TARGET" true 2>/dev/null; then
-  echo "Cannot reach $TARGET."
-  echo
-  echo "  - Is it powered up? A steady red light means power, green means the card."
-  echo "  - On the same network as this Mac?"
-  echo "  - If it was mid-onboarding it may be advertising its own name as a wifi network instead."
-  exit 1
-fi
+TARGET="$(resolve_pi_host "${1:-}")" || exit 1
 
 ssh "$TARGET" 'bash -s' <<'REMOTE'
 set -uo pipefail
@@ -70,6 +64,26 @@ hr "Agent"
 systemctl is-active --quiet photobooth-agent \
   && echo "  running since $(systemctl show photobooth-agent -p ActiveEnterTimestamp --value)" \
   || echo "  NOT RUNNING"
+
+# Which API it is talking to.
+#
+# The omission that cost an evening. A Pi can be powered, online, running,
+# paired and heartbeating every ten seconds -- and still show as a dead
+# printer in the app, because it is heartbeating at staging while the party
+# is on production. Every line above said "healthy" and none of them said
+# the one thing that was wrong.
+#
+# The token is bound to whichever API issued it, so this and the pairing
+# below are one fact in two halves: a Pi pointed at a different API is not
+# paired, whatever the token file says.
+API="$(sed -n 's/^PHOTOBOOTH_API_URL=//p' /opt/photobooth/.env 2>/dev/null | tr -d '\042\047' | tail -1)"
+case "$API" in
+  '')        echo "  pointing at: NOT SET — the agent falls back to localhost and reaches nothing" ;;
+  *prod*)    echo "  pointing at: production ($API)" ;;
+  *staging*) echo "  pointing at: STAGING ($API)"
+             echo "    A party on production will not see this printer." ;;
+  *)         echo "  pointing at: $API" ;;
+esac
 
 # The shared path, not a home directory: onboarding writes this as root and
 # the agent reads it as the login user, so it cannot live under either home.

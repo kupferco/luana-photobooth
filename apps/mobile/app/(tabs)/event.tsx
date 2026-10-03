@@ -840,7 +840,29 @@ export default function EventTab() {
               {/* Only once the lock is on: before that it is advice about a
                   problem they have not got. */}
               {!event.boothExitAllowed ? (
-                <Notice tone="warn">{t('dashboard.boothLockGuided')}</Notice>
+                <View
+                  style={{
+                    gap: 8,
+                    padding: theme.space[3],
+                    borderRadius: theme.radius.md,
+                    backgroundColor: theme.color.surface.sunken,
+                  }}
+                >
+                  <Label>{t('dashboard.guidedTitle')}</Label>
+                  {/* Why first. Four steps on a phone someone is holding at
+                      a party are worth following only once it is clear the
+                      setting above did not already do this. */}
+                  <Body muted>{t('dashboard.guidedWhy')}</Body>
+                  {([1, 2, 3, 4] as const).map((n) => (
+                    <View key={n} style={{ flexDirection: 'row', gap: 10 }}>
+                      <Body muted>{n}.</Body>
+                      <View style={{ flex: 1 }}>
+                        <Body>{t(`dashboard.guidedStep${n}` as 'dashboard.guidedStep1')}</Body>
+                      </View>
+                    </View>
+                  ))}
+                  <Body muted>{t('dashboard.guidedAndroid')}</Body>
+                </View>
               ) : null}
             </View>
           ) : null}

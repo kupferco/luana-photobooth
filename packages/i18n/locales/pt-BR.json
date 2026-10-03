@@ -111,7 +111,7 @@
     "stopShort": "Parar",
     "unpairShort": "Remover",
     "pairStep1": "Tenha o nome e a senha do seu wifi em mãos.",
-    "pairStep2": "Ligue a caixa da impressora e ligue a impressora.",
+    "pairStep2": "Ligue a caixinha na tomada e ligue a impressora. A caixinha não tem botão — ela liga sozinha e leva cerca de um minuto até criar a rede.",
     "pairStep3": "Neste celular, entre na rede wifi com o nome que está no cartão da impressora — três palavras, como popcorn-sherbet-dance. Ela não tem senha.",
     "pairStep4": "Escaneie o QR code no cartão, ou abra lumina.local",
     "tapToCopy": "Toque para copiar",
@@ -142,7 +142,13 @@
     "boothLockHint": "O celular da cabine costuma ser o seu, com as suas fotos. Desligue e a cabine não mostra nenhuma saída.",
     "boothExitOn": "Permitir",
     "boothExitOff": "Travar",
-    "boothLockGuided": "Isso esconde a saída, mas deslizar para cima ainda fecha o app. Para travar de verdade, ligue o Acesso Guiado: Ajustes › Acessibilidade › Acesso Guiado, defina uma senha e clique três vezes no botão lateral com a cabine aberta."
+    "guidedTitle": "Travar o celular na cabine",
+    "guidedWhy": "Esconder a saída impede que um convidado saia do modo cabine sem querer. Não impede que deslizar para cima feche o app — nada que roda no navegador consegue. O Acesso Guiado consegue, e já está no celular.",
+    "guidedStep1": "No celular da cabine: Ajustes › Acessibilidade › Acesso Guiado, e ative.",
+    "guidedStep2": "Toque em Ajustes de Senha › Definir Senha do Acesso Guiado, e escolha uma senha que você vá lembrar.",
+    "guidedStep3": "Abra a cabine aqui, clique três vezes no botão lateral e toque em Iniciar.",
+    "guidedStep4": "Para sair: clique três vezes de novo e digite a senha.",
+    "guidedAndroid": "No Android isso se chama fixação de tela: Ajustes › Segurança › Fixação de apps."
   },
   "artwork": {
     "title": "Criar a arte",

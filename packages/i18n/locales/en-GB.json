@@ -111,7 +111,7 @@
     "stopShort": "Stop",
     "unpairShort": "Unpair",
     "pairStep1": "Have your wifi name and password to hand.",
-    "pairStep2": "Plug the printer box in and turn the printer on.",
+    "pairStep2": "Plug in the small box and turn the printer on. The box has no switch — it starts as soon as it has power, and takes about a minute before it offers its network.",
     "pairStep3": "On this phone, join the wifi network named on the printer’s card — three words, like popcorn-sherbet-dance. It has no password.",
     "pairStep4": "Scan the QR code on the card, or open lumina.local",
     "tapToCopy": "Tap to copy",
@@ -142,7 +142,13 @@
     "boothLockHint": "The booth phone is usually yours, with your photos on it. Turn this off and the booth shows no way out.",
     "boothExitOn": "Allow",
     "boothExitOff": "Lock",
-    "boothLockGuided": "This hides the exit, but a swipe up still closes the app. To really lock the phone, turn on Guided Access: Settings › Accessibility › Guided Access, set a passcode, then triple-click the side button once the booth is open."
+    "guidedTitle": "Lock the phone to the booth",
+    "guidedWhy": "Hiding the exit keeps a guest from wandering out of booth mode. It cannot stop a swipe up from closing the app — nothing running in a browser can. Guided Access can, and it is already on the phone.",
+    "guidedStep1": "On the booth phone: Settings › Accessibility › Guided Access, and turn it on.",
+    "guidedStep2": "Tap Passcode Settings › Set Guided Access Passcode, and pick a code you will remember.",
+    "guidedStep3": "Open the booth here, then triple-click the side button and tap Start.",
+    "guidedStep4": "To get out: triple-click again and enter that passcode.",
+    "guidedAndroid": "On Android the same thing is called app pinning: Settings › Security › App pinning."
   },
   "artwork": {
     "title": "Design the artwork",
