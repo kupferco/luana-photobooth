@@ -1,7 +1,6 @@
 import { CLASSIC_3UP, retentionNotice, type Template } from '@photobooth/shared'
 import { useKeepAwake } from 'expo-keep-awake'
 import QRCode from 'react-native-qrcode-svg'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
@@ -11,6 +10,7 @@ import {
   Text,
   View,
   useWindowDimensions,
+  type ViewStyle,
 } from 'react-native'
 import { api, usingFixtures } from '../src/api'
 import { ApiError } from '../src/api/types'
@@ -68,11 +68,32 @@ type Phase =
   | { kind: 'done' }
   | { kind: 'error'; message: string }
 
+/**
+ * The status bar's height, asked of the browser rather than measured.
+ *
+ * `useSafeAreaInsets` reports this correctly on mount and then, coming back
+ * from the camera, drops it to zero a moment later -- so the upright screen
+ * was right for about a second and then slid under the clock. Whatever
+ * provokes the re-measure (the stream stopping, the rotation, the viewport
+ * settling after both) the value it settles on is wrong, and chasing that
+ * from JavaScript means racing a browser that already knows the answer.
+ *
+ * env() is that answer, evaluated by the browser on every paint. It cannot
+ * go stale because nothing caches it, and it needs no provider above this
+ * screen. The floor keeps the heading off the very top edge on a phone with
+ * no inset at all, where env() is legitimately 0.
+ *
+ * Safe to write as CSS because this screen only ever renders on the web:
+ * native builds lock the orientation instead of asking.
+ */
+const SAFE_TOP = {
+  paddingTop: 'max(env(safe-area-inset-top, 0px), 16px)',
+} as unknown as ViewStyle
+
 export default function Booth() {
   const t = useT()
   const theme = useTheme()
   const { width, height } = useWindowDimensions()
-  const insets = useSafeAreaInsets()
   const { active, loading: loadingEvents, error: eventsError } = useActiveEvent()
   const { tenantId } = useSession()
 
@@ -536,7 +557,7 @@ export default function Booth() {
        * heading sat underneath the clock. Landscape never showed it because
        * there is nothing but camera up there.
        */
-      <View style={{ flex: 1, paddingTop: insets.top }}>
+      <View style={[{ flex: 1 }, SAFE_TOP]}>
         <Screen>
           <Heading>{t('booth.rotate')}</Heading>
           <Body muted>{t('booth.rotateHint')}</Body>
