@@ -1,6 +1,7 @@
 import { CLASSIC_3UP, retentionNotice, type Template } from '@photobooth/shared'
 import { useKeepAwake } from 'expo-keep-awake'
 import QRCode from 'react-native-qrcode-svg'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
@@ -71,6 +72,7 @@ export default function Booth() {
   const t = useT()
   const theme = useTheme()
   const { width, height } = useWindowDimensions()
+  const insets = useSafeAreaInsets()
   const { active, loading: loadingEvents, error: eventsError } = useActiveEvent()
   const { tenantId } = useSession()
 
@@ -100,7 +102,6 @@ export default function Booth() {
   const [deleteState, setDeleteState] = useState<'idle' | 'confirm' | 'deleting'>(
     'idle',
   )
-  const [confirmExit, setConfirmExit] = useState(false)
   /**
    * Set when the owner stopped this booth from their phone.
    *
@@ -115,6 +116,11 @@ export default function Booth() {
   // A run in progress must not be interrupted by the poll loop starting
   // another, and the tap handler must not start a second sequence.
   const running = useRef(false)
+  /**
+   * Bumped whenever a session is finished with, so the tail of a run that
+   * has been superseded knows not to tidy up after a newer one.
+   */
+  const generation = useRef(0)
 
   const template: Template = poll?.template ?? CLASSIC_3UP
   const landscape = width > height
@@ -354,8 +360,19 @@ export default function Booth() {
         setFinished({ id: done.id, canPrint: done.canPrint })
         setPrintState('idle')
         setPhase({ kind: 'done' })
+
+        /*
+         * Clear the result after a minute -- unless somebody got there
+         * first.
+         *
+         * Without the check this tail fires regardless, so a guest who
+         * deleted their photo and started another one would have that
+         * second session wiped from under them a minute later, by a timer
+         * belonging to a session that no longer exists.
+         */
+        const mine = generation.current
         await wait(RESULT_TIMEOUT_MS)
-        reset()
+        if (generation.current === mine) reset()
       } catch (e) {
         setPhase({
           kind: 'error',
@@ -369,6 +386,23 @@ export default function Booth() {
   )
 
   const reset = useCallback(() => {
+    /*
+     * The booth is free again, and that has to be said out loud.
+     *
+     * `running` covers the whole sequence including the minute the result
+     * stays on screen, which is right -- it is what stops a queued guest
+     * starting a countdown over somebody else's photo. But it was only
+     * cleared when that minute elapsed, and leaving early does not wait for
+     * it. Delete your photo, or tap to continue, and the booth looked idle
+     * while every way of starting another one was still refused: the tap
+     * returned at the first line, and the poll skipped the next guest.
+     *
+     * It came back by itself once the timer finished, which is why it read
+     * as the camera being stuck rather than as a booth ignoring people.
+     */
+    generation.current += 1
+    running.current = false
+
     setShots((previous) => {
       previous.forEach((s) => {
         if (s.previewUri.startsWith('blob:')) URL.revokeObjectURL(s.previewUri)
@@ -493,31 +527,43 @@ export default function Booth() {
   // a one-time step, and portrait would crop most of the frame away.
   if (Platform.OS === 'web' && !landscape) {
     return (
-      <Screen>
-        <Heading>{t('booth.rotate')}</Heading>
-        <Body muted>{t('booth.rotateHint')}</Body>
-        {/* Same trap as the pairing screen: without this, an error raised
-            while the phone is upright stays invisible until someone happens
-            to rotate it. */}
-        {phase.kind === 'error' ? <Notice tone="bad">{phase.message}</Notice> : null}
+      /*
+       * Padded down past the status bar by hand.
+       *
+       * This route hides the header so the camera can have the whole
+       * screen, and nothing else was putting the inset back -- so upright,
+       * where there is no camera and the page starts at the very top, the
+       * heading sat underneath the clock. Landscape never showed it because
+       * there is nothing but camera up there.
+       */
+      <View style={{ flex: 1, paddingTop: insets.top }}>
+        <Screen>
+          <Heading>{t('booth.rotate')}</Heading>
+          <Body muted>{t('booth.rotateHint')}</Body>
+          {/* Same trap as the pairing screen: without this, an error raised
+              while the phone is upright stays invisible until someone
+              happens to rotate it. */}
+          {phase.kind === 'error' ? <Notice tone="bad">{phase.message}</Notice> : null}
 
-        {/*
-          * The way out, where it costs a guest something to find.
-          *
-          * Upright is not a state the booth is ever in during a party: it
-          * is on a tripod, and turning it over is a deliberate act by
-          * somebody holding it. So this is the owner's door, not a button
-          * a guest brushes past -- and the corner handle stays for anyone
-          * who already knows it.
-          */}
-        {exitAllowed ? (
-          <Button
-            label={t('booth.exit')}
-            variant="secondary"
-            onPress={() => router.back()}
-          />
-        ) : null}
-      </Screen>
+          {/*
+            * The only way out, now that the corner handle is gone.
+            *
+            * That handle was a 1.5s long press on an invisible 72pt square,
+            * which on the web is also how you start selecting text -- so it
+            * mostly highlighted the screen instead of leaving. Upright is a
+            * better door anyway: the booth is on a tripod during a party, so
+            * turning it over is already a deliberate act by somebody holding
+            * the phone, and nothing a guest reaches by accident.
+            */}
+          {exitAllowed ? (
+            <Button
+              label={t('booth.exit')}
+              variant="secondary"
+              onPress={() => router.back()}
+            />
+          ) : null}
+        </Screen>
+      </View>
     )
   }
 
@@ -676,42 +722,6 @@ export default function Booth() {
         </Pressable>
       ) : null}
 
-      {/* Exit handle. Small, cornered and long-press only, so a guest cannot
-          leave booth mode by fumbling -- but the owner is never trapped.
-
-          Gone entirely when the party has the lock on. Hidden was already
-          the design; this is the owner saying hidden is not enough, because
-          the phone holding their photographs is sitting unattended in a
-          room full of people. */}
-      {exitAllowed ? (
-        <Pressable
-          style={styles.exitHandle}
-          onLongPress={() => setConfirmExit(true)}
-          delayLongPress={1500}
-          accessibilityLabel={t('booth.exit')}
-        />
-      ) : null}
-
-      {confirmExit ? (
-        <View style={[styles.fill, styles.scrim, styles.centre, { padding: 24 }]}>
-          <Text style={[styles.caption, { color: '#fff' }]}>{t('booth.exitConfirm')}</Text>
-          <View style={{ width: '100%', maxWidth: 420, gap: 12 }}>
-            <Button
-              label={t('booth.exit')}
-              onPress={() => {
-                setConfirmExit(false)
-                router.back()
-              }}
-            />
-            <Button
-              label={t('common.cancel')}
-              variant="secondary"
-              onPress={() => setConfirmExit(false)}
-            />
-          </View>
-        </View>
-      ) : null}
-
       {phase.kind === 'error' ? (
         <View style={[styles.fill, styles.centre, { padding: 24 }]}>
           <Notice tone="bad">{phase.message}</Notice>
@@ -751,7 +761,6 @@ const styles = StyleSheet.create({
   centreRow: { alignItems: 'center', gap: 2 },
   codeLabel: { fontSize: 13, letterSpacing: 1, textTransform: 'uppercase' },
   hint: { fontSize: 14 },
-  exitHandle: { position: 'absolute', top: 0, left: 0, width: 72, height: 72 },
   caption: { fontSize: 20, fontWeight: weight('600') },
   retention: { fontSize: 15, textAlign: 'center', marginTop: 8 },
   joinBlock: { alignItems: 'center', gap: 10 },
