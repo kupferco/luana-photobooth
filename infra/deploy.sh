@@ -95,9 +95,19 @@ deploy_front() {
   # --clear is not optional here: Metro's cache key ignores EXPO_PUBLIC_*,
   # so without it a prod build happily reuses the staging bundle -- which it
   # did, and shipped a production booth pointing at the staging API.
+  # Stamped into the bundle so a running app can say which build it is.
+  #
+  # Worth the two lines: "I deployed it" and "the phone is running it" are
+  # different claims, and a booth that has been added to the home screen can
+  # sit on a cached shell for days while the server serves something newer.
+  # Without this the only way to tell them apart was to diff a minified
+  # bundle, which is not a thing anyone should do at a party.
   EXPO_PUBLIC_API_URL="$api" \
   EXPO_PUBLIC_API_MODE="live" \
   EXPO_PUBLIC_GUEST_URL="$(cfg "$env" guestUrl)" \
+  EXPO_PUBLIC_ENV="$env" \
+  EXPO_PUBLIC_COMMIT="$(git rev-parse --short HEAD 2>/dev/null || echo unknown)" \
+  EXPO_PUBLIC_BUILD_TIME="$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
     npm run build:web --workspace @photobooth/mobile
 
   # The guest page is its own bundle and its own site: it is the only thing a

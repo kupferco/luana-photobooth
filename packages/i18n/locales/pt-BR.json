@@ -346,7 +346,8 @@
     "appearance": "Aparência",
     "system": "Do sistema",
     "light": "Claro",
-    "dark": "Escuro"
+    "dark": "Escuro",
+    "buildLocal": "v{version} · build local"
   },
   "people": {
     "title": "Quem pode ajudar",

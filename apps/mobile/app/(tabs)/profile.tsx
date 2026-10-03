@@ -5,6 +5,7 @@ import { PeopleCard } from '../../src/people/PeopleCard'
 import { useSession } from '../../src/session'
 import { useAppearance, type Appearance } from '../../src/theme'
 import { Body, Button, Card, Label, Screen } from '../../src/ui'
+import { BuildInfo } from '../../src/ui/BuildInfo'
 
 const LANGUAGES: Record<Locale, string> = {
   'en-GB': 'English',
@@ -62,6 +63,10 @@ export default function Profile() {
           router.replace('/sign-in')
         }}
       />
+
+      {/* Last thing on the screen, under even the sign-out button: it is
+          reference material, not a setting. */}
+      <BuildInfo />
     </Screen>
   )
 }
