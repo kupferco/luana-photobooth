@@ -87,8 +87,17 @@ export interface BoothPoll {
     status: 'draft' | 'live' | 'ended'
     joinCode: string
     retentionUntil: string
+    /** False hides the way out, for a phone left unattended at a party. */
+    boothExitAllowed: boolean
   }
   template: Template | null
+  /**
+   * The party's artwork, signed for reading. Null means the template's flat
+   * colour, which is what every booth showed before this existed.
+   *
+   * The same string comes back for an hour, so polling does not refetch it.
+   */
+  backgroundUrl: string | null
   queueDepth: number
   next: {
     id: string

@@ -212,6 +212,7 @@ export async function updateEvent(
     retentionUntil: Date
     endedAt: Date | null
     retakesAllowed: number
+    boothExitAllowed: boolean
   }>,
 ) {
   const [row] = await db

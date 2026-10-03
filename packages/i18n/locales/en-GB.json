@@ -137,7 +137,12 @@
     "backgroundOnWeb": "Choosing a picture works in the browser. Open this event on a computer.",
     "retakes": "Retakes",
     "retakesHint": "How many times a guest can delete their photo and go again, keeping their place at the front.",
-    "retakesOff": "Off"
+    "retakesOff": "Off",
+    "boothLock": "Leaving booth mode",
+    "boothLockHint": "The booth phone is usually yours, with your photos on it. Turn this off and the booth shows no way out.",
+    "boothExitOn": "Allow",
+    "boothExitOff": "Lock",
+    "boothLockGuided": "This hides the exit, but a swipe up still closes the app. To really lock the phone, turn on Guided Access: Settings › Accessibility › Guided Access, set a passcode, then triple-click the side button once the booth is open."
   },
   "artwork": {
     "title": "Design the artwork",

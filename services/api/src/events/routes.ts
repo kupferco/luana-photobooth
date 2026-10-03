@@ -70,6 +70,8 @@ const PatchBody = z.object({
    * like, which is a queue nobody else gets to the front of.
    */
   retakesAllowed: z.number().int().min(0).max(3).optional(),
+  /** Whether the booth draws a way out of booth mode. */
+  boothExitAllowed: z.boolean().optional(),
 })
 
 const TenantQuery = z.object({ tenantId: z.string().uuid() })
@@ -105,6 +107,7 @@ async function present(
     retentionUntil: event.retentionUntil.toISOString(),
     endedAt: event.endedAt?.toISOString() ?? null,
     retakesAllowed: event.retakesAllowed,
+    boothExitAllowed: event.boothExitAllowed,
     /* How the background was described, when it was made in the studio. */
     artwork: event.artwork ?? null,
     backgroundUrl: event.backgroundPath

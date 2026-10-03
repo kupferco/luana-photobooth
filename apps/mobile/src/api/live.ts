@@ -397,6 +397,15 @@ export const liveApi: PhotoboothApi = {
     return result.event
   },
 
+  async setBoothExit(tenantId, eventId, boothExitAllowed) {
+    const result = await request<{ event: Event }>(
+      'PATCH',
+      `/events/${eventId}?tenantId=${encodeURIComponent(tenantId)}`,
+      { boothExitAllowed },
+    )
+    return result.event
+  },
+
   async backgroundUpload(tenantId, eventId, contentType) {
     return request<BackgroundUpload>(
       'POST',

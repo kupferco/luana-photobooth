@@ -59,6 +59,7 @@ const EVENTS: Event[] = [
     endedAt: null,
     backgroundUrl: null,
     retakesAllowed: 1,
+    boothExitAllowed: true,
     photos: 31,
     prints: 12,
     artwork: {
@@ -88,6 +89,7 @@ const EVENTS: Event[] = [
     endedAt: null,
     backgroundUrl: null,
     retakesAllowed: 1,
+    boothExitAllowed: true,
     photos: 0,
     prints: 0,
     abandoned: 0,
@@ -108,6 +110,7 @@ const EVENTS: Event[] = [
     endedAt: iso(-88),
     backgroundUrl: null,
     retakesAllowed: 1,
+    boothExitAllowed: true,
     photos: 148,
     prints: 96,
     // The party that needed a second booth, so the row that says so can be
@@ -315,6 +318,7 @@ export const fixtureApi: PhotoboothApi = {
       endedAt: null,
       backgroundUrl: null,
     retakesAllowed: 1,
+    boothExitAllowed: true,
     photos: 0,
     prints: 0,
     abandoned: 0,
@@ -397,6 +401,14 @@ export const fixtureApi: PhotoboothApi = {
     const event = EVENTS.find((e) => e.id === eventId)
     if (!event) throw new ApiError('Not found', 'not_found', 404)
     event.retakesAllowed = retakesAllowed
+    return event
+  },
+
+  async setBoothExit(_tenantId, eventId, boothExitAllowed) {
+    await delay()
+    const event = EVENTS.find((e) => e.id === eventId)
+    if (!event) throw new ApiError('Not found', 'not_found', 404)
+    event.boothExitAllowed = boothExitAllowed
     return event
   },
 

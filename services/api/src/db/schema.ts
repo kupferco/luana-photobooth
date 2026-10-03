@@ -280,6 +280,23 @@ export const events = pgTable(
      * off entirely for a busy party.
      */
     retakesAllowed: smallint('retakes_allowed').notNull().default(1),
+    /**
+     * Whether the booth shows a way out of booth mode.
+     *
+     * A booth is usually somebody's own phone on a tripod, holding their
+     * photographs and their messages, left in a room full of people who
+     * have been drinking. Off, the booth offers no exit at all.
+     *
+     * On by default, because a phone that cannot be got out of booth mode
+     * is a frightening thing to hand someone the first time they try this,
+     * and the owner can turn it off for the party itself.
+     *
+     * Worth being honest about what it is: a button that is not drawn. It
+     * stops a guest wandering out of the booth, not someone determined to
+     * get at the phone -- that is what Guided Access is for, and the setup
+     * card says so.
+     */
+    boothExitAllowed: boolean('booth_exit_allowed').notNull().default(true),
     /** What the guest QR code encodes. Short, unique, case-insensitive. */
     joinCode: text('join_code').notNull(),
     status: eventStatus('status').notNull().default('draft'),

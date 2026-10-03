@@ -18,7 +18,7 @@ import { requireDevice } from '../middleware/device'
 import { composeMontage } from '../montage/compose'
 import { hashGuestToken } from '../sessions/routes'
 import { montagePath, rawFramePath } from '../storage/paths'
-import { createUploadTicket, download, exists, upload } from '../storage/gcs'
+import { createReadUrl, createUploadTicket, download, exists, upload } from '../storage/gcs'
 
 export const boothRoutes: Router = Router()
 
@@ -68,6 +68,30 @@ boothRoutes.get('/poll', async (req, res, next) => {
       ? await getTemplate(tenantId, event.templateId)
       : null
 
+    /*
+     * And the artwork, for the same reason and with the same consequence
+     * if it is missing.
+     *
+     * The booth drew its preview on the template's flat colour because the
+     * poll never sent this, so every guest was shown a white print and
+     * handed a different one. The print was always right; the only thing
+     * wrong was the one picture anybody actually looked at.
+     *
+     * Signed per poll, which sounds expensive and is not: createReadUrl
+     * caches by the hour, so a booth polling every two seconds gets the
+     * identical string back and the image is fetched once. It also means
+     * changing the background mid-party reaches the booth on its next
+     * poll, rather than when somebody thinks to restart it.
+     */
+    const backgroundUrl = event.backgroundPath
+      ? await createReadUrl(event.backgroundPath, tenantId).catch((e) => {
+          // Never worth failing a poll over: no poll means no queue, and
+          // no queue means the booth stops taking photographs entirely.
+          console.error('background url could not be signed', e)
+          return null
+        })
+      : null
+
     return res.json({
       event: {
         id: event.id,
@@ -75,8 +99,15 @@ boothRoutes.get('/poll', async (req, res, next) => {
         status: event.status,
         joinCode: event.joinCode,
         retentionUntil: event.retentionUntil.toISOString(),
+        /*
+         * Sent on every poll rather than read once at startup, so turning
+         * the lock on as the first guests arrive reaches a booth that is
+         * already running -- which is exactly when somebody thinks of it.
+         */
+        boothExitAllowed: event.boothExitAllowed,
       },
       template: templateRow ? toTemplate(templateRow) : null,
+      backgroundUrl,
       queueDepth: state.queue.length,
       next: next_
         ? {

@@ -119,6 +119,17 @@ export default function Booth() {
   const template: Template = poll?.template ?? CLASSIC_3UP
   const landscape = width > height
 
+  /*
+   * Whether to draw a way out at all.
+   *
+   * Defaults to allowed while the first poll is in flight, so a booth that
+   * cannot reach the server is not also a phone nobody can get out of. The
+   * failure to protect against is being locked in by a network error, not
+   * a guest who happens to try the corner during the two seconds before
+   * the first poll lands.
+   */
+  const exitAllowed = poll?.event.boothExitAllowed ?? true
+
   /**
    * How wide the montage can be and still leave room for what sits under it.
    *
@@ -489,6 +500,23 @@ export default function Booth() {
             while the phone is upright stays invisible until someone happens
             to rotate it. */}
         {phase.kind === 'error' ? <Notice tone="bad">{phase.message}</Notice> : null}
+
+        {/*
+          * The way out, where it costs a guest something to find.
+          *
+          * Upright is not a state the booth is ever in during a party: it
+          * is on a tripod, and turning it over is a deliberate act by
+          * somebody holding it. So this is the owner's door, not a button
+          * a guest brushes past -- and the corner handle stays for anyone
+          * who already knows it.
+          */}
+        {exitAllowed ? (
+          <Button
+            label={t('booth.exit')}
+            variant="secondary"
+            onPress={() => router.back()}
+          />
+        ) : null}
       </Screen>
     )
   }
@@ -570,6 +598,7 @@ export default function Booth() {
           <MontagePreview
             template={template}
             shotUris={template.cells.map((_, i) => shots[i]?.previewUri ?? null)}
+            backgroundUri={poll?.backgroundUrl ?? null}
             width={montageWidth(64)}
           />
         </View>
@@ -590,6 +619,7 @@ export default function Booth() {
             <MontagePreview
               template={template}
               shotUris={template.cells.map((_, i) => shots[i]?.previewUri ?? null)}
+              backgroundUri={poll?.backgroundUrl ?? null}
               width={montageWidth(doneReserved)}
             />
           </View>
@@ -647,13 +677,20 @@ export default function Booth() {
       ) : null}
 
       {/* Exit handle. Small, cornered and long-press only, so a guest cannot
-          leave booth mode by fumbling -- but the owner is never trapped. */}
-      <Pressable
-        style={styles.exitHandle}
-        onLongPress={() => setConfirmExit(true)}
-        delayLongPress={1500}
-        accessibilityLabel={t('booth.exit')}
-      />
+          leave booth mode by fumbling -- but the owner is never trapped.
+
+          Gone entirely when the party has the lock on. Hidden was already
+          the design; this is the owner saying hidden is not enough, because
+          the phone holding their photographs is sitting unattended in a
+          room full of people. */}
+      {exitAllowed ? (
+        <Pressable
+          style={styles.exitHandle}
+          onLongPress={() => setConfirmExit(true)}
+          delayLongPress={1500}
+          accessibilityLabel={t('booth.exit')}
+        />
+      ) : null}
 
       {confirmExit ? (
         <View style={[styles.fill, styles.scrim, styles.centre, { padding: 24 }]}>

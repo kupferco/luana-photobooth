@@ -137,7 +137,12 @@
     "backgroundOnWeb": "Escolher uma imagem funciona no navegador. Abra este evento em um computador.",
     "retakes": "Repetições",
     "retakesHint": "Quantas vezes um convidado pode apagar a foto e tentar de novo, mantendo o lugar na frente.",
-    "retakesOff": "Desligado"
+    "retakesOff": "Desligado",
+    "boothLock": "Sair do modo cabine",
+    "boothLockHint": "O celular da cabine costuma ser o seu, com as suas fotos. Desligue e a cabine não mostra nenhuma saída.",
+    "boothExitOn": "Permitir",
+    "boothExitOff": "Travar",
+    "boothLockGuided": "Isso esconde a saída, mas deslizar para cima ainda fecha o app. Para travar de verdade, ligue o Acesso Guiado: Ajustes › Acessibilidade › Acesso Guiado, defina uma senha e clique três vezes no botão lateral com a cabine aberta."
   },
   "artwork": {
     "title": "Criar a arte",

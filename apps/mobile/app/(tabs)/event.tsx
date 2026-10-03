@@ -802,6 +802,49 @@ export default function EventTab() {
             </View>
           ) : null}
 
+          {/*
+            * The booth lock.
+            *
+            * A booth is usually the owner's own phone, left on a tripod in
+            * a room full of people who have been drinking, holding their
+            * photographs and their messages. This is the setting that says
+            * so out loud.
+            *
+            * The hint is deliberately specific about what this does not
+            * do. It hides a button; it cannot stop the home gesture,
+            * because nothing running in a browser can. Guided Access can,
+            * and someone trusting this with their own phone deserves to be
+            * told which of the two they have turned on.
+            */}
+          {open ? (
+            <View style={{ gap: 6, paddingTop: 12 }}>
+              <Label>{t('dashboard.boothLock')}</Label>
+              <Body muted>{t('dashboard.boothLockHint')}</Body>
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                {([true, false] as const).map((allowed) => (
+                  <View key={String(allowed)} style={{ flex: 1, minWidth: 0 }}>
+                    <Button
+                      label={t(allowed ? 'dashboard.boothExitOn' : 'dashboard.boothExitOff')}
+                      variant={event.boothExitAllowed === allowed ? 'primary' : 'secondary'}
+                      onPress={async () => {
+                        try {
+                          setEvent(await api.setBoothExit(tenantId!, event.id, allowed))
+                        } catch (err) {
+                          setLoadError(err instanceof Error ? err.message : String(err))
+                        }
+                      }}
+                    />
+                  </View>
+                ))}
+              </View>
+              {/* Only once the lock is on: before that it is advice about a
+                  problem they have not got. */}
+              {!event.boothExitAllowed ? (
+                <Notice tone="warn">{t('dashboard.boothLockGuided')}</Notice>
+              ) : null}
+            </View>
+          ) : null}
+
           {open ? (
           <Button
             label={t('dashboard.setUpNewPrinter')}

@@ -1,0 +1,1 @@
+ALTER TABLE "events" ADD COLUMN "booth_exit_allowed" boolean DEFAULT true NOT NULL;

@@ -40,6 +40,8 @@ export interface Event {
   backgroundUrl: string | null
   /** How many times a guest may delete their photo and go again. */
   retakesAllowed: number
+  /** False hides every way out of booth mode on the booth phone. */
+  boothExitAllowed: boolean
   /**
    * How this party's background was described, if it was made in the studio.
    * Null for an uploaded picture, which has no description.
@@ -226,6 +228,8 @@ export interface PhotoboothApi {
 
   /** How many retakes a guest gets. 0 turns them off for a busy party. */
   setRetakes(tenantId: string, eventId: string, retakesAllowed: number): Promise<Event>
+  /** Whether the booth draws a way out of booth mode. */
+  setBoothExit(tenantId: string, eventId: string, allowed: boolean): Promise<Event>
 
   setEventStatus(
     tenantId: string,
